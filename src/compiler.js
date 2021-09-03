@@ -58,7 +58,7 @@ module.exports = async function compile(fileName, ctx) {
             lastLineAllowsCommand = false;
         } else if (l.type == "step") {
             const traceStep = {
-                type: "step"
+                // type: "step"
             };
             try {
                 if (l.assignment) {
@@ -71,7 +71,7 @@ module.exports = async function compile(fileName, ctx) {
             } catch (err) {
                 error(l, err);
             }
-            traceStep.lineNum = ctx.out.length;
+            // traceStep.lineNum = ctx.out.length;
             traceStep.line = l;
             ctx.out.push(traceStep);
             if (pendingCommands.length>0) {
@@ -158,7 +158,7 @@ function processAssignmentIn(inputs) {
     for (i=0; i<inputs.length; i++) {
         if (inputs[i].type == "TAG") {
             if (typeof res.freeInTag !== "undefined") throw new Error("Two freeInput tagas defined");
-            res.freeInTag = inputs[i].tag;
+            res.freeInTag = inputs[i].tag ? command_parser.parse(inputs[i].tag) : {};
             if (inputs[i].sign == '-') throw new Error("Free inputs cannnot be negative");
             res.inFREE = 1;
         } else if (inputs[i].type == "REG") {
