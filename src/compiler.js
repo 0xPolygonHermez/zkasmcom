@@ -1,7 +1,7 @@
 const path = require("path");
 const fs = require("fs");
-const uasm_parser = require("./uasm_parser.js").parser;
-const tag_parser = require("./tag_parser.js").parser;
+const zkasm_parser = require("../build/zkasm_parser.js").parser;
+const command_parser = require("../build//command_parser.js").parser;
 const { type } = require("os");
 
 module.exports = async function compile(fileName, ctx) {
@@ -26,7 +26,7 @@ module.exports = async function compile(fileName, ctx) {
 
     const src = await fs.promises.readFile(fullFileName, "utf8") + "\n";
 
-    const lines = uasm_parser.parse(src);
+    const lines = zkasm_parser.parse(src);
 
     let pendingCommands = [];
     let lastLineAllowsCommand = false;
@@ -143,7 +143,7 @@ module.exports = async function compile(fileName, ctx) {
         if (Array.isArray(cmdList )) {
             for (let i=0; i<cmdList.length; i++) {
                 if (cmdList[i]) {
-                    cmdList[i] = tag_parser.parse(cmdList[i])
+                    cmdList[i] = command_parser.parse(cmdList[i])
                 } else {
                     cmdList[i] = {op: "default"}
                 }

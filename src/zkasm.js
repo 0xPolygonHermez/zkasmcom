@@ -1,11 +1,11 @@
 const path = require("path");
 const fs = require("fs");
 const version = require("../package").version;
-const compile = require("./uasm_compiler.js");
+const compile = require("./compiler.js");
 
 const argv = require("yargs")
     .version(version)
-    .usage("uasm <source.asm> -o <output.bin>")
+    .usage("zkasm <source.zkasm> -o <output.json>")
     .alias("o", "output")
     .argv;
 
@@ -23,7 +23,7 @@ async function run() {
     }
 
     const fullFileName = path.resolve(process.cwd(), inputFile);
-    const fileName = path.basename(fullFileName, ".asm");
+    const fileName = path.basename(fullFileName, ".zkasm");
 
     const outputFile = typeof(argv.output) === "string" ?  argv.output : fileName + ".json";
 
