@@ -1,0 +1,25 @@
+{
+  "name": "zkasm",
+  "version": "0.0.1",
+  "description": "zkASM compiler",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build_parser_zkasm": "mkdir -p build; ./node_modules/.bin/jison src/zkasm_parser.jison -o build/zkasm_parser.js",
+    "build_parser_command": "mkdir -p build; ./node_modules/.bin/jison src/command_parser.jison -o build/command_parser.js",
+    "build": "npm run build_parser_zkasm && npm run build_parser_command"
+  },
+  "keywords": [
+    "zero",
+    "knowledge",
+    "zkevm",
+    "ethereum",
+    "hermez",
+    "polygon"
+  ],
+  "author": "Jordi Baylina",
+  "license": "GPL-3.0",
+  "devDependencies": {
+    "jison": "^0.4.18"
+  }
+}
