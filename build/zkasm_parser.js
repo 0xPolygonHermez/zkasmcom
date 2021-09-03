@@ -71,7 +71,7 @@
     recoverable: (boolean: TRUE when the parser has a error recovery rule available for this particular error)
   }
 */
-var uasm_parser = (function(){
+var zkasm_parser = (function(){
 var o=function(k,v,o,l){for(o=o||{},l=k.length;l--;o[k[l]]=v);return o},$V0=[1,9],$V1=[1,11],$V2=[1,12],$V3=[1,13],$V4=[1,15],$V5=[1,30],$V6=[1,14],$V7=[1,18],$V8=[1,19],$V9=[1,21],$Va=[1,23],$Vb=[1,28],$Vc=[1,24],$Vd=[1,25],$Ve=[1,26],$Vf=[1,27],$Vg=[1,29],$Vh=[1,31],$Vi=[1,32],$Vj=[1,33],$Vk=[1,34],$Vl=[1,35],$Vm=[1,36],$Vn=[5,12,14,16,17,19,21,22,28,30,31,33,46,53,54,55,56,57,58,59,60,61,62,63],$Vo=[1,43],$Vp=[1,44],$Vq=[1,45],$Vr=[1,46],$Vs=[1,47],$Vt=[1,48],$Vu=[1,49],$Vv=[1,50],$Vw=[1,51],$Vx=[1,52],$Vy=[1,53],$Vz=[1,54],$VA=[12,14],$VB=[12,14,21,25,28,30,31,33,46,53,54,55,56,57,58,59,60,61,62,63],$VC=[12,14,21,25,28,30,31,33,34,46,53,54,55,56,57,58,59,60,61,62,63],$VD=[1,66],$VE=[12,34],$VF=[1,86],$VG=[1,80],$VH=[1,81],$VI=[1,82],$VJ=[1,83],$VK=[1,84],$VL=[1,85],$VM=[1,89],$VN=[1,90],$VO=[12,14,34];
 var parser = {trace: function trace () { },
 yy: {},
@@ -1000,9 +1000,9 @@ return new Parser;
 
 
 if (typeof require !== 'undefined' && typeof exports !== 'undefined') {
-exports.parser = uasm_parser;
-exports.Parser = uasm_parser.Parser;
-exports.parse = function () { return uasm_parser.parse.apply(uasm_parser, arguments); };
+exports.parser = zkasm_parser;
+exports.Parser = zkasm_parser.Parser;
+exports.parse = function () { return zkasm_parser.parse.apply(zkasm_parser, arguments); };
 exports.main = function commonjsMain (args) {
     if (!args[1]) {
         console.log('Usage: '+args[0]+' FILE');

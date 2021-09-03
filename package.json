@@ -1,6 +1,9 @@
 {
   "name": "zkasm",
   "version": "0.0.1",
+  "bin": {
+      "zkasm": "src/zkasm.js" 
+  },
   "description": "zkASM compiler",
   "main": "index.js",
   "scripts": {
