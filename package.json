@@ -28,5 +28,8 @@
   },
   "devDependencies": {
     "jison": "^0.4.18"
+  },
+  "dependencies": {
+    "yargs": "^17.1.1"
   }
 }
