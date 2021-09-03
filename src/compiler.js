@@ -71,7 +71,7 @@ module.exports = async function compile(fileName, ctx) {
             } catch (err) {
                 error(l, err);
             }
-            traceStep.step = ctx.out.length;
+            traceStep.lineNum = ctx.out.length;
             traceStep.line = l;
             ctx.out.push(traceStep);
             if (pendingCommands.length>0) {
@@ -133,7 +133,7 @@ module.exports = async function compile(fileName, ctx) {
                 err.message = "Error parsing tag: " + err.message;
                 error(ctx.out[i].line, err);
             }
-            delete ctx.out[i].line;
+            ctx.out[i].line = ctx.out[i].step;
         }
         
         return ctx.out;
