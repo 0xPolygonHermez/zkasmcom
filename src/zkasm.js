@@ -16,7 +16,6 @@ async function run() {
     if (argv._.length == 0) {
         console.log("Only one circuit at a time is permited");
         process.exit(1);
-        inputFile = "circuit.circom";
     } else if (argv._.length == 1) {
         inputFile = argv._[0];
     } else  {
