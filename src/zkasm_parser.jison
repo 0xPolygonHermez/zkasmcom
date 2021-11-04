@@ -28,9 +28,12 @@ HASHE                   { return 'HASHE' }
 ECRECOVER               { return 'ECRECOVER' }
 JMP                     { return 'JMP' }
 JMPC                    { return 'JMPC' }
-ASSERTAB                { return 'ASSERTAB' }
+ASSERT                  { return 'ASSERT' }
 SLOAD                   { return 'SLOAD' }
 SSTORE                  { return 'SSTORE' }
+ARITH                   { return 'ARITH' }
+SHL                     { return 'SHL' }
+SHR                     { return 'SHR' }
 INST_MAP_ROM            { return 'INST_MAP_ROM' }
 SYS                     { return 'SYS' }
 MEM                     { return 'MEM' }
@@ -294,9 +297,9 @@ op
         {
             $$ = {JMPC: 1, ind: 1, offset: 0}
         }
-    | ASSERTAB
+    | ASSERT
         {
-            $$ = {assertAB: 1}
+            $$ = {assert: 1}
         }
     | ECRECOVER
         {
@@ -306,9 +309,21 @@ op
         {
             $$ = {sRD: 1}
         }
-    | STORE
+    | SSTORE
         {
             $$ = {sWR: 1}
+        }
+    | ARITH 
+        {
+            $$ = { arith: 1}
+        }
+    | SHL 
+        {
+            $$ = { shl: 1}
+        }
+    | SHR 
+        {
+            $$ = { shr: 1}
         }
     | INST_MAP_ROM
         {

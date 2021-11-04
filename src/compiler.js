@@ -3,6 +3,7 @@ const fs = require("fs");
 const zkasm_parser = require("../build/zkasm_parser.js").parser;
 const command_parser = require("../build//command_parser.js").parser;
 const { type } = require("os");
+const { trace } = require("console");
 
 module.exports = async function compile(fileName, ctx) {
 
@@ -117,9 +118,9 @@ module.exports = async function compile(fileName, ctx) {
                         error(ctx.out[i].line, `Variable: ${ctx.out[i].offset} not defined.`);
                     }
                     if (ctx.vars[ctx.out[i].offset].scope === 'CTX') {
-                        ctx.out[i].sys = 0;
+                        ctx.out[i].useCTX = 1;
                     } else if (ctx.vars[ctx.out[i].offset].scope === 'GLOBAL') {
-                        ctx.out[i].sys = 1;
+                        ctx.out[i].useCTX = 0;
                     } else {
                         error(ctx.out[i].line, `Invalid variable scpoe: ${ctx.out[i].offset} not defined.`);
                     }               
@@ -133,7 +134,8 @@ module.exports = async function compile(fileName, ctx) {
                 err.message = "Error parsing tag: " + err.message;
                 error(ctx.out[i].line, err);
             }
-            ctx.out[i].line = ctx.out[i].step;
+            ctx.out[i].fileName = ctx.out[i].line.fileName;
+            ctx.out[i].line = ctx.out[i].line.line;
         }
         
         return ctx.out;
@@ -145,7 +147,7 @@ module.exports = async function compile(fileName, ctx) {
                 if (cmdList[i]) {
                     cmdList[i] = command_parser.parse(cmdList[i])
                 } else {
-                    cmdList[i] = {op: "default"}
+                    cmdList[i] = {op: ""}
                 }
             }
         }
@@ -155,18 +157,27 @@ module.exports = async function compile(fileName, ctx) {
 
 function processAssignmentIn(inputs) {
     const res = {};
+    let isNeg=false;
+    let isPos=false;
     for (i=0; i<inputs.length; i++) {
         if (inputs[i].type == "TAG") {
             if (typeof res.freeInTag !== "undefined") throw new Error("Two freeInput tagas defined");
-            res.freeInTag = inputs[i].tag ? command_parser.parse(inputs[i].tag) : {};
+            res.freeInTag = inputs[i].tag ? command_parser.parse(inputs[i].tag) : { op: ""};
             if (inputs[i].sign == '-') throw new Error("Free inputs cannnot be negative");
             res.inFREE = 1;
         } else if (inputs[i].type == "REG") {
             if (typeof res["in"+ inputs[i].reg] !== "undefined") throw new Error(`Register ${inputs[i].reg} added twice in asssignment input`);
-            res["in"+ inputs[i].reg] = inputs[i].sign == '-' ? -1 : 1;
+
+            res["in"+ inputs[i].reg] = 1;
+            
+            if (inputs[i].sign == '-') {
+                isNeg=true;
+            } else {
+                isPos=true;
+            };
         } else if (inputs[i].type == "CONST") {
             if (typeof res.CONST === "undefined") res.CONST = 0;
-            if (inputs[i].sign = "-") {
+            if (inputs[i].sign == "-") {
                 res.CONST -= Number(inputs[i].const)
             } else {
                 res.CONST += Number(inputs[i].const)
@@ -178,6 +189,13 @@ function processAssignmentIn(inputs) {
         if (v<0) throw new Error("Input constant overflow (neg) ");
         if (v>=0x100000000) throw new Error("Input constant overflow (pos) ");
         if (res.freeInTag) throw new Error("FreeInTag and const makes no sense");
+    }
+    if (isNeg && isPos) throw new Error("Mix of positive and negative signs in registes are not allowed");
+    if (isNeg) {
+        res.neg=1;
+        res.CONST = -res.CONST;
+    } else {
+        res.neg=0;
     }
     return res;
 }

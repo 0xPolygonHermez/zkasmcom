@@ -66,7 +66,7 @@ expression
 e5
     : leftExpression '=' e5
         {
-            $$ = { op: "setVar", varName: $1.varName, values: [$3] };
+            $$ = { op: "setVar", values: [$1, $3] };
         }
     | e4 %prec EMPTY
         {
@@ -144,6 +144,10 @@ e0
         {
             $$ = {op: "number", num: $1 }
         }
+    | reg
+        {
+            $$ = {op: "getReg", regName: $1}
+        }
     | '(' expression ')'
         {
             $$ = $2;
@@ -154,10 +158,6 @@ leftExpression
     : VAR IDENTIFIER
         {
             $$ = {op: "declareVar", varName: $2}
-        }
-    | reg
-        {
-            $$ = {op: "getReg", regName: $1}
         }
     | IDENTIFIER
         {
