@@ -4,6 +4,7 @@ const zkasm_parser = require("../build/zkasm_parser.js").parser;
 const command_parser = require("../build//command_parser.js").parser;
 const { type } = require("os");
 const { trace } = require("console");
+const { r1cs } = require("snarkjs");
 
 module.exports = async function compile(fileName, ctx) {
 
@@ -154,50 +155,78 @@ module.exports = async function compile(fileName, ctx) {
     }
 }
 
-
-function processAssignmentIn(inputs) {
+function processAssignmentIn(input) {
     const res = {};
-    let isNeg=false;
-    let isPos=false;
-    for (i=0; i<inputs.length; i++) {
-        if (inputs[i].type == "TAG") {
-            if (typeof res.freeInTag !== "undefined") throw new Error("Two freeInput tagas defined");
-            res.freeInTag = inputs[i].tag ? command_parser.parse(inputs[i].tag) : { op: ""};
-            if (inputs[i].sign == '-') throw new Error("Free inputs cannnot be negative");
-            res.inFREE = 1;
-        } else if (inputs[i].type == "REG") {
-            if (typeof res["in"+ inputs[i].reg] !== "undefined") throw new Error(`Register ${inputs[i].reg} added twice in asssignment input`);
-
-            res["in"+ inputs[i].reg] = 1;
-            
-            if (inputs[i].sign == '-') {
-                isNeg=true;
-            } else {
-                isPos=true;
-            };
-        } else if (inputs[i].type == "CONST") {
-            if (typeof res.CONST === "undefined") res.CONST = 0;
-            if (inputs[i].sign == "-") {
-                res.CONST -= Number(inputs[i].const)
-            } else {
-                res.CONST += Number(inputs[i].const)
-            }
+    let E1, E2;
+    if (input.type == "TAG") {
+        res.freeInTag = input.tag ? command_parser.parse(input.tag) : { op: ""};
+        res.inFREE = 1;
+        return res;
+    }
+    if (input.type == "REG") {
+        res["in"+ input.reg] = 1;
+        return res;
+    }
+    if (input.type == "CONST") {
+        res.CONST = Number(input.const);
+        return res;
+    }
+    if ((input.type == "add") || (input.type == "sub") || (input.type == "neg") || (input.type == "mul")) {
+        E1 = processAssignmentIn(input.values[0]);
+    }
+    if ((input.type == "add") || (input.type == "sub") || (input.type == "mul")) {
+        E2 = processAssignmentIn(input.values[1]);
+    }
+    if (input.type == "mul") {
+        if (isConstant(E1)) {
+            Object.keys(E2).forEach(function(key) {
+                E2[key] *= E1.CONST;
+            });
+            return E2;
+        } else if (isConstant(E2)) {
+            Object.keys(E1).forEach(function(key) {
+                E1[key] *= E2.CONST;
+            });          
+            return E1;   
+        } else {
+            throw new Error("Multiplication not allowed in input");
         }
     }
-    if (typeof(res.CONST) !== "undefined") {
-        const v = res.const + 0x80000000;
-        if (v<0) throw new Error("Input constant overflow (neg) ");
-        if (v>=0x100000000) throw new Error("Input constant overflow (pos) ");
-        if (res.freeInTag) throw new Error("FreeInTag and const makes no sense");
+    if (input.type == "neg") {
+        Object.keys(E1).forEach(function(key) {
+            E1[key] = -E1[key];
+        });
+        return E1;
     }
-    if (isNeg && isPos) throw new Error("Mix of positive and negative signs in registes are not allowed");
-    if (isNeg) {
-        res.neg=1;
-        res.CONST = -res.CONST;
-    } else {
-        res.neg=0;
+    if (input.type == "sub") {
+        Object.keys(E2).forEach(function(key) {
+            if (key != "freeInTag") {
+                E2[key] = -E2[key];
+            }
+        });
+        input.type = "add";
     }
-    return res;
+    if (input.type == "add") {
+        if (E1.freeInTag && E2.freeInTag) throw new Error("Only one tag allowed");
+        Object.keys(E2).forEach(function(key) {
+            if (E1[key]) {
+                E1[key] += E2[key];
+            } else {
+                E1[key] = E2[key];
+            }
+        });
+        return E1;
+    }
+    throw new Error( `Invalid type: ${input.type}`);
+
+
+    function isConstant(o) {
+        res = true;
+        Object.keys(o).forEach(function(key) {
+            if (key != "CONST") res = false;
+        });
+        return res;
+    }
 }
 
 function processAssignmentOut(outputs) {

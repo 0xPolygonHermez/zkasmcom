@@ -26,7 +26,7 @@ async function run() {
     const fullFileName = path.resolve(process.cwd(), inputFile);
     const fileName = path.basename(fullFileName, ".zkasm");
 
-    const outputFile = typeof(argv.output) === "string" ?  argv.output : fileName + ".json";
+    const outputFile = typeof(argv.output) === "string" ?  argv.output.trim() : fileName + ".json";
 
     const out = await compile(fullFileName);
 
