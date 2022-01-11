@@ -4,7 +4,6 @@ const zkasm_parser = require("../build/zkasm_parser.js").parser;
 const command_parser = require("../build//command_parser.js").parser;
 const { type } = require("os");
 const { trace } = require("console");
-const { r1cs } = require("snarkjs");
 
 module.exports = async function compile(fileName, ctx) {
 
