@@ -53,6 +53,8 @@ CTX                     { return 'CTX' }
 \-\-                    { return '--'}
 \+                      { return '+'}
 \-                      { return '-'}
+\*\*                    { return '**'}
+\*                      { return '*'}
 \=\>                    { return '=>' }
 <<EOF>>                 { return 'EOF'; }
 .                       { /* console.log("INVALID: " + yytext); */ return 'INVALID'; }
@@ -226,6 +228,11 @@ inReg
     | reg
         {
             $$ = {type: 'REG' , reg: $1}
+        }
+
+    | NUMBER '**' NUMBER
+        {
+            $$ = {type: "exp", values: [$1, $3]}
         }
     | NUMBER
         {

@@ -27,6 +27,7 @@
     "url": "https://github.com/hermeznetwork/zkasm.git"
   },
   "devDependencies": {
+    "ffjavascript": "^0.2.46",
     "jison": "^0.4.18"
   },
   "dependencies": {

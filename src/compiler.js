@@ -4,6 +4,7 @@ const zkasm_parser = require("../build/zkasm_parser.js").parser;
 const command_parser = require("../build//command_parser.js").parser;
 const { type } = require("os");
 const { trace } = require("console");
+const stringifyBigInts = require("ffjavascript").utils.stringifyBigInts;
 
 module.exports = async function compile(fileName, ctx) {
 
@@ -137,6 +138,8 @@ module.exports = async function compile(fileName, ctx) {
             ctx.out[i].fileName = ctx.out[i].line.fileName;
             ctx.out[i].line = ctx.out[i].line.line;
         }
+
+        ctx.out = stringifyBigInts(ctx.out);
         
         return ctx.out;
     }
@@ -159,16 +162,21 @@ function processAssignmentIn(input) {
     let E1, E2;
     if (input.type == "TAG") {
         res.freeInTag = input.tag ? command_parser.parse(input.tag) : { op: ""};
-        res.inFREE = 1;
+        res.inFREE = 1n;
         return res;
     }
     if (input.type == "REG") {
-        res["in"+ input.reg] = 1;
+        res["in"+ input.reg] = 1n;
         return res;
     }
     if (input.type == "CONST") {
-        res.CONST = Number(input.const);
+        res.CONST = BigInt(input.const);
         return res;
+    }
+    if (input.type == "exp") {
+        res.CONST = BigInt(input.values[0])**BigInt(input.values[1]);
+        return res;
+
     }
     if ((input.type == "add") || (input.type == "sub") || (input.type == "neg") || (input.type == "mul")) {
         E1 = processAssignmentIn(input.values[0]);
@@ -216,11 +224,12 @@ function processAssignmentIn(input) {
         });
         return E1;
     }
+
     throw new Error( `Invalid type: ${input.type}`);
 
 
     function isConstant(o) {
-        res = true;
+        let res = true;
         Object.keys(o).forEach(function(key) {
             if (key != "CONST") res = false;
         });
