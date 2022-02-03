@@ -139,9 +139,12 @@ module.exports = async function compile(fileName, ctx) {
             ctx.out[i].line = ctx.out[i].line.line;
         }
 
-        ctx.out = stringifyBigInts(ctx.out);
+        const res = {
+            program:  stringifyBigInts(ctx.out),
+            labels: ctx.definedLabels
+        }
         
-        return ctx.out;
+        return res;
     }
 
     function parseCommands(cmdList) {
