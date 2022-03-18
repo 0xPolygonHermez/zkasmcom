@@ -317,52 +317,48 @@ case 51:
 break;
 case 65:
 
-            this.$ = { isStack: 1, isCode: 0, ind:0, incCode:0, incStack:0, offset: 0}
+            this.$ = { isStack: 1, isCode: 0, isMem:0, ind:0, incCode:0, incStack:0, offset: 0, useCTX: 1}
         
 break;
 case 66:
 
-            this.$ = { isStack: 1, isCode: 0, ind:0, incCode:0, incStack: 0, offset: $$[$0]}
-        
+            this.$ = { isStack: 1, isCode: 0, isMem:0, ind:0, incCode:0, incStack: 0, offset: $$[$0], useCTX: 1}
 break;
 case 67:
 
-            this.$ = { isStack: 1, isCode: 0, ind:0, incCode:0, incStack: 0, offset: -$$[$0]}
-        
+            this.$ = { isStack: 1, isCode: 0, isMem:0, ind:0, incCode:0, incStack: 0, offset: -$$[$0], useCTX: 1}
 break;
 case 68:
 
-            this.$ = { isStack: 1, isCode: 0, ind:0, incCode:1, incStack: 1, offset: 0}
-        
+            this.$ = { isStack: 1, isCode: 0, isMem:0, ind:0, incStack: 1, offset: 0, useCTX: 1}
 break;
 case 69:
 
-            this.$ = { isStack: 1, isCode: 0, ind:0, incCode:0, incStack: -1, offset: 0}
-        
+            this.$ = { isStack: 1, isCode: 0, isMem:0, ind:0, incCode:0, incStack: -1, offset: 0, useCTX: 1}
 break;
 case 70:
 
-            this.$ = { isStack: 0, isCode: 1, ind:0, incCode:0, incStack: 0, offset: 0}
+            this.$ = { isStack: 0, isCode: 1, isMem:0, ind:0, incCode:0, incStack: 0, offset: 0, useCTX: 1}
         
 break;
 case 71:
 
-            this.$ = { isStack: 0, isCode: 1, ind:0, incCode:0, incStack: 0, offset: $$[$0]}
+            this.$ = { isStack: 0, isCode: 1, isMem:0, ind:0, incCode:0, incStack: 0, offset: $$[$0], useCTX: 1}
         
 break;
 case 72:
 
-            this.$ = { isStack: 0, isCode: 1, ind:0, incCode:0, incStack: 0, offset: -$$[$0]}
+            this.$ = { isStack: 0, isCode: 1, isMem:0, ind:0, incCode:0, incStack: 0, offset: -$$[$0], useCTX: 1}
         
 break;
 case 73:
 
-            this.$ = { isStack: 0, isCode: 1, ind:0, incCode:1, incStack: 0, offset: 0}
+            this.$ = { isStack: 0, isCode: 1, isMem:0, ind:0, incCode:1, incStack: 0, offset: 0, useCTX: 1}
         
 break;
 case 74:
 
-            this.$ = { isStack: 0, isCode: 1, ind:0, incCode:-1, incStack: 0, offset: 0}
+            this.$ = { isStack: 0, isCode: 1, isMem:0, ind:0, incCode:-1, incStack: 0, offset: 0, useCTX: 1}
         
 break;
 case 75:
@@ -380,34 +376,49 @@ case 77:
             this.$ = { isStack: 0, isCode: 0, ind:1, iincCodenc:0, incStack: 0, offset: 0}
         
 break;
-case 78: case 84:
+case 78:
 
-            this.$ = { isStack: 1, isCode: 1, ind:1, incCode:0, incStack: 0, offset: $$[$0]}
+            this.$ = { isStack: 0, isMem: 1, isCode: 0, ind:1, incCode:0, incStack: 0, offset: $$[$0], useCTX: 1}
         
 break;
-case 79: case 85:
+case 79:
 
-            this.$ = { isStack: 1, isCode: 1, ind:1, incCode:0, incStack: 0, offset: -$$[$0]}
+            this.$ = { isStack: 0, isMem: 1, isCode: 0, ind:1, incCode:0, incStack: 0, offset: -$$[$0], useCTX: 1}
         
 break;
-case 80: case 86:
+case 80:
 
-            this.$ = { isStack: 1, isCode: 1, ind:1, incCode:0, incStack: 0, offset: 0}
+            this.$ = { isStack: 0, isMem: 1, isCode: 0, ind:1, incCode:0, incStack: 0, offset: 0, useCTX: 1}
         
 break;
 case 81:
 
-            this.$ = { isStack: 0, isCode: 1, ind:1, incCode:0, incStack: 0, offset: $$[$0]}
+            this.$ = { isStack: 0, isCode: 1, ind:1, incCode:0, incStack: 0, offset: $$[$0], useCTX: 1}
         
 break;
 case 82:
 
-            this.$ = { isStack: 0, isCode: 1, ind:1, incCode:0, incStack: 0, offset: -$$[$0]}
+            this.$ = { isStack: 0, isCode: 1, ind:1, incCode:0, incStack: 0, offset: -$$[$0], useCTX: 1}
         
 break;
 case 83:
 
-            this.$ = { isStack: 0, isCode: 1, ind:1, incCode:0, incStack: 0, offset: 0}
+            this.$ = { isStack: 0, isCode: 1, ind:1, incCode:0, incStack: 0, offset: 0, useCTX: 1}
+        
+break;
+case 84:
+
+            this.$ = { isStack: 1, isCode: 0, ind:1, incCode:0, incStack: 0, offset: $$[$0], useCTX: 1}
+        
+break;
+case 85:
+
+            this.$ = { isStack: 1, isCode: 0, ind:1, incCode:0, incStack: 0, offset: -$$[$0], useCTX: 1}
+        
+break;
+case 86:
+
+            this.$ = { isStack: 1, isCode: 0, ind:1, incCode:0, incStack: 0, offset: 0, useCTX: 1}
         
 break;
 case 87:

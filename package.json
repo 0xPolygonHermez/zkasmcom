@@ -1,5 +1,5 @@
 {
-  "name": "@hermeznetwork/zkasm",
+  "name": "zkasm",
   "version": "0.0.12",
   "bin": {
     "zkasm": "src/zkasm.js"
