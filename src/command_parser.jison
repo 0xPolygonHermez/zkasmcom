@@ -1,7 +1,7 @@
 /* lexical grammar */
 %lex
 %%
-(0x[0-9A-Fa-f][0-9A-Fa-f_]*)|([0-9][0-9_]*)          { yytext = Number(yytext.replace(/\_/g, "")); return 'NUMBER'; }
+(0x[0-9A-Fa-f][0-9A-Fa-f_]*)|([0-9][0-9_]*)          { yytext = BigInt(yytext.replace(/\_/g, "")); return 'NUMBER'; }
 [ \t\r\n]+                  { /* console.log("Empty spaces"); */ }
 A                       { return 'A'; }
 B                       { return 'B'; }

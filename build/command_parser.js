@@ -659,7 +659,7 @@ options: {},
 performAction: function anonymous(yy,yy_,$avoiding_name_collisions,YY_START) {
 var YYSTATE=YY_START;
 switch($avoiding_name_collisions) {
-case 0: yy_.yytext = Number(yy_.yytext.replace(/\_/g, "")); return 20; 
+case 0: yy_.yytext = BigInt(yy_.yytext.replace(/\_/g, "")); return 20; 
 break;
 case 1: /* console.log("Empty spaces"); */ 
 break;

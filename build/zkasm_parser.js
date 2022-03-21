@@ -920,7 +920,7 @@ var YYSTATE=YY_START;
 switch($avoiding_name_collisions) {
 case 0: /* console.log("COMMENT: "+yy_.yytext) */ 
 break;
-case 1: yy_.yytext = Number(yy_.yytext.replace(/\_/g, "")); return 34; 
+case 1: yy_.yytext = BigInt(yy_.yytext.replace(/\_/g, "")); return 34; 
 break;
 case 2: yy_.yytext = yy_.yytext.slice(3, -1); return "COMMAND"; 
 break;
