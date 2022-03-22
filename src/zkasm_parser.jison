@@ -314,7 +314,7 @@ op
         }
     | RETURN
         {
-            $$ = {JMPC: 1, ind: 1, offset: 0}
+            $$ = {JMP: 1, ind: 1, offset: 0}
         }
     | ASSERT
         {

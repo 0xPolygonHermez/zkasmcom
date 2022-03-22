@@ -260,7 +260,7 @@ case 40:
             this.$ = {JMP: 1, offset: $$[$0-1]}
         
 break;
-case 41:
+case 41: case 45:
 
             this.$ = {JMP: 1, ind: 1, offset: 0}
         
@@ -275,7 +275,7 @@ case 43:
             this.$ = {JMP: 1, offset: $$[$0-1], assignment: { in: {type: 'add', values: [{type: 'REG', reg: 'zkPC'}, {type: 'CONST', const: 1}] }, out:['RR']}}
         
 break;
-case 44: case 45:
+case 44:
 
             this.$ = {JMPC: 1, ind: 1, offset: 0}
         
