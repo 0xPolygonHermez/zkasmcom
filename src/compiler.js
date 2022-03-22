@@ -64,7 +64,7 @@ module.exports = async function compile(fileName, ctx) {
             };
             try {
                 if (l.assignment) {
-                    appendOp(traceStep, processAssignmentIn(l.assignment.in));
+                    appendOp(traceStep, processAssignmentIn(l.assignment.in, ctx.out.length));
                     appendOp(traceStep, processAssignmentOut(l.assignment.out));    
                 }
                 for (let j=0; j< l.ops.length; j++) {
@@ -84,6 +84,7 @@ module.exports = async function compile(fileName, ctx) {
         } else if (l.type == "label") {
             const id = l.identifier
             if (ctx.definedLabels[id]) error(l, `RedefinedLabel: ${id}` );
+            console.log("id:"+ctx.out.length);
             ctx.definedLabels[id] = ctx.out.length;
             if (pendingCommands.length>0) error(l, "command not allowed before label")
             lastLineAllowsCommand = false;
@@ -160,7 +161,7 @@ module.exports = async function compile(fileName, ctx) {
     }
 }
 
-function processAssignmentIn(input) {
+function processAssignmentIn(input, nextLine) {
     const res = {};
     let E1, E2;
     if (input.type == "TAG") {
@@ -169,7 +170,13 @@ function processAssignmentIn(input) {
         return res;
     }
     if (input.type == "REG") {
-        res["in"+ input.reg] = 1n;
+        if (input.reg == "zkPC") {
+            console.log(["I'm here:", nextLine]);
+            res.CONST = BigInt(nextLine);
+        }
+        else {
+            res["in"+ input.reg] = 1n;
+        }
         return res;
     }
     if (input.type == "CONST") {
@@ -182,10 +189,10 @@ function processAssignmentIn(input) {
 
     }
     if ((input.type == "add") || (input.type == "sub") || (input.type == "neg") || (input.type == "mul")) {
-        E1 = processAssignmentIn(input.values[0]);
+        E1 = processAssignmentIn(input.values[0], nextLine);
     }
     if ((input.type == "add") || (input.type == "sub") || (input.type == "mul")) {
-        E2 = processAssignmentIn(input.values[1]);
+        E2 = processAssignmentIn(input.values[1], nextLine);
     }
     if (input.type == "mul") {
         if (isConstant(E1)) {
