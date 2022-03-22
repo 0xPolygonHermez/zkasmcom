@@ -13,7 +13,8 @@ CTX                     { return 'CTX'; }
 SP                      { return 'SP'; }
 PC                      { return 'PC'; }
 GAS                     { return 'GAS'; }
-uPC                     { return 'uPC'; }
+zkPC                    { return 'zkPC'; }
+RR                      { return 'RR'; }
 STEP                    { return 'STEP'; }
 MAXMEM                  { return 'MAXMEM'; }
 var                    { return 'VAR'; }
@@ -177,7 +178,8 @@ reg
     | SP 
     | PC 
     | GAS 
-    | uPC 
+    | zkPC 
+    | RR
     | STEP 
     | MAXMEM 
     ;

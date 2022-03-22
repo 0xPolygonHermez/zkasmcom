@@ -17,7 +17,8 @@ CTX                     { return 'CTX'; }
 SP                      { return 'SP'; }
 PC                      { return 'PC'; }
 GAS                     { return 'GAS'; }
-uPC                     { return 'uPC'; }
+zkPC                    { return 'zkPC'; }
+RR                      { return 'RR'; }
 STEP                    { return 'STEP'; }
 MAXMEM                  { return 'MAXMEM'; }
 MLOAD                   { return 'MLOAD' }
@@ -293,7 +294,7 @@ op
         {
             $$ = {JMP: 1, offset: $3}
         }
-    | JMP '(' E ')'
+    | JMP '(' RR ')'
         {
             $$ = {JMP: 1, ind: 1, offset: 0}
         }
@@ -301,7 +302,7 @@ op
         {
             $$ = {JMPC: 1, offset: $3}
         }
-    | JMPC '(' E ')'
+    | JMPC '(' RR ')'
         {
             $$ = {JMPC: 1, ind: 1, offset: 0}
         }
@@ -351,7 +352,8 @@ reg
     | SP 
     | PC 
     | GAS 
-    | uPC 
+    | RR
+    | zkPC 
     | STEP 
     | MAXMEM 
     ;
