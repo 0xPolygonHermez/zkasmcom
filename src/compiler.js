@@ -4,6 +4,7 @@ const zkasm_parser = require("../build/zkasm_parser.js").parser;
 const command_parser = require("../build//command_parser.js").parser;
 const { type } = require("os");
 const { trace } = require("console");
+const { getUnpackedSettings } = require("http2");
 const stringifyBigInts = require("ffjavascript").utils.stringifyBigInts;
 
 module.exports = async function compile(fileName, ctx) {
@@ -62,7 +63,16 @@ module.exports = async function compile(fileName, ctx) {
             const traceStep = {
                 // type: "step"
             };
-            try {
+            try {           
+                for (let j=0; j< l.ops.length; j++) {
+                    if (!l.ops[j].assignment) continue;
+                    if (l.assignment) {
+                        error(l, "not allowed assignments with this operation");    
+                    }
+                    l.assignment = l.ops[j].assignment;
+                    delete l.ops[j].assignment;                    
+                }
+            
                 if (l.assignment) {
                     appendOp(traceStep, processAssignmentIn(l.assignment.in, ctx.out.length));
                     appendOp(traceStep, processAssignmentOut(l.assignment.out));    
@@ -84,7 +94,6 @@ module.exports = async function compile(fileName, ctx) {
         } else if (l.type == "label") {
             const id = l.identifier
             if (ctx.definedLabels[id]) error(l, `RedefinedLabel: ${id}` );
-            console.log("id:"+ctx.out.length);
             ctx.definedLabels[id] = ctx.out.length;
             if (pendingCommands.length>0) error(l, "command not allowed before label")
             lastLineAllowsCommand = false;
@@ -171,7 +180,6 @@ function processAssignmentIn(input, nextLine) {
     }
     if (input.type == "REG") {
         if (input.reg == "zkPC") {
-            console.log(["I'm here:", nextLine]);
             res.CONST = BigInt(nextLine);
         }
         else {

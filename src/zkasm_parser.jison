@@ -29,6 +29,8 @@ HASHE                   { return 'HASHE' }
 ECRECOVER               { return 'ECRECOVER' }
 JMP                     { return 'JMP' }
 JMPC                    { return 'JMPC' }
+CALL                    { return 'CALL' }
+RETURN                  { return 'RETURN' }
 ASSERT                  { return 'ASSERT' }
 SLOAD                   { return 'SLOAD' }
 SSTORE                  { return 'SSTORE' }
@@ -302,7 +304,15 @@ op
         {
             $$ = {JMPC: 1, offset: $3}
         }
+    | CALL '(' IDENTIFIER ')'
+        {
+            $$ = {JMP: 1, offset: $3, assignment: { in: {type: 'add', values: [{type: 'REG', reg: 'zkPC'}, {type: 'CONST', const: 1}] }, out:['RR']}}
+        }
     | JMPC '(' RR ')'
+        {
+            $$ = {JMPC: 1, ind: 1, offset: 0}
+        }
+    | RETURN
         {
             $$ = {JMPC: 1, ind: 1, offset: 0}
         }
