@@ -1,7 +1,7 @@
 /* lexical grammar */
 %lex
 %%
-(0x[0-9A-Fa-f][0-9A-Fa-f_]*)|([0-9][0-9_]*)          { yytext = Number(yytext.replace(/\_/g, "")); return 'NUMBER'; }
+(0x[0-9A-Fa-f][0-9A-Fa-f_]*)|([0-9][0-9_]*)          { yytext = BigInt(yytext.replace(/\_/g, "")); return 'NUMBER'; }
 [ \t\r\n]+                  { /* console.log("Empty spaces"); */ }
 A                       { return 'A'; }
 B                       { return 'B'; }
@@ -13,7 +13,8 @@ CTX                     { return 'CTX'; }
 SP                      { return 'SP'; }
 PC                      { return 'PC'; }
 GAS                     { return 'GAS'; }
-uPC                     { return 'uPC'; }
+zkPC                    { return 'zkPC'; }
+RR                      { return 'RR'; }
 STEP                    { return 'STEP'; }
 MAXMEM                  { return 'MAXMEM'; }
 var                    { return 'VAR'; }
@@ -177,7 +178,8 @@ reg
     | SP 
     | PC 
     | GAS 
-    | uPC 
+    | zkPC 
+    | RR
     | STEP 
     | MAXMEM 
     ;
