@@ -4,7 +4,6 @@ const zkasm_parser = require("../build/zkasm_parser.js").parser;
 const command_parser = require("../build//command_parser.js").parser;
 const { type } = require("os");
 const { trace } = require("console");
-const { getUnpackedSettings } = require("http2");
 const stringifyBigInts = require("ffjavascript").utils.stringifyBigInts;
 
 module.exports = async function compile(fileName, ctx) {
@@ -170,7 +169,7 @@ module.exports = async function compile(fileName, ctx) {
     }
 }
 
-function processAssignmentIn(input, nextLine) {
+function processAssignmentIn(input, currentLine) {
     const res = {};
     let E1, E2;
     if (input.type == "TAG") {
@@ -180,7 +179,7 @@ function processAssignmentIn(input, nextLine) {
     }
     if (input.type == "REG") {
         if (input.reg == "zkPC") {
-            res.CONST = BigInt(nextLine);
+            res.CONST = BigInt(currentLine);
         }
         else {
             res["in"+ input.reg] = 1n;
