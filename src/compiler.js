@@ -196,10 +196,10 @@ function processAssignmentIn(input, currentLine) {
 
     }
     if ((input.type == "add") || (input.type == "sub") || (input.type == "neg") || (input.type == "mul")) {
-        E1 = processAssignmentIn(input.values[0], nextLine);
+        E1 = processAssignmentIn(input.values[0], currentLine);
     }
     if ((input.type == "add") || (input.type == "sub") || (input.type == "mul")) {
-        E2 = processAssignmentIn(input.values[1], nextLine);
+        E2 = processAssignmentIn(input.values[1], currentLine);
     }
     if (input.type == "mul") {
         if (isConstant(E1)) {
