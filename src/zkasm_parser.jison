@@ -59,6 +59,7 @@ CTX                     { return 'CTX' }
 \*\*                    { return '**'}
 \*                      { return '*'}
 \=\>                    { return '=>' }
+\@                      { return '@' }
 <<EOF>>                 { return 'EOF'; }
 .                       { /* console.log("INVALID: " + yytext); */ return 'INVALID'; }
 
@@ -240,6 +241,10 @@ inReg
     | NUMBER
         {
             $$ = {type: 'CONST' , const: $1}
+        }
+    | '@' IDENTIFIER
+        {
+            $$ = {type: 'getlabel' , identifier: $2}
         }
     ;
 
@@ -462,7 +467,10 @@ addr
         {
             $$ = { offset: $1 }
         }
-
+    | IDENTIFIER '+' E
+        {
+            $$ = { ind: 1, offset: $1 }
+        }
     ;
 
 hashId

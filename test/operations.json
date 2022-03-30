@@ -1,0 +1,886 @@
+{
+ "program": [
+  {
+   "CONST": "1",
+   "setB": 1,
+   "line": 3,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "CONST": "0",
+   "setC": 1,
+   "setD": 1,
+   "line": 4,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "bitor",
+    "values": [
+     {
+      "op": "number",
+      "num": "514631507721405306271816480262444450937044774341774627009279755941886308880"
+     },
+     {
+      "op": "number",
+      "num": "424043322500176894273928177500843747779360235307339429512816584316394929920"
+     }
+    ]
+   },
+   "inFREE": "1",
+   "setA": 1,
+   "line": 10,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "number",
+    "num": "882135709655069761113896318413814719818817379762154570322578702081271529232"
+   },
+   "inFREE": "1",
+   "arith": 1,
+   "line": 11,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "bitor",
+    "values": [
+     {
+      "op": "number",
+      "num": "514631507721405306271816480262444450937044774341774627009279755941886308880"
+     },
+     {
+      "op": "number",
+      "num": "0"
+     }
+    ]
+   },
+   "inFREE": "1",
+   "setA": 1,
+   "line": 13,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "number",
+    "num": "514631507721405306271816480262444450937044774341774627009279755941886308880"
+   },
+   "inFREE": "1",
+   "arith": 1,
+   "line": 14,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "bitor",
+    "values": [
+     {
+      "op": "number",
+      "num": "514631507721405306271816480262444450937044774341774627009279755941886308880"
+     },
+     {
+      "op": "number",
+      "num": "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+     }
+    ]
+   },
+   "inFREE": "1",
+   "setA": 1,
+   "line": 16,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "number",
+    "num": "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+   },
+   "inFREE": "1",
+   "arith": 1,
+   "line": 17,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "bitand",
+    "values": [
+     {
+      "op": "number",
+      "num": "514631507721405306271816480262444450937044774341774627009279755941886308880"
+     },
+     {
+      "op": "number",
+      "num": "424043322500176894273928177500843747779360235307339429512816584316394929920"
+     }
+    ]
+   },
+   "inFREE": "1",
+   "setA": 1,
+   "line": 23,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "number",
+    "num": "56539120566512439431848339349473478897587629886959486199517638177009709568"
+   },
+   "inFREE": "1",
+   "arith": 1,
+   "line": 24,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "bitand",
+    "values": [
+     {
+      "op": "number",
+      "num": "514631507721405306271816480262444450937044774341774627009279755941886308880"
+     },
+     {
+      "op": "number",
+      "num": "0"
+     }
+    ]
+   },
+   "inFREE": "1",
+   "setA": 1,
+   "line": 26,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "number",
+    "num": "0"
+   },
+   "inFREE": "1",
+   "arith": 1,
+   "line": 27,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "bitand",
+    "values": [
+     {
+      "op": "number",
+      "num": "514631507721405306271816480262444450937044774341774627009279755941886308880"
+     },
+     {
+      "op": "number",
+      "num": "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+     }
+    ]
+   },
+   "inFREE": "1",
+   "setA": 1,
+   "line": 29,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "number",
+    "num": "514631507721405306271816480262444450937044774341774627009279755941886308880"
+   },
+   "inFREE": "1",
+   "arith": 1,
+   "line": 30,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "bitxor",
+    "values": [
+     {
+      "op": "number",
+      "num": "514631507721405306271816480262444450937044774341774627009279755941886308880"
+     },
+     {
+      "op": "number",
+      "num": "424043322500176894273928177500843747779360235307339429512816584316394929920"
+     }
+    ]
+   },
+   "inFREE": "1",
+   "setA": 1,
+   "line": 36,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "number",
+    "num": "825596589088557321682047979064341240921229749875195084123061063904261819664"
+   },
+   "inFREE": "1",
+   "arith": 1,
+   "line": 37,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "bitxor",
+    "values": [
+     {
+      "op": "number",
+      "num": "514631507721405306271816480262444450937044774341774627009279755941886308880"
+     },
+     {
+      "op": "number",
+      "num": "0"
+     }
+    ]
+   },
+   "inFREE": "1",
+   "setA": 1,
+   "line": 39,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "number",
+    "num": "514631507721405306271816480262444450937044774341774627009279755941886308880"
+   },
+   "inFREE": "1",
+   "arith": 1,
+   "line": 40,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "bitxor",
+    "values": [
+     {
+      "op": "number",
+      "num": "514631507721405306271816480262444450937044774341774627009279755941886308880"
+     },
+     {
+      "op": "number",
+      "num": "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+     }
+    ]
+   },
+   "inFREE": "1",
+   "setA": 1,
+   "line": 42,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "number",
+    "num": "115277457729594790117299168528425463402332939891298789412448304251971243331055"
+   },
+   "inFREE": "1",
+   "arith": 1,
+   "line": 43,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "bitnot",
+    "values": [
+     {
+      "op": "number",
+      "num": "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+     }
+    ]
+   },
+   "inFREE": "1",
+   "setA": 1,
+   "line": 49,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "number",
+    "num": "0"
+   },
+   "inFREE": "1",
+   "arith": 1,
+   "line": 50,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "bitnot",
+    "values": [
+     {
+      "op": "number",
+      "num": "0"
+     }
+    ]
+   },
+   "inFREE": "1",
+   "setA": 1,
+   "line": 52,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "number",
+    "num": "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+   },
+   "inFREE": "1",
+   "arith": 1,
+   "line": 53,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "bitnot",
+    "values": [
+     {
+      "op": "number",
+      "num": "514631507721405306271816480262444450937044774341774627009279755941886308880"
+     }
+    ]
+   },
+   "inFREE": "1",
+   "setA": 1,
+   "line": 55,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "number",
+    "num": "115277457729594790117299168528425463402332939891298789412448304251971243331055"
+   },
+   "inFREE": "1",
+   "arith": 1,
+   "line": 56,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "shl",
+    "values": [
+     {
+      "op": "number",
+      "num": "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+     },
+     {
+      "op": "number",
+      "num": "1"
+     }
+    ]
+   },
+   "inFREE": "1",
+   "setA": 1,
+   "line": 62,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "number",
+    "num": "115792089237316195423570985008687907853269984665640564039457584007913129639934"
+   },
+   "inFREE": "1",
+   "arith": 1,
+   "line": 63,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "shl",
+    "values": [
+     {
+      "op": "number",
+      "num": "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+     },
+     {
+      "op": "number",
+      "num": "255"
+     }
+    ]
+   },
+   "inFREE": "1",
+   "setA": 1,
+   "line": 65,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "number",
+    "num": "57896044618658097711785492504343953926634992332820282019728792003956564819968"
+   },
+   "inFREE": "1",
+   "arith": 1,
+   "line": 66,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "shl",
+    "values": [
+     {
+      "op": "number",
+      "num": "514631507721405306271816480262444450937044774341774627009279755941886308880"
+     },
+     {
+      "op": "number",
+      "num": "36"
+     }
+    ]
+   },
+   "inFREE": "1",
+   "setA": 1,
+   "line": 68,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "number",
+    "num": "69989884588190321317885434707657239794468415351406802240456122739372299649024"
+   },
+   "inFREE": "1",
+   "arith": 1,
+   "line": 69,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "CONST": "1",
+   "setE": 1,
+   "line": 75,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "if",
+    "values": [
+     {
+      "op": "getReg",
+      "regName": "E"
+     },
+     {
+      "op": "number",
+      "num": "514631507721405306271816480262444450937044774341774627009279755941886308880"
+     },
+     {
+      "op": "number",
+      "num": "424043322500176894273928177500843747779360235307339429512816584316394929920"
+     }
+    ]
+   },
+   "inFREE": "1",
+   "setA": 1,
+   "line": 76,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "number",
+    "num": "514631507721405306271816480262444450937044774341774627009279755941886308880"
+   },
+   "inFREE": "1",
+   "arith": 1,
+   "line": 77,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "CONST": "0",
+   "setE": 1,
+   "line": 79,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "if",
+    "values": [
+     {
+      "op": "getReg",
+      "regName": "E"
+     },
+     {
+      "op": "number",
+      "num": "514631507721405306271816480262444450937044774341774627009279755941886308880"
+     },
+     {
+      "op": "number",
+      "num": "424043322500176894273928177500843747779360235307339429512816584316394929920"
+     }
+    ]
+   },
+   "inFREE": "1",
+   "setA": 1,
+   "line": 80,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "number",
+    "num": "424043322500176894273928177500843747779360235307339429512816584316394929920"
+   },
+   "inFREE": "1",
+   "arith": 1,
+   "line": 81,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "CONST": "1",
+   "setE": 1,
+   "line": 83,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "if",
+    "values": [
+     {
+      "op": "getReg",
+      "regName": "E"
+     },
+     {
+      "op": "add",
+      "values": [
+       {
+        "op": "getReg",
+        "regName": "E"
+       },
+       {
+        "op": "number",
+        "num": "3"
+       }
+      ]
+     },
+     {
+      "op": "add",
+      "values": [
+       {
+        "op": "getReg",
+        "regName": "E"
+       },
+       {
+        "op": "number",
+        "num": "2"
+       }
+      ]
+     }
+    ]
+   },
+   "inFREE": "1",
+   "setA": 1,
+   "line": 84,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "CONST": "4",
+   "arith": 1,
+   "line": 85,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "CONST": "0",
+   "setE": 1,
+   "line": 87,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "if",
+    "values": [
+     {
+      "op": "getReg",
+      "regName": "E"
+     },
+     {
+      "op": "add",
+      "values": [
+       {
+        "op": "add",
+        "values": [
+         {
+          "op": "getReg",
+          "regName": "E"
+         },
+         {
+          "op": "number",
+          "num": "2"
+         }
+        ]
+       },
+       {
+        "op": "number",
+        "num": "1"
+       }
+      ]
+     },
+     {
+      "op": "add",
+      "values": [
+       {
+        "op": "mul",
+        "values": [
+         {
+          "op": "add",
+          "values": [
+           {
+            "op": "getReg",
+            "regName": "E"
+           },
+           {
+            "op": "mul",
+            "values": [
+             {
+              "op": "number",
+              "num": "6"
+             },
+             {
+              "op": "number",
+              "num": "2"
+             }
+            ]
+           }
+          ]
+         },
+         {
+          "op": "number",
+          "num": "2"
+         }
+        ]
+       },
+       {
+        "op": "number",
+        "num": "3"
+       }
+      ]
+     }
+    ]
+   },
+   "inFREE": "1",
+   "setA": 1,
+   "line": 88,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "CONST": "27",
+   "arith": 1,
+   "line": 89,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "JMP": 1,
+   "offset": 45,
+   "line": 91,
+   "offsetLabel": "end",
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "CONST": "0",
+   "setA": 1,
+   "setB": 1,
+   "setC": 1,
+   "setD": 1,
+   "setE": 1,
+   "setCTX": 1,
+   "setSP": 1,
+   "setPC": 1,
+   "setGAS": 1,
+   "setMAXMEM": 1,
+   "setSR": 1,
+   "line": 94,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "inSTEP": "1",
+   "CONST": "-65496",
+   "JMPC": 1,
+   "offset": 48,
+   "line": 97,
+   "offsetLabel": "longLoop2",
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "JMP": 1,
+   "offset": 80,
+   "line": 98,
+   "offsetLabel": "finalLoop",
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 100,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 101,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 102,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 103,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 104,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 105,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 106,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 107,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 108,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 109,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 110,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 111,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 112,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 113,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 114,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 115,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 116,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 117,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 118,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 119,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 120,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 121,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 122,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 123,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 124,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 125,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 126,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 127,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 128,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 129,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 130,
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "CONST": "0",
+   "JMP": 1,
+   "offset": 46,
+   "line": 131,
+   "offsetLabel": "longLoop",
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "inSTEP": "1",
+   "CONST": "-65534",
+   "JMPC": 1,
+   "offset": 80,
+   "line": 135,
+   "offsetLabel": "finalLoop",
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  },
+  {
+   "JMP": 1,
+   "offset": 0,
+   "line": 137,
+   "offsetLabel": "start",
+   "fileName": "/home/zkronos73/devel/zkasm/test/operations.zkasm"
+  }
+ ],
+ "labels": {
+  "start": 0,
+  "end": 45,
+  "longLoop": 46,
+  "longLoop2": 48,
+  "finalLoop": 80,
+  "opINVALID": 82
+ }
+}

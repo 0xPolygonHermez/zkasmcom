@@ -1,0 +1,665 @@
+{
+ "program": [
+  {
+   "CONST": "3141592",
+   "offset": 0,
+   "mWR": 1,
+   "line": 5,
+   "offsetLabel": "myGlobalVar",
+   "useCTX": 0,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "CONST": "1",
+   "setB": 1,
+   "line": 7,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "CONST": "0",
+   "setC": 1,
+   "setD": 1,
+   "line": 8,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "getStructuredVar",
+    "path": [
+     "mem",
+     "myGlobalVar"
+    ]
+   },
+   "inFREE": "1",
+   "setA": 1,
+   "line": 10,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "CONST": "3141592",
+   "arith": 1,
+   "line": 11,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "getStructuredVar",
+    "path": [
+     "ctx",
+     "globalHash"
+    ]
+   },
+   "inFREE": "1",
+   "setA": 1,
+   "line": 13,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "functionCall",
+    "funcName": "getGlobalHash",
+    "params": []
+   },
+   "inFREE": "1",
+   "arith": 1,
+   "line": 14,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "getStructuredVar",
+    "path": [
+     "input",
+     "sequencerAddr"
+    ]
+   },
+   "inFREE": "1",
+   "setA": 1,
+   "line": 16,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "functionCall",
+    "funcName": "getSequencerAddr",
+    "params": []
+   },
+   "inFREE": "1",
+   "arith": 1,
+   "line": 17,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "getStructuredVar",
+    "path": [
+     "input",
+     "chainId"
+    ]
+   },
+   "inFREE": "1",
+   "setA": 1,
+   "line": 19,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "functionCall",
+    "funcName": "getChainId",
+    "params": []
+   },
+   "inFREE": "1",
+   "arith": 1,
+   "line": 20,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "getStructuredVar",
+    "path": [
+     "input",
+     "batchHashData"
+    ]
+   },
+   "inFREE": "1",
+   "setA": 1,
+   "line": 22,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "functionCall",
+    "funcName": "getBatchHashData",
+    "params": []
+   },
+   "inFREE": "1",
+   "arith": 1,
+   "line": 23,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "getStructuredVar",
+    "path": [
+     "input",
+     "oldStateRoot"
+    ]
+   },
+   "inFREE": "1",
+   "setA": 1,
+   "line": 25,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "functionCall",
+    "funcName": "getOldStateRoot",
+    "params": []
+   },
+   "inFREE": "1",
+   "arith": 1,
+   "line": 26,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "getStructuredVar",
+    "path": [
+     "input",
+     "newStateRoot"
+    ]
+   },
+   "inFREE": "1",
+   "setA": 1,
+   "line": 28,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "functionCall",
+    "funcName": "getNewStateRoot",
+    "params": []
+   },
+   "inFREE": "1",
+   "arith": 1,
+   "line": 29,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "div",
+    "values": [
+     {
+      "op": "sub",
+      "values": [
+       {
+        "op": "getStructuredVar",
+        "path": [
+         "input",
+         "batchL2Data",
+         "length"
+        ]
+       },
+       {
+        "op": "number",
+        "num": "2"
+       }
+      ]
+     },
+     {
+      "op": "number",
+      "num": "2"
+     }
+    ]
+   },
+   "inFREE": "1",
+   "setA": 1,
+   "line": 31,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "functionCall",
+    "funcName": "getTxsLen",
+    "params": []
+   },
+   "inFREE": "1",
+   "arith": 1,
+   "line": 32,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "getStructuredVar",
+    "path": [
+     "input",
+     "oldLocalExitRoot"
+    ]
+   },
+   "inFREE": "1",
+   "setA": 1,
+   "line": 34,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "functionCall",
+    "funcName": "getOldLocalExitRoot",
+    "params": []
+   },
+   "inFREE": "1",
+   "arith": 1,
+   "line": 35,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "getStructuredVar",
+    "path": [
+     "input",
+     "globalExitRoot"
+    ]
+   },
+   "inFREE": "1",
+   "setA": 1,
+   "line": 37,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "functionCall",
+    "funcName": "getGlobalExitRoot",
+    "params": []
+   },
+   "inFREE": "1",
+   "arith": 1,
+   "line": 38,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "getStructuredVar",
+    "path": [
+     "input",
+     "newLocalExitRoot"
+    ]
+   },
+   "inFREE": "1",
+   "setA": 1,
+   "line": 40,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "functionCall",
+    "funcName": "getNewLocalExitRoot",
+    "params": []
+   },
+   "inFREE": "1",
+   "arith": 1,
+   "line": 41,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "getStructuredVar",
+    "path": [
+     "input",
+     "numBatch"
+    ]
+   },
+   "inFREE": "1",
+   "setA": 1,
+   "line": 43,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "functionCall",
+    "funcName": "getNumBatch",
+    "params": []
+   },
+   "inFREE": "1",
+   "arith": 1,
+   "line": 44,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "getStructuredVar",
+    "path": [
+     "input",
+     "timestamp"
+    ]
+   },
+   "inFREE": "1",
+   "setA": 1,
+   "line": 46,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "functionCall",
+    "funcName": "getTimestamp",
+    "params": []
+   },
+   "inFREE": "1",
+   "arith": 1,
+   "line": 47,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "getStructuredVar",
+    "path": [
+     "rom",
+     "labels",
+     {
+      "op": "getStructuredVar",
+      "path": [
+       "global",
+       "codes",
+       16
+      ]
+     }
+    ]
+   },
+   "inFREE": "1",
+   "setA": 1,
+   "line": 51,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "functionCall",
+    "funcName": "addrOp",
+    "params": [
+     {
+      "op": "number",
+      "num": "16"
+     }
+    ]
+   },
+   "inFREE": "1",
+   "arith": 1,
+   "line": 52,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "CONST": "16",
+   "setE": 1,
+   "line": 54,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "getStructuredVar",
+    "path": [
+     "rom",
+     "labels",
+     {
+      "op": "getStructuredVar",
+      "path": [
+       "global",
+       "codes",
+       16
+      ]
+     }
+    ]
+   },
+   "inFREE": "1",
+   "setA": 1,
+   "line": 56,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "freeInTag": {
+    "op": "functionCall",
+    "funcName": "addrOp",
+    "params": [
+     {
+      "op": "number",
+      "num": "16"
+     }
+    ]
+   },
+   "inFREE": "1",
+   "arith": 1,
+   "line": 57,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "JMP": 1,
+   "offset": 35,
+   "line": 59,
+   "offsetLabel": "end",
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "CONST": "0",
+   "setA": 1,
+   "setB": 1,
+   "setC": 1,
+   "setD": 1,
+   "setE": 1,
+   "setCTX": 1,
+   "setSP": 1,
+   "setPC": 1,
+   "setGAS": 1,
+   "setMAXMEM": 1,
+   "setSR": 1,
+   "line": 62,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "inSTEP": "1",
+   "CONST": "-65496",
+   "JMPC": 1,
+   "offset": 38,
+   "line": 65,
+   "offsetLabel": "longLoop2",
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "JMP": 1,
+   "offset": 70,
+   "line": 66,
+   "offsetLabel": "finalLoop",
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 68,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 69,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 70,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 71,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 72,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 73,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 74,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 75,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 76,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 77,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 78,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 79,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 80,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 81,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 82,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 83,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 84,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 85,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 86,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 87,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 88,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 89,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 90,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 91,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 92,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 93,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 94,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 95,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 96,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 97,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "CONST": "0",
+   "line": 98,
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "CONST": "0",
+   "JMP": 1,
+   "offset": 36,
+   "line": 99,
+   "offsetLabel": "longLoop",
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "inSTEP": "1",
+   "CONST": "-65534",
+   "JMPC": 1,
+   "offset": 70,
+   "line": 103,
+   "offsetLabel": "finalLoop",
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  },
+  {
+   "JMP": 1,
+   "offset": 0,
+   "line": 105,
+   "offsetLabel": "start",
+   "fileName": "/home/zkronos73/devel/zkasm/test/variables.zkasm"
+  }
+ ],
+ "labels": {
+  "start": 0,
+  "opLT": 29,
+  "end": 35,
+  "longLoop": 36,
+  "longLoop2": 38,
+  "finalLoop": 70,
+  "opINVALID": 72
+ },
+ "vars": {
+  "myGlobalVar": {
+   "scope": "GLOBAL",
+   "offset": 0
+  }
+ }
+}

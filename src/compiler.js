@@ -73,8 +73,8 @@ module.exports = async function compile(fileName, ctx) {
                 }
             
                 if (l.assignment) {
-                    appendOp(traceStep, processAssignmentIn(l.assignment.in, ctx.out.length));
-                    appendOp(traceStep, processAssignmentOut(l.assignment.out));    
+                    appendOp(traceStep, processAssignmentIn(ctx, l.assignment.in));
+                    appendOp(traceStep, processAssignmentOut(ctx, l.assignment.out));    
                 }
                 for (let j=0; j< l.ops.length; j++) {
                     appendOp(traceStep, l.ops[j])
@@ -115,7 +115,7 @@ module.exports = async function compile(fileName, ctx) {
             if (
                     (typeof ctx.out[i].offset !== "undefined") &&
                     (isNaN(ctx.out[i].offset))
-               ) {
+               ) {                
                 if (ctx.out[i].JMP || ctx.out[i].JMPC) {
                     if (typeof ctx.definedLabels[ctx.out[i].offset] === "undefined") {
                         error(ctx.out[i].line, `Label: ${ctx.out[i].offset} not defined.`);
@@ -123,20 +123,16 @@ module.exports = async function compile(fileName, ctx) {
                     ctx.out[i].offsetLabel = ctx.out[i].offset;
                     ctx.out[i].offset = ctx.definedLabels[ctx.out[i].offset];                
                 } else {
-                    ctx.out[i].offsetLabel = ctx.out[i].offset;
-                    if (typeof ctx.vars[ctx.out[i].offset] === "undefined") {
-                        error(ctx.out[i].line, `Variable: ${ctx.out[i].offset} not defined.`);
-                    }
-                    if (ctx.vars[ctx.out[i].offset].scope === 'CTX') {
-                        ctx.out[i].useCTX = 1;
-                    } else if (ctx.vars[ctx.out[i].offset].scope === 'GLOBAL') {
-                        ctx.out[i].useCTX = 0;
-                    } else {
-                        error(ctx.out[i].line, `Invalid variable scpoe: ${ctx.out[i].offset} not defined.`);
-                    }               
-                    ctx.out[i].offset = ctx.vars[ctx.out[i].offset].offset;
+                    resolveVar(ctx.out[i], ctx.out[i].line);
                 }
             }
+            if (ctx.out[i].pendingLabelCONST) {
+                ctx.out[i].CONST = (ctx.out[i].CONST || 0n) + BigInt(ctx.definedLabels[ctx.out[i].labelCONST]);
+                delete ctx.out[i].pendingLabelCONST;
+            }
+            /*if (typeof ctx.out[i].freeInTag !== 'undefined') {
+                recursiveResolveVar(ctx.out[i].freeInTag, ctx.out[i].line);
+            }*/
             try {
                 parseCommands(ctx.out[i].cmdBefore);
                 parseCommands(ctx.out[i].cmdAfter);
@@ -150,10 +146,44 @@ module.exports = async function compile(fileName, ctx) {
 
         const res = {
             program:  stringifyBigInts(ctx.out),
-            labels: ctx.definedLabels
+            labels: ctx.definedLabels,
+            vars: ctx.vars
         }
         
         return res;
+    }
+/*
+    function recursiveResolveLabel(node, line)
+    {
+        if (node.op && node.op == 'getlabel') {
+            if (typeof node.cost)
+            resolveVar(node, line);
+        }
+        else if (node.values) {
+            node.values.forEach((value) => recursiveResolveLabel(value, line));
+        }
+        else if (node.params) {
+            node.params.forEach((param) => recursiveResolveLabel(param, line));
+        }
+    }
+*/
+    function resolveVar(node, line) 
+    {
+        let name = node.offset;
+        node.offsetLabel = name;
+        if (typeof ctx.vars[name] === "undefined") {
+            console.log(ctx);
+            console.log(line);
+            error(line, `Variable: ${name} not defined.`);
+        }
+        if (ctx.vars[name].scope === 'CTX') {
+            node.useCTX = 1;
+        } else if (ctx.vars[name].scope === 'GLOBAL') {
+            node.useCTX = 0;
+        } else {
+            error(line, `Invalid variable scope: ${name} not defined.`);
+        }       
+        node.offset = ctx.vars[name].offset;
     }
 
     function parseCommands(cmdList) {
@@ -167,9 +197,10 @@ module.exports = async function compile(fileName, ctx) {
             }
         }
     }
+
 }
 
-function processAssignmentIn(input, currentLine) {
+function processAssignmentIn(ctx, input) {
     const res = {};
     let E1, E2;
     if (input.type == "TAG") {
@@ -179,7 +210,7 @@ function processAssignmentIn(input, currentLine) {
     }
     if (input.type == "REG") {
         if (input.reg == "zkPC") {
-            res.CONST = BigInt(currentLine);
+            res.CONST = BigInt(ctx.out.length);
         }
         else {
             res["in"+ input.reg] = 1n;
@@ -196,10 +227,10 @@ function processAssignmentIn(input, currentLine) {
 
     }
     if ((input.type == "add") || (input.type == "sub") || (input.type == "neg") || (input.type == "mul")) {
-        E1 = processAssignmentIn(input.values[0], currentLine);
+        E1 = processAssignmentIn(ctx, input.values[0]);
     }
     if ((input.type == "add") || (input.type == "sub") || (input.type == "mul")) {
-        E2 = processAssignmentIn(input.values[1], currentLine);
+        E2 = processAssignmentIn(ctx, input.values[1]);
     }
     if (input.type == "mul") {
         if (isConstant(E1)) {
@@ -241,7 +272,17 @@ function processAssignmentIn(input, currentLine) {
         });
         return E1;
     }
-
+    if (input.type == 'getlabel') {
+        res.labelCONST = input.identifier;
+        if (typeof ctx.definedLabels[input.identifier] !== 'undefined') {
+            res.CONST = BigInt(ctx.definedLabels[input.identifier]);
+        }
+        else {
+            res.pendingLabelCONST = true;
+        }
+        return res;
+        // console.log(ctx.definedLabels);
+    }
     throw new Error( `Invalid type: ${input.type}`);
 
 
@@ -254,7 +295,7 @@ function processAssignmentIn(input, currentLine) {
     }
 }
 
-function processAssignmentOut(outputs) {
+function processAssignmentOut(ctx, outputs) {
     const res = {};
     for (let i=0; i<outputs.length; i++) {
         if (typeof res["set"+ outputs[i]] !== "undefined") throw new Error(`Register ${outputs[i]} added twice in asssignment output`);
