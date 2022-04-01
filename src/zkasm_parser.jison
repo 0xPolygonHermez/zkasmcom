@@ -47,7 +47,7 @@ VAR                     { return 'VAR' }
 GLOBAL                  { return 'GLOBAL' }
 CTX                     { return 'CTX' }
 \"[^"]+\"               { yytext = yytext.slice(1,-1); return 'STRING'; }
-[a-zA-Z_][a-zA-Z$_0-9\+\.\>\<\=\-\!]*  { return 'IDENTIFIER'; }
+[a-zA-Z_][a-zA-Z$_0-9]*  { return 'IDENTIFIER'; }
 \:                      { return ':'; }
 \,                      { return ','}
 \(                      { return '('}
