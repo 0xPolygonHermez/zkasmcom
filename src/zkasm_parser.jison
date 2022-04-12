@@ -17,7 +17,8 @@ CTX                     { return 'CTX'; }
 SP                      { return 'SP'; }
 PC                      { return 'PC'; }
 GAS                     { return 'GAS'; }
-uPC                     { return 'uPC'; }
+zkPC                    { return 'zkPC'; }
+RR                      { return 'RR'; }
 STEP                    { return 'STEP'; }
 MAXMEM                  { return 'MAXMEM'; }
 MLOAD                   { return 'MLOAD' }
@@ -29,6 +30,8 @@ HASHPLEN                { return 'HASHPLEN' }
 ECRECOVER               { return 'ECRECOVER' }
 JMP                     { return 'JMP' }
 JMPC                    { return 'JMPC' }
+CALL                    { return 'CALL' }
+RETURN                  { return 'RETURN' }
 ASSERT                  { return 'ASSERT' }
 SLOAD                   { return 'SLOAD' }
 SSTORE                  { return 'SSTORE' }
@@ -45,7 +48,7 @@ VAR                     { return 'VAR' }
 GLOBAL                  { return 'GLOBAL' }
 CTX                     { return 'CTX' }
 \"[^"]+\"               { yytext = yytext.slice(1,-1); return 'STRING'; }
-[a-zA-Z_][a-zA-Z$_0-9\+\.\>\<\=\-\!]*  { return 'IDENTIFIER'; }
+[a-zA-Z_][a-zA-Z$_0-9]*  { return 'IDENTIFIER'; }
 \:                      { return ':'; }
 \,                      { return ','}
 \(                      { return '('}
@@ -295,7 +298,7 @@ op
         {
             $$ = {JMP: 1, offset: $3}
         }
-    | JMP '(' E ')'
+    | JMP '(' RR ')'
         {
             $$ = {JMP: 1, ind: 1, offset: 0}
         }
@@ -303,9 +306,17 @@ op
         {
             $$ = {JMPC: 1, offset: $3}
         }
-    | JMPC '(' E ')'
+    | CALL '(' IDENTIFIER ')'
+        {
+            $$ = {JMP: 1, offset: $3, assignment: { in: {type: 'add', values: [{type: 'REG', reg: 'zkPC'}, {type: 'CONST', const: 1}] }, out:['RR']}}
+        }
+    | JMPC '(' RR ')'
         {
             $$ = {JMPC: 1, ind: 1, offset: 0}
+        }
+    | RETURN
+        {
+            $$ = {JMP: 1, ind: 1, offset: 0}
         }
     | ASSERT
         {
@@ -353,7 +364,8 @@ reg
     | SP 
     | PC 
     | GAS 
-    | uPC 
+    | RR
+    | zkPC 
     | STEP 
     | MAXMEM 
     ;
@@ -362,43 +374,43 @@ reg
 addr
     : SP
         {
-            $$ = { isStack: 1, isCode: 0, ind:0, incCode:0, incStack:0, offset: 0}
+            $$ = { isStack: 1, isCode: 0, isMem:0, ind:0, incCode:0, incStack:0, offset: 0, useCTX: 1}
         }
     | SP '+' NUMBER
         {
-            $$ = { isStack: 1, isCode: 0, ind:0, incCode:0, incStack: 0, offset: $3}
+            $$ = { isStack: 1, isCode: 0, isMem:0, ind:0, incCode:0, incStack: 0, offset: $3, useCTX: 1}}
         }
     | SP '-' NUMBER
         {
-            $$ = { isStack: 1, isCode: 0, ind:0, incCode:0, incStack: 0, offset: -$3}
+            $$ = { isStack: 1, isCode: 0, isMem:0, ind:0, incCode:0, incStack: 0, offset: -$3, useCTX: 1}}
         }
     | SP '++'
         {
-            $$ = { isStack: 1, isCode: 0, ind:0, incCode:1, incStack: 1, offset: 0}
+            $$ = { isStack: 1, isCode: 0, isMem:0, ind:0, incStack: 1, offset: 0, useCTX: 1}}
         }
     | SP '--'
         {
-            $$ = { isStack: 1, isCode: 0, ind:0, incCode:0, incStack: -1, offset: 0}
+            $$ = { isStack: 1, isCode: 0, isMem:0, ind:0, incCode:0, incStack: -1, offset: 0, useCTX: 1}}
         }
     | PC
         {
-            $$ = { isStack: 0, isCode: 1, ind:0, incCode:0, incStack: 0, offset: 0}
+            $$ = { isStack: 0, isCode: 1, isMem:0, ind:0, incCode:0, incStack: 0, offset: 0, useCTX: 1}
         }
     | PC '+' NUMBER
         {
-            $$ = { isStack: 0, isCode: 1, ind:0, incCode:0, incStack: 0, offset: $3}
+            $$ = { isStack: 0, isCode: 1, isMem:0, ind:0, incCode:0, incStack: 0, offset: $3, useCTX: 1}
         }
     | PC '-' NUMBER
         {
-            $$ = { isStack: 0, isCode: 1, ind:0, incCode:0, incStack: 0, offset: -$3}
+            $$ = { isStack: 0, isCode: 1, isMem:0, ind:0, incCode:0, incStack: 0, offset: -$3, useCTX: 1}
         }
     | PC '++'
         {
-            $$ = { isStack: 0, isCode: 1, ind:0, incCode:1, incStack: 0, offset: 0}
+            $$ = { isStack: 0, isCode: 1, isMem:0, ind:0, incCode:1, incStack: 0, offset: 0, useCTX: 1}
         }
     | PC '--'
         {
-            $$ = { isStack: 0, isCode: 1, ind:0, incCode:-1, incStack: 0, offset: 0}
+            $$ = { isStack: 0, isCode: 1, isMem:0, ind:0, incCode:-1, incStack: 0, offset: 0, useCTX: 1}
         }
     | SYS ':' E '+' NUMBER
         {
@@ -414,39 +426,39 @@ addr
         }
     | MEM ':' E '+' NUMBER
         {
-            $$ = { isStack: 1, isCode: 1, ind:1, incCode:0, incStack: 0, offset: $5}
+            $$ = { isStack: 0, isMem: 1, isCode: 0, ind:1, incCode:0, incStack: 0, offset: $5, useCTX: 1}
         }
     | MEM ':' E '-' NUMBER
         {
-            $$ = { isStack: 1, isCode: 1, ind:1, incCode:0, incStack: 0, offset: -$5}
+            $$ = { isStack: 0, isMem: 1, isCode: 0, ind:1, incCode:0, incStack: 0, offset: -$5, useCTX: 1}
         }
     | MEM ':' E
         {
-            $$ = { isStack: 1, isCode: 1, ind:1, incCode:0, incStack: 0, offset: 0}
+            $$ = { isStack: 0, isMem: 1, isCode: 0, ind:1, incCode:0, incStack: 0, offset: 0, useCTX: 1}
         }
     | CODE ':' E '+' NUMBER
         {
-            $$ = { isStack: 0, isCode: 1, ind:1, incCode:0, incStack: 0, offset: $5}
+            $$ = { isStack: 0, isCode: 1, ind:1, incCode:0, incStack: 0, offset: $5, useCTX: 1}
         }
     | CODE ':' E '-' NUMBER
         {
-            $$ = { isStack: 0, isCode: 1, ind:1, incCode:0, incStack: 0, offset: -$5}
+            $$ = { isStack: 0, isCode: 1, ind:1, incCode:0, incStack: 0, offset: -$5, useCTX: 1}
         }
     | CODE ':' E
         {
-            $$ = { isStack: 0, isCode: 1, ind:1, incCode:0, incStack: 0, offset: 0}
+            $$ = { isStack: 0, isCode: 1, ind:1, incCode:0, incStack: 0, offset: 0, useCTX: 1}
         }
     | STACK ':' E '+' NUMBER
         {
-            $$ = { isStack: 1, isCode: 1, ind:1, incCode:0, incStack: 0, offset: $5}
+            $$ = { isStack: 1, isCode: 0, ind:1, incCode:0, incStack: 0, offset: $5, useCTX: 1}
         }
     | STACK ':' E '-' NUMBER
         {
-            $$ = { isStack: 1, isCode: 1, ind:1, incCode:0, incStack: 0, offset: -$5}
+            $$ = { isStack: 1, isCode: 0, ind:1, incCode:0, incStack: 0, offset: -$5, useCTX: 1}
         }
     | STACK ':' E
         {
-            $$ = { isStack: 1, isCode: 1, ind:1, incCode:0, incStack: 0, offset: 0}
+            $$ = { isStack: 1, isCode: 0, ind:1, incCode:0, incStack: 0, offset: 0, useCTX: 1}
         }
     | IDENTIFIER
         {

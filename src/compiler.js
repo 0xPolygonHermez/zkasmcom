@@ -62,9 +62,18 @@ module.exports = async function compile(fileName, ctx) {
             const traceStep = {
                 // type: "step"
             };
-            try {
+            try {           
+                for (let j=0; j< l.ops.length; j++) {
+                    if (!l.ops[j].assignment) continue;
+                    if (l.assignment) {
+                        error(l, "not allowed assignments with this operation");    
+                    }
+                    l.assignment = l.ops[j].assignment;
+                    delete l.ops[j].assignment;                    
+                }
+            
                 if (l.assignment) {
-                    appendOp(traceStep, processAssignmentIn(l.assignment.in));
+                    appendOp(traceStep, processAssignmentIn(l.assignment.in, ctx.out.length));
                     appendOp(traceStep, processAssignmentOut(l.assignment.out));    
                 }
                 for (let j=0; j< l.ops.length; j++) {
@@ -160,7 +169,7 @@ module.exports = async function compile(fileName, ctx) {
     }
 }
 
-function processAssignmentIn(input) {
+function processAssignmentIn(input, currentLine) {
     const res = {};
     let E1, E2;
     if (input.type == "TAG") {
@@ -169,7 +178,12 @@ function processAssignmentIn(input) {
         return res;
     }
     if (input.type == "REG") {
-        res["in"+ input.reg] = 1n;
+        if (input.reg == "zkPC") {
+            res.CONST = BigInt(currentLine);
+        }
+        else {
+            res["in"+ input.reg] = 1n;
+        }
         return res;
     }
     if (input.type == "CONST") {
@@ -182,10 +196,10 @@ function processAssignmentIn(input) {
 
     }
     if ((input.type == "add") || (input.type == "sub") || (input.type == "neg") || (input.type == "mul")) {
-        E1 = processAssignmentIn(input.values[0]);
+        E1 = processAssignmentIn(input.values[0], currentLine);
     }
     if ((input.type == "add") || (input.type == "sub") || (input.type == "mul")) {
-        E2 = processAssignmentIn(input.values[1]);
+        E2 = processAssignmentIn(input.values[1], currentLine);
     }
     if (input.type == "mul") {
         if (isConstant(E1)) {
