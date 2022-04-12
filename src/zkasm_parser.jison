@@ -22,9 +22,10 @@ STEP                    { return 'STEP'; }
 MAXMEM                  { return 'MAXMEM'; }
 MLOAD                   { return 'MLOAD' }
 MSTORE                  { return 'MSTORE' }
-HASHR                   { return 'HASHR' }
-HASHW                   { return 'HASHW' }
-HASHE                   { return 'HASHE' }
+HASHK                   { return 'HASHK' }
+HASHKLEN                { return 'HASHKLEN' }
+HASHP                   { return 'HASHP' }
+HASHPLEN                { return 'HASHPLEN' }
 ECRECOVER               { return 'ECRECOVER' }
 JMP                     { return 'JMP' }
 JMPC                    { return 'JMPC' }
@@ -274,20 +275,21 @@ op
             $$ = $3;
             $$.mWR = 1;
         }
-    | HASHR '(' hashId ')'
+    | HASHK
         {
-            $$ = $3;
-            $$.hashRD = 1;
+            $$ = {hashK: 1};
         }
-    | HASHW '(' hashId ')'
+    | HASHKLEN
         {
-            $$ = $3;
-            $$.hashWR = 1;
+            $$ = {hashKLen: 1};
         }
-    | HASHE '(' hashId ')'
+    | HASHP
         {
-            $$ = $3;
-            $$.hashE = 1;
+            $$ = {hashP: 1};
+        }
+    | HASHPLEN
+        {
+            $$ = {hashPLen: 1};
         }
     | JMP '(' IDENTIFIER ')'
         {
