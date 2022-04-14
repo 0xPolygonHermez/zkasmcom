@@ -190,6 +190,10 @@ function processAssignmentIn(input, currentLine) {
         res.CONST = BigInt(input.const);
         return res;
     }
+    if (input.type == "CONSTL") {
+        res.CONSTL = BigInt(input.const);
+        return res;
+    }
     if (input.type == "exp") {
         res.CONST = BigInt(input.values[0])**BigInt(input.values[1]);
         return res;

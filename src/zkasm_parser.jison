@@ -2,6 +2,7 @@
 %lex
 %%
 \;[^\n\r]*              { /* console.log("COMMENT: "+yytext) */ }
+((0x[0-9A-Fa-f][0-9A-Fa-f_]*)|([0-9][0-9_]*))n          { yytext = Number(yytext.replace(/[\_n]/g, "")); return 'NUMBERL'; }
 (0x[0-9A-Fa-f][0-9A-Fa-f_]*)|([0-9][0-9_]*)          { yytext = Number(yytext.replace(/\_/g, "")); return 'NUMBER'; }
 \$\$\{[^\}]*\}          { yytext = yytext.slice(3, -1); return "COMMAND"; }
 (\$(\{[^\}]*\})?)       { yytext = yytext.length == 1 ? "" : yytext.slice(2, -1); return 'TAG'; }
@@ -21,12 +22,15 @@ zkPC                    { return 'zkPC'; }
 RR                      { return 'RR'; }
 STEP                    { return 'STEP'; }
 MAXMEM                  { return 'MAXMEM'; }
+HASHPOS                 { return 'HASHPOS'; }
 MLOAD                   { return 'MLOAD' }
 MSTORE                  { return 'MSTORE' }
 HASHK                   { return 'HASHK' }
 HASHKLEN                { return 'HASHKLEN' }
+HASHKDIGEST             { return 'HASHKDIGEST' }
 HASHP                   { return 'HASHP' }
 HASHPLEN                { return 'HASHPLEN' }
+HASHPDIGEST             { return 'HASHPDIGEST' }
 ECRECOVER               { return 'ECRECOVER' }
 JMP                     { return 'JMP' }
 JMPC                    { return 'JMPC' }
@@ -242,6 +246,10 @@ inReg
         {
             $$ = {type: 'CONST' , const: $1}
         }
+    | NUMBERL
+        {
+            $$ = {type: 'CONSTL' , const: $1}
+        }
     ;
 
 regsList
@@ -278,21 +286,35 @@ op
             $$ = $3;
             $$.mWR = 1;
         }
-    | HASHK
+    | HASHK '(' hashId ')'
         {
-            $$ = {hashK: 1};
+            $$ = $3;
+            $$.hashK = 1;
         }
-    | HASHKLEN
+    | HASHKLEN '(' hashId ')'
         {
-            $$ = {hashKLen: 1};
+            $$ = $3;
+            $$.hashKLen = 1;
         }
-    | HASHP
+    | HASHKDIGEST '(' hashId ')'
         {
-            $$ = {hashP: 1};
+            $$ = $3;
+            $$.hashKDigest = 1;
         }
-    | HASHPLEN
+    | HASHP '(' hashId ')'
         {
-            $$ = {hashPLen: 1};
+            $$ = $3;
+            $$.hashP = 1;
+        }
+    | HASHPLEN '(' hashId ')'
+        {
+            $$ = $3;
+            $$.hashPLen = 1;
+        }
+    | HASHPDIGEST '(' hashId ')'
+        {
+            $$ = $3;
+            $$.hashPDigest = 1;
         }
     | JMP '(' IDENTIFIER ')'
         {
@@ -368,6 +390,7 @@ reg
     | zkPC 
     | STEP 
     | MAXMEM 
+    | HASHPOS 
     ;
 
 
