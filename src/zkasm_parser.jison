@@ -40,6 +40,8 @@ ASSERT                  { return 'ASSERT' }
 SLOAD                   { return 'SLOAD' }
 SSTORE                  { return 'SSTORE' }
 ARITH                   { return 'ARITH' }
+ARITH_ECADD_DIFFERENT   { return 'ARITH_ECADD_DIFFERENT' }
+ARITH_ECADD_SAME        { return 'ARITH_ECADD_SAME' }
 SHL                     { return 'SHL' }
 SHR                     { return 'SHR' }
 INST_MAP_ROM            { return 'INST_MAP_ROM' }
@@ -358,7 +360,15 @@ op
         }
     | ARITH 
         {
-            $$ = { arith: 1}
+            $$ = { arith: 1, arithEq0: 1}
+        }
+    | ARITH_ECADD_DIFFERENT
+        {
+            $$ = { arith: 1, arithEq1: 1, arithEq3: 1}
+        }
+    | ARITH_ECADD_SAME
+        {
+            $$ = { arith: 1, arithEq2: 1, arithEq3: 1}
         }
     | SHL 
         {
