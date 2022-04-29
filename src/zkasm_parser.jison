@@ -35,6 +35,20 @@ ASSERT                  { return 'ASSERT' }
 SLOAD                   { return 'SLOAD' }
 SSTORE                  { return 'SSTORE' }
 ARITH                   { return 'ARITH' }
+ARITH_ECADD_DIFFERENT   { return 'ARITH_ECADD_DIFFERENT' }
+ARITH_ECADD_SAME        { return 'ARITH_ECADD_SAME' }
+NOP                     { return 'NOP' }
+ADD                     { return 'ADD' }
+SUB                     { return 'SUB' }
+GT                      { return 'LT' }
+SLT                     { return 'SLT' }
+SGT                     { return 'SGT' }
+EQ                      { return 'EQ' }
+ISZERO                  { return 'ISZERO' }
+AND                     { return 'AND' }
+OR                      { return 'OR' }
+XOR                     { return 'XOR' }
+NOT                     { return 'NOT' }
 SHL                     { return 'SHL' }
 SHR                     { return 'SHR' }
 INST_MAP_ROM            { return 'INST_MAP_ROM' }
@@ -47,7 +61,7 @@ VAR                     { return 'VAR' }
 GLOBAL                  { return 'GLOBAL' }
 CTX                     { return 'CTX' }
 \"[^"]+\"               { yytext = yytext.slice(1,-1); return 'STRING'; }
-[a-zA-Z_][a-zA-Z$_0-9\+\.\>\<\=\-\!]*  { return 'IDENTIFIER'; }
+[a-zA-Z_][a-zA-Z$_0-9]*  { return 'IDENTIFIER'; }
 \:                      { return ':'; }
 \,                      { return ','}
 \(                      { return '('}
@@ -311,7 +325,7 @@ op
         }
     | CALL '(' IDENTIFIER ')'
         {
-            $$ = {JMP: 1, offset: $3, assignment: { in: {type: 'add', values: [{type: 'REG', reg: 'zkPC'}, {type: 'CONST', const: 1}] }, out:['RR']}}
+            $$ = {JMP: 1, offset: $3, call: true, assignment: { in: {type: 'add', values: [{type: 'REG', reg: 'zkPC'}, {type: 'CONST', const: 1}] }, out:['RR']}}
         }
     | JMPC '(' RR ')'
         {
@@ -319,7 +333,7 @@ op
         }
     | RETURN
         {
-            $$ = {JMP: 1, ind: 1, offset: 0}
+            $$ = {JMP: 1, ind: 1, return: true, offset: 0}
         }
     | ASSERT
         {
@@ -339,8 +353,16 @@ op
         }
     | ARITH 
         {
-            $$ = { arith: 1}
+            $$ = { arith: 1, arithEq0: 1}
         }
+    | ARITH_ECADD_DIFFERENT
+        {
+            $$ = { arith: 1, arithEq1: 1, arithEq3: 1}
+        }
+    | ARITH_ECADD_SAME
+        {
+            $$ = { arith: 1, arithEq2: 1, arithEq3: 1}
+        }        
     | SHL 
         {
             $$ = { shl: 1}
@@ -349,6 +371,58 @@ op
         {
             $$ = { shr: 1}
         }
+| NOP 
+        {
+            $$ = { bin: 1, binOpcode: 0}
+        }
+    | ADD 
+        {
+            $$ = { bin: 1, binOpcode: 1}
+        }
+    | SUB 
+        {
+            $$ = { bin: 1, binOpcode: 2}
+        }
+    | LT 
+        {
+            $$ = { bin: 1, binOpcode: 3}
+        }
+    | GT 
+        {
+            $$ = { bin: 1, binOpcode: 4}
+        }
+    | SLT 
+        {
+            $$ = { bin: 1, binOpcode: 5}
+        }
+    | SGT 
+        {
+            $$ = { bin: 1, binOpcode: 6}
+        }
+    | EQ 
+        {
+            $$ = { bin: 1, binOpcode: 7}
+        }
+    | ISZERO 
+        {
+            $$ = { bin: 1, binOpcode: 8}
+        }
+    | AND 
+        {
+            $$ = { bin: 1, binOpcode: 9}
+        }
+    | OR 
+        {
+            $$ = { bin: 1, binOpcode: 10}
+        }
+    | XOR
+        {
+            $$ = { bin: 1, binOpcode: 11}
+        }
+    | NOT 
+        {
+            $$ = { bin: 1, binOpcode: 12}
+        }        
     | INST_MAP_ROM
         {
             $$ = {instMapRom: 1}
