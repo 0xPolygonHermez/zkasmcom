@@ -144,6 +144,7 @@ module.exports = async function compile(fileName, ctx) {
                 err.message = "Error parsing tag: " + err.message;
                 error(ctx.out[i].line, err);
             }
+            resolveDataOffset(i, ctx.out[i]);
             ctx.out[i].fileName = ctx.out[i].line.fileName;
             ctx.out[i].line = ctx.out[i].line.line;
         }
@@ -157,17 +158,50 @@ module.exports = async function compile(fileName, ctx) {
     }
 
     function parseCommands(cmdList) {
-        if (Array.isArray(cmdList )) {
+        if (Array.isArray(cmdList)) {
             for (let i=0; i<cmdList.length; i++) {
                 if (cmdList[i]) {
-                    cmdList[i] = command_parser.parse(cmdList[i])
+                    cmdList[i] = command_parser.parse(cmdList[i]);
                 } else {
                     cmdList[i] = {op: ""}
                 }
             }
         }
     }
+
+    function resolveDataOffset(i, cmd)
+    {
+        if (typeof cmd !== 'object' || cmd === null) return;
+        if (cmd.op === 'getData') {
+            if (cmd.module === 'mem' || typeof cmd.offsetLabel === 'undefined') {     
+                const name = cmd.offset;
+                if (typeof ctx.vars[name] === 'undefined') {
+                    error(ctx.out[i].line, `Not found reference ${cmd.module}.${name}`); 
+                }
+                cmd.op = 'getMemValue'
+                cmd.offset = ctx.vars[name].offset;
+                cmd.offsetLabel = name;
+                return;
+            }
+            else {
+                error(ctx.out[i].line, `Invalid module ${cmd.module}`);    
+            }
+        }
+        const keys = Object.keys(cmd);
+        for (let ikey = 0; ikey < keys.length; ++ikey) {
+            const name = keys[ikey];
+            if (Array.isArray(cmd[name])) {
+                for (let j = 0; j < cmd[name].length; ++j) {
+                    resolveDataOffset(i, cmd[name][j]);
+                }
+            }
+            else if (typeof cmd[name] == 'object') {
+                resolveDataOffset(i, cmd[name]);
+            }
+        }
+    }
 }
+
 
 function processAssignmentIn(input, currentLine) {
     const res = {};
@@ -195,6 +229,7 @@ function processAssignmentIn(input, currentLine) {
         return res;
     }
     if (input.type == "exp") {
+        // TODO: review with Jordi, CONSTL?
         res.CONST = BigInt(input.values[0])**BigInt(input.values[1]);
         return res;
 

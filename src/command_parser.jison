@@ -242,6 +242,10 @@ e0
         {
             $$ = $2;
         }
+    | IDENTIFIER '.' IDENTIFIER
+        {
+            $$ = {op: "getData", module: $1, offset: $3}
+        }
     ;
 
 leftExpression
@@ -254,7 +258,6 @@ leftExpression
             $$ = {op: "getVar", varName: $1}
         }
     ;
-
 
 reg 
     : A 
@@ -281,6 +284,14 @@ functionCall
     | IDENTIFIER '(' ')'
         {
             $$ = {op: "functionCall", funcName: $1, params: []}
+        }
+    | IDENTIFIER '.' IDENTIFIER '(' expressionList ')'
+        {
+            $$ = {op: "moduleFunctionCall", module: $1, funcName: $3, params: $5}
+        }
+    | IDENTIFIER '.' IDENTIFIER '(' ')'
+        {
+            $$ = {op: "moduleFunctionCall", module: $1, funcName: $3, params: []}
         }
     ;
 
