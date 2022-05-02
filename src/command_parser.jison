@@ -285,14 +285,6 @@ functionCall
         {
             $$ = {op: "functionCall", funcName: $1, params: []}
         }
-    | IDENTIFIER '.' IDENTIFIER '(' expressionList ')'
-        {
-            $$ = {op: "moduleFunctionCall", module: $1, funcName: $3, params: $5}
-        }
-    | IDENTIFIER '.' IDENTIFIER '(' ')'
-        {
-            $$ = {op: "moduleFunctionCall", module: $1, funcName: $3, params: []}
-        }
     ;
 
 expressionList
