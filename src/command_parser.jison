@@ -242,6 +242,10 @@ e0
         {
             $$ = $2;
         }
+    | IDENTIFIER '.' IDENTIFIER
+        {
+            $$ = {op: "getData", module: $1, offset: $3}
+        }
     ;
 
 leftExpression
@@ -254,7 +258,6 @@ leftExpression
             $$ = {op: "getVar", varName: $1}
         }
     ;
-
 
 reg 
     : A 
