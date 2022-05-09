@@ -293,11 +293,13 @@ op
     : MLOAD '(' addr ')'
         {
             $$ = $3;
-            $$.mRD = 1;
+            $$,mOp = 1;
+            $$.mWR = 0;
         }
     | MSTORE '(' addr ')'
         {
             $$ = $3;
+            $$,mOp = 1;
             $$.mWR = 1;
         }
     | HASHK '(' hashId ')'

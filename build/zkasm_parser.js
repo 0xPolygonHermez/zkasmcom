@@ -233,12 +233,14 @@ break;
 case 36:
 
             this.$ = $$[$0-1];
-            this.$.mRD = 1;
+            this.$,mOp = 1;
+            this.$.mWR = 0;
         
 break;
 case 37:
 
             this.$ = $$[$0-1];
+            this.$,mOp = 1;
             this.$.mWR = 1;
         
 break;
