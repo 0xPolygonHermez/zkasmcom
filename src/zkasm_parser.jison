@@ -45,7 +45,8 @@ ARITH_ECADD_SAME        { return 'ARITH_ECADD_SAME' }
 NOP                     { return 'NOP' }
 ADD                     { return 'ADD' }
 SUB                     { return 'SUB' }
-GT                      { return 'LT' }
+LT                      { return 'LT' }
+GT                      { return 'GT' }
 SLT                     { return 'SLT' }
 SGT                     { return 'SGT' }
 EQ                      { return 'EQ' }
