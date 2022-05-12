@@ -9,6 +9,10 @@ const argv = require("yargs")
     .version(version)
     .usage("zkasm <source.zkasm> -o <output.json>")
     .alias("o", "output")
+    .option('D', {
+        alias: 'define',
+        array: true
+    })
     .argv;
 
 async function run() {
@@ -22,18 +26,27 @@ async function run() {
         console.log("You need to specify a source file");
         process.exit(1);
     }
-
     const fullFileName = path.resolve(process.cwd(), inputFile);
     const fileName = path.basename(fullFileName, ".zkasm");
 
     const outputFile = typeof(argv.output) === "string" ?  argv.output.trim() : fileName + ".json";
 
-    const out = await compile(fullFileName);
-
+    const defines = [];
+    if (argv.define) {
+        argv.define.forEach((define) => {
+            const [name, value] = define.trim().split('=');
+            if (value.length > 1 && value.charAt(value.length-1) == 'n') {
+                defines[name] = {value: BigInt(value.substr(0, -1)), type: 'CONSTL', line: false, fileName: false};
+            } else {
+                defines[name] = {value: BigInt(value), type: 'CONST', line: false, fileName: false};
+            }
+        });
+    }
+    const out = await compile(fullFileName, null, {defines: defines});
     // console.log(JSON.stringify(out, null, 1));
 
     await fs.promises.writeFile(outputFile, JSON.stringify(out, null, 1) + "\n");
-    
+
     /*
     let writeStream = fs.createWriteStream(outputFile);
 
