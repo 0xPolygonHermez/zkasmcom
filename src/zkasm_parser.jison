@@ -3,7 +3,7 @@
 %%
 \;[^\n\r]*              { /* console.log("COMMENT: "+yytext) */ }
 ((0x[0-9A-Fa-f][0-9A-Fa-f_]*)|([0-9][0-9_]*))n          { yytext = BigInt(yytext.replace(/[\_n]/g, "")); return 'NUMBERL'; }
-(0x[0-9A-Fa-f][0-9A-Fa-f_]*)|([0-9][0-9_]*)          { yytext = Number(yytext.replace(/\_/g, "")); return 'NUMBER'; }
+(0x[0-9A-Fa-f][0-9A-Fa-f_]*)|([0-9][0-9_]*)          { yytext = BigInt(yytext.replace(/\_/g, "")); return 'NUMBER'; }
 \$\$\{[^\}]*\}          { yytext = yytext.slice(3, -1); return "COMMAND"; }
 (\$(\{[^\}]*\})?)       { yytext = yytext.length == 1 ? "" : yytext.slice(2, -1); return 'TAG'; }
 [\r\n]+                 { return "LF";}
@@ -66,8 +66,12 @@ INCLUDE                 { return 'INCLUDE' }
 VAR                     { return 'VAR' }
 GLOBAL                  { return 'GLOBAL' }
 CTX                     { return 'CTX' }
+CONST                   { return 'CONST' }
+CONSTL                  { return 'CONSTL' }
 \"[^"]+\"               { yytext = yytext.slice(1,-1); return 'STRING'; }
-[a-zA-Z_][a-zA-Z$_0-9]*  { return 'IDENTIFIER'; }
+[a-zA-Z_][a-zA-Z$_0-9]*   { return 'IDENTIFIER'; }
+\%[a-zA-Z_][a-zA-Z$_0-9]* { yytext = yytext.slice(1); return 'CONSTID'; }
+\@[a-zA-Z_][a-zA-Z$_0-9]* { yytext = yytext.slice(1); return 'REFERENCE'; }
 \:                      { return ':'; }
 \,                      { return ','}
 \(                      { return '('}
@@ -76,14 +80,47 @@ CTX                     { return 'CTX' }
 \-\-                    { return '--'}
 \+                      { return '+'}
 \-                      { return '-'}
+\/                      { return '/'}
 \*\*                    { return '**'}
 \*                      { return '*'}
+\%                      { return '%'}
 \=\>                    { return '=>' }
+\<\<                    { return '<<' }
+\>\>                    { return '>>' }
+\^                      { return '^' }
+\|\|                    { return '||' }
+\&\&                    { return '&&' }
+\&                      { return '&' }
+\|                      { return '|' }
+\=\=                    { return '==' }
+\!\=                    { return '!=' }
+\<\=                    { return '<=' }
+\>\=                    { return '>=' }
+\>                      { return '>' }
+\<                      { return '<' }
+\=                      { return '=' }
+\!                      { return '!' }
+\?\?                    { return '??' }
+\?                      { return '?' }
 <<EOF>>                 { return 'EOF'; }
 .                       { /* console.log("INVALID: " + yytext); */ return 'INVALID'; }
 
 /lex
 
+%right '='
+%right '?'
+%left '??'
+%left '||'
+%left '&&'
+%left '|'
+%left '^'
+%left '&'
+%left '==' '!='
+%left '<' '<=' '>' '>='
+%left '<<' '>>'
+%left '+' '-'
+%left '**' '*' '%' '/'
+%right '!'
 %{
 function setLine(dst, first) {
     dst.line = first.first_line;
@@ -129,6 +166,10 @@ statment
             $$ = $1;
         }
     | varDef
+        {
+            $$ = $1;
+        }
+    | constDef
         {
             $$ = $1;
         }
@@ -179,6 +220,19 @@ varDef
         }
     ;
 
+constDef
+    : 'CONST' CONSTID '=' nexpr %prec '='
+        {
+            $$ = {type: "constdef", name: $2, value: $4}
+            setLine($$, @1);
+        }
+    | 'CONSTL' CONSTID '=' nexpr %prec '='
+        {
+            $$ = {type: "constldef", name: $2, value: $4}
+            setLine($$, @1);
+        }
+    ;
+
 command
     : COMMAND
         {
@@ -199,8 +253,116 @@ include
         }
     ;
 
-
-
+nexpr
+    : NUMBER
+        {
+            $$ = {type: 'CONSTL' , value: $1}
+        }
+    | NUMBERL
+        {
+            $$ = {type: 'CONSTL' , value: $1}
+        }
+    | CONSTID
+        {
+            $$ = {type: 'CONSTID' , identifier: $1}
+        }
+    | CONSTID '??' nexpr
+        {
+            $$ = {type: $2, values: [$3] , identifier: $1}
+        }
+    | nexpr '+' nexpr
+        {
+            $$ = {type: $2, values: [$1, $3]}
+        }
+    | nexpr '-' nexpr
+        {
+            $$ = {type: $2, values: [$1, $3]}
+        }
+    | nexpr '*' nexpr
+        {
+            $$ = {type: $2, values: [$1, $3]}
+        }
+    | nexpr '**' nexpr
+        {
+            $$ = {type: $2, values: [$1, $3]}
+        }
+    | nexpr '%' nexpr
+        {
+            $$ = {type: $2, values: [$1, $3]}
+        }
+      | nexpr '/' nexpr
+        {
+            $$ = {type: $2, values: [$1, $3]}
+        }
+    | '-' nexpr
+        {
+            $$ = {type: $1, values: [$2]}
+        }
+    | nexpr '<<' nexpr
+        {
+            $$ = {type: $2, values: [$1, $3]}
+        }
+    | nexpr '>>' nexpr
+        {
+            $$ = {type: $2, values: [$1, $3]}
+        }
+    | nexpr '|' nexpr
+        {
+            $$ = {type: $2, values: [$1, $3]}
+        }
+    | nexpr '&' nexpr
+        {
+            $$ = {type: $2, values: [$1, $3]}
+        }
+    | nexpr '^' nexpr
+        {
+            $$ = {type: $2, values: [$1, $3]}
+        }
+    | nexpr '<' nexpr
+        {
+            $$ = {type: $2, values: [$1, $3]}
+        }
+    | nexpr '>' nexpr
+        {
+            $$ = {type: $2, values: [$1, $3]}
+        }
+    | nexpr '<=' nexpr
+        {
+            $$ = {type: $2, values: [$1, $3]}
+        }
+    | nexpr '>=' nexpr
+        {
+            $$ = {type: $2, values: [$1, $3]}
+        }
+    | nexpr '==' nexpr
+        {
+            $$ = {type: $2, values: [$1, $3]}
+        }
+    | nexpr '!=' nexpr
+        {
+            $$ = {type: $2, values: [$1, $3]}
+        }
+    | nexpr '&&' nexpr
+        {
+            $$ = {type: $2, values: [$1, $3]}
+        }
+    | nexpr '||' nexpr
+        {
+            $$ = {type: $2, values: [$1, $3]}
+        }
+    | '!' nexpr
+        {
+            $$ = {type: $1, values: [$2]}
+        }
+    | nexpr '?' nexpr ':' nexpr
+        {
+            $$ = {type: $2, values: [$1, $3, $5]}
+        }
+    | '(' nexpr ')'
+        {
+            $$ = $2
+        }
+    ;
 
 assignment
     : inRegsSum '=>' regsList
@@ -264,6 +426,14 @@ inReg
     | NUMBERL
         {
             $$ = {type: 'CONSTL' , const: $1}
+        }
+    | CONSTID
+        {
+            $$ = {type: 'CONSTID' , identifier: $1}
+        }
+    | REFERENCE
+        {
+            $$ = {type: 'reference', identifier: $1}
         }
     ;
 
@@ -341,6 +511,10 @@ op
         {
             $$ = {JMP: 1, ind: 1, offset: 0}
         }
+    | JMP '(' REFERENCE '+' RR ')'
+        {
+            $$ = {JMP: 1, ind: 1, offset: $3}
+        }
     | JMPC '(' IDENTIFIER ')'
         {
             $$ = {JMPC: 1, offset: $3}
@@ -349,9 +523,17 @@ op
         {
             $$ = {JMP: 1, offset: $3, assignment: { in: {type: 'add', values: [{type: 'REG', reg: 'zkPC'}, {type: 'CONST', const: 1}] }, out:['RR']}}
         }
+    | CALL '(' REFERENCE '+' RR ')'
+        {
+            $$ = {JMP: 1, offset: $3, ind: 1, assignment: { in: {type: 'add', values: [{type: 'REG', reg: 'zkPC'}, {type: 'CONST', const: 1}] }, out:['RR']}}
+        }
     | JMPC '(' RR ')'
         {
             $$ = {JMPC: 1, ind: 1, offset: 0}
+        }
+    | JMPC '(' REFERENCE '+' RR ')'
+        {
+            $$ = {JMPC: 1, ind: 1, offset: $3}
         }
     | RETURN
         {
@@ -373,7 +555,7 @@ op
         {
             $$ = {sWR: 1}
         }
-    | ARITH 
+    | ARITH
         {
             $$ = { arith: 1, arithEq0: 1}
         }
@@ -385,55 +567,55 @@ op
         {
             $$ = { arith: 1, arithEq2: 1, arithEq3: 1}
         }
-    | SHL 
+    | SHL
         {
             $$ = { shl: 1}
         }
-    | SHR 
+    | SHR
         {
             $$ = { shr: 1}
         }
-    | NOP 
+    | NOP
         {
             $$ = { bin: 1, binOpcode: 0}
         }
-    | ADD 
+    | ADD
         {
             $$ = { bin: 1, binOpcode: 1}
         }
-    | SUB 
+    | SUB
         {
             $$ = { bin: 1, binOpcode: 2}
         }
-    | LT 
+    | LT
         {
             $$ = { bin: 1, binOpcode: 3}
         }
-    | GT 
+    | GT
         {
             $$ = { bin: 1, binOpcode: 4}
         }
-    | SLT 
+    | SLT
         {
             $$ = { bin: 1, binOpcode: 5}
         }
-    | SGT 
+    | SGT
         {
             $$ = { bin: 1, binOpcode: 6}
         }
-    | EQ 
+    | EQ
         {
             $$ = { bin: 1, binOpcode: 7}
         }
-    | ISZERO 
+    | ISZERO
         {
             $$ = { bin: 1, binOpcode: 8}
         }
-    | AND 
+    | AND
         {
             $$ = { bin: 1, binOpcode: 9}
         }
-    | OR 
+    | OR
         {
             $$ = { bin: 1, binOpcode: 10}
         }
@@ -441,15 +623,15 @@ op
         {
             $$ = { bin: 1, binOpcode: 11}
         }
-    | NOT 
+    | NOT
         {
             $$ = { bin: 1, binOpcode: 12}
         }
-    | MEM_ALIGN_RD 
+    | MEM_ALIGN_RD
         {
             $$ = { memAlign: 1, memAlignWrite: 0}
         }
-    | MEM_ALIGN_WR 
+    | MEM_ALIGN_WR
         {
             $$ = { memAlign: 1, memAlignWrite: 1}
         }
@@ -460,22 +642,22 @@ op
     ;
 
 
-reg 
-    : A 
-    | B 
-    | C 
-    | D 
-    | E 
-    | SR 
-    | CTX 
-    | SP 
-    | PC 
-    | GAS 
+reg
+    : A
+    | B
+    | C
+    | D
+    | E
+    | SR
+    | CTX
+    | SP
+    | PC
+    | GAS
     | RR
-    | zkPC 
-    | STEP 
-    | MAXMEM 
-    | HASHPOS 
+    | zkPC
+    | STEP
+    | MAXMEM
+    | HASHPOS
     ;
 
 
@@ -572,7 +754,10 @@ addr
         {
             $$ = { offset: $1 }
         }
-
+    | IDENTIFIER '+' RR
+        {
+            $$ = { offset: $1, ind: 1 }
+        }
     ;
 
 hashId
