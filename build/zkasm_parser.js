@@ -1109,7 +1109,7 @@ case 0: /* console.log("COMMENT: "+yy_.yytext) */
 break;
 case 1: yy_.yytext = BigInt(yy_.yytext.replace(/[\_n]/g, "")); return 31; 
 break;
-case 2: yy_.yytext = BigInt(yy_.yytext.replace(/\_/g, "")); return 30; 
+case 2: yy_.yytext = Number(yy_.yytext.replace(/\_/g, "")); return 30; 
 break;
 case 3: yy_.yytext = yy_.yytext.slice(3, -1); return "COMMAND"; 
 break;
