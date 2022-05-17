@@ -509,11 +509,19 @@ op
         }
     | JMP '(' RR ')'
         {
-            $$ = {JMP: 1, ind: 1, offset: 0}
+            $$ = {JMP: 1, ind: 0, indRR: 1, offset: 0}
+        }
+    | JMP '(' E ')'
+        {
+            $$ = {JMP: 1, ind: 1, indRR: 0, offset: 0}
         }
     | JMP '(' REFERENCE '+' RR ')'
         {
-            $$ = {JMP: 1, ind: 1, offset: $3}
+            $$ = {JMP: 1, ind: 0, indRR: 1, offset: $3}
+        }
+    | JMP '(' REFERENCE '+' E ')'
+        {
+            $$ = {JMP: 1, ind: 1, indRR: 0, offset: $3}
         }
     | JMPC '(' IDENTIFIER ')'
         {
@@ -525,19 +533,31 @@ op
         }
     | CALL '(' REFERENCE '+' RR ')'
         {
-            $$ = {JMP: 1, offset: $3, ind: 1, assignment: { in: {type: 'add', values: [{type: 'REG', reg: 'zkPC'}, {type: 'CONST', const: 1}] }, out:['RR']}}
+            $$ = {JMP: 1, offset: $3, ind: 0, indRR: 1, assignment: { in: {type: 'add', values: [{type: 'REG', reg: 'zkPC'}, {type: 'CONST', const: 1}] }, out:['RR']}}
+        }
+    | CALL '(' REFERENCE '+' E ')'
+        {
+            $$ = {JMP: 1, offset: $3, ind: 1, indRR: 0, assignment: { in: {type: 'add', values: [{type: 'REG', reg: 'zkPC'}, {type: 'CONST', const: 1}] }, out:['RR']}}
         }
     | JMPC '(' RR ')'
         {
-            $$ = {JMPC: 1, ind: 1, offset: 0}
+            $$ = {JMPC: 1, ind: 0, indRR: 1, offset: 0}
+        }
+    | JMPC '(' E ')'
+        {
+            $$ = {JMPC: 1, ind: 1, indRR: 0, offset: 0}
         }
     | JMPC '(' REFERENCE '+' RR ')'
         {
-            $$ = {JMPC: 1, ind: 1, offset: $3}
+            $$ = {JMPC: 1, ind: 0, indRR: 1, offset: $3}
+        }
+    | JMPC '(' REFERENCE '+' E ')'
+        {
+            $$ = {JMPC: 1, ind: 1, indRR: 0, offset: $3}
         }
     | RETURN
         {
-            $$ = {JMP: 1, ind: 1, offset: 0}
+            $$ = {JMP: 1, ind: 0, indRR: 1, offset: 0}
         }
     | ASSERT
         {
@@ -664,91 +684,91 @@ reg
 addr
     : SP
         {
-            $$ = { isStack: 1, isCode: 0, isMem:0, ind:0, incCode:0, incStack:0, offset: 0, useCTX: 1}
+            $$ = { isStack: 1, isCode: 0, isMem:0, ind:0, indRR: 0, incCode:0, incStack:0, offset: 0, useCTX: 1}
         }
     | SP '+' NUMBER
         {
-            $$ = { isStack: 1, isCode: 0, isMem:0, ind:0, incCode:0, incStack: 0, offset: $3, useCTX: 1}}
+            $$ = { isStack: 1, isCode: 0, isMem:0, ind:0, indRR: 0, incCode:0, incStack: 0, offset: $3, useCTX: 1}}
         }
     | SP '-' NUMBER
         {
-            $$ = { isStack: 1, isCode: 0, isMem:0, ind:0, incCode:0, incStack: 0, offset: -$3, useCTX: 1}}
+            $$ = { isStack: 1, isCode: 0, isMem:0, ind:0, indRR: 0, incCode:0, incStack: 0, offset: -$3, useCTX: 1}}
         }
     | SP '++'
         {
-            $$ = { isStack: 1, isCode: 0, isMem:0, ind:0, incStack: 1, offset: 0, useCTX: 1}}
+            $$ = { isStack: 1, isCode: 0, isMem:0, ind:0, indRR: 0, incStack: 1, offset: 0, useCTX: 1}}
         }
     | SP '--'
         {
-            $$ = { isStack: 1, isCode: 0, isMem:0, ind:0, incCode:0, incStack: -1, offset: 0, useCTX: 1}}
+            $$ = { isStack: 1, isCode: 0, isMem:0, ind:0, indRR: 0, incCode:0, incStack: -1, offset: 0, useCTX: 1}}
         }
     | PC
         {
-            $$ = { isStack: 0, isCode: 1, isMem:0, ind:0, incCode:0, incStack: 0, offset: 0, useCTX: 1}
+            $$ = { isStack: 0, isCode: 1, isMem:0, ind:0, indRR: 0, incCode:0, incStack: 0, offset: 0, useCTX: 1}
         }
     | PC '+' NUMBER
         {
-            $$ = { isStack: 0, isCode: 1, isMem:0, ind:0, incCode:0, incStack: 0, offset: $3, useCTX: 1}
+            $$ = { isStack: 0, isCode: 1, isMem:0, ind:0, indRR: 0, incCode:0, incStack: 0, offset: $3, useCTX: 1}
         }
     | PC '-' NUMBER
         {
-            $$ = { isStack: 0, isCode: 1, isMem:0, ind:0, incCode:0, incStack: 0, offset: -$3, useCTX: 1}
+            $$ = { isStack: 0, isCode: 1, isMem:0, ind:0, indRR: 0,     incCode:0, incStack: 0, offset: -$3, useCTX: 1}
         }
     | PC '++'
         {
-            $$ = { isStack: 0, isCode: 1, isMem:0, ind:0, incCode:1, incStack: 0, offset: 0, useCTX: 1}
+            $$ = { isStack: 0, isCode: 1, isMem:0, ind:0, indRR: 0, incCode:1, incStack: 0, offset: 0, useCTX: 1}
         }
     | PC '--'
         {
-            $$ = { isStack: 0, isCode: 1, isMem:0, ind:0, incCode:-1, incStack: 0, offset: 0, useCTX: 1}
+            $$ = { isStack: 0, isCode: 1, isMem:0, ind:0, indRR: 0, incCode:-1, incStack: 0, offset: 0, useCTX: 1}
         }
     | SYS ':' E '+' NUMBER
         {
-            $$ = { isStack: 0, isCode: 0, ind:1, incCode:0, incStack: 0, offset: $5}
+            $$ = { isStack: 0, isCode: 0, ind:1, indRR: 0, incCode:0, incStack: 0, offset: $5}
         }
     | SYS ':' E '-' NUMBER
         {
-            $$ = { isStack: 0, isCode: 0, ind:1, incCode:0, incStack: 0, offset: -$5}
+            $$ = { isStack: 0, isCode: 0, ind:1, indRR: 0, incCode:0, incStack: 0, offset: -$5}
         }
     | SYS ':' E
         {
-            $$ = { isStack: 0, isCode: 0, ind:1, iincCodenc:0, incStack: 0, offset: 0}
+            $$ = { isStack: 0, isCode: 0, ind:1, indRR: 0, incCode:0, incStack: 0, offset: 0}
         }
     | MEM ':' E '+' NUMBER
         {
-            $$ = { isStack: 0, isMem: 1, isCode: 0, ind:1, incCode:0, incStack: 0, offset: $5, useCTX: 1}
+            $$ = { isStack: 0, isMem: 1, isCode: 0, ind:1, indRR: 0, incCode:0, incStack: 0, offset: $5, useCTX: 1}
         }
     | MEM ':' E '-' NUMBER
         {
-            $$ = { isStack: 0, isMem: 1, isCode: 0, ind:1, incCode:0, incStack: 0, offset: -$5, useCTX: 1}
+            $$ = { isStack: 0, isMem: 1, isCode: 0, ind:1, indRR: 0, incCode:0, incStack: 0, offset: -$5, useCTX: 1}
         }
     | MEM ':' E
         {
-            $$ = { isStack: 0, isMem: 1, isCode: 0, ind:1, incCode:0, incStack: 0, offset: 0, useCTX: 1}
+            $$ = { isStack: 0, isMem: 1, isCode: 0, ind:1, indRR: 0, incCode:0, incStack: 0, offset: 0, useCTX: 1}
         }
     | CODE ':' E '+' NUMBER
         {
-            $$ = { isStack: 0, isCode: 1, ind:1, incCode:0, incStack: 0, offset: $5, useCTX: 1}
+            $$ = { isStack: 0, isCode: 1, ind:1, indRR: 0, incCode:0, incStack: 0, offset: $5, useCTX: 1}
         }
     | CODE ':' E '-' NUMBER
         {
-            $$ = { isStack: 0, isCode: 1, ind:1, incCode:0, incStack: 0, offset: -$5, useCTX: 1}
+            $$ = { isStack: 0, isCode: 1, ind:1, indRR: 0, incCode:0, incStack: 0, offset: -$5, useCTX: 1}
         }
     | CODE ':' E
         {
-            $$ = { isStack: 0, isCode: 1, ind:1, incCode:0, incStack: 0, offset: 0, useCTX: 1}
+            $$ = { isStack: 0, isCode: 1, ind:1, indRR: 0, incCode:0, incStack: 0, offset: 0, useCTX: 1}
         }
     | STACK ':' E '+' NUMBER
         {
-            $$ = { isStack: 1, isCode: 0, ind:1, incCode:0, incStack: 0, offset: $5, useCTX: 1}
+            $$ = { isStack: 1, isCode: 0, ind:1, indRR: 0, incCode:0, incStack: 0, offset: $5, useCTX: 1}
         }
     | STACK ':' E '-' NUMBER
         {
-            $$ = { isStack: 1, isCode: 0, ind:1, incCode:0, incStack: 0, offset: -$5, useCTX: 1}
+            $$ = { isStack: 1, isCode: 0, ind:1, indRR: 0, incCode:0, incStack: 0, offset: -$5, useCTX: 1}
         }
     | STACK ':' E
         {
-            $$ = { isStack: 1, isCode: 0, ind:1, incCode:0, incStack: 0, offset: 0, useCTX: 1}
+            $$ = { isStack: 1, isCode: 0, ind:1, indRR: 0, incCode:0, incStack: 0, offset: 0, useCTX: 1}
         }
     | IDENTIFIER
         {
@@ -756,17 +776,21 @@ addr
         }
     | IDENTIFIER '+' RR
         {
-            $$ = { offset: $1, ind: 1 }
+            $$ = { offset: $1, ind: 0, indRR: 1 }
+        }
+    | IDENTIFIER '+' E
+        {
+            $$ = { offset: $1, ind: 1, indRR: 0 }
         }
     ;
 
 hashId
     : NUMBER
         {
-            $$ = {ind: 0, offset:$1}
+            $$ = {ind: 0, indRR: 0, offset:$1}
         }
     | E
         {
-            $$ = {ind: 1, offset:0}
+            $$ = {ind: 1, indRR: 0, offset:0}
         }
     ;
