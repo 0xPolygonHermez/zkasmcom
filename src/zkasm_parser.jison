@@ -509,11 +509,11 @@ op
         }
     | JMP '(' RR ')'
         {
-            $$ = {JMP: 1, indRR: 1, offset: 0}
+            $$ = {JMP: 1, ind: 0, indRR: 1, offset: 0}
         }
     | JMP '(' E ')'
         {
-            $$ = {JMP: 1, ind: 1, indRR: 1, offset: 0}
+            $$ = {JMP: 1, ind: 1, indRR: 0, offset: 0}
         }
     | JMP '(' REFERENCE '+' RR ')'
         {
