@@ -34,6 +34,7 @@ HASHPDIGEST             { return 'HASHPDIGEST' }
 ECRECOVER               { return 'ECRECOVER' }
 JMP                     { return 'JMP' }
 JMPC                    { return 'JMPC' }
+JMPN                    { return 'JMPN' }
 CALL                    { return 'CALL' }
 RETURN                  { return 'RETURN' }
 ASSERT                  { return 'ASSERT' }
@@ -505,59 +506,79 @@ op
         }
     | JMP '(' IDENTIFIER ')'
         {
-            $$ = {JMP: 1, offset: $3}
+            $$ = {JMP: 1, JMPC: 0, JMPN: 0, offset: $3}
         }
     | JMP '(' RR ')'
         {
-            $$ = {JMP: 1, ind: 0, indRR: 1, offset: 0}
+            $$ = {JMP: 1, JMPC: 0, JMPN: 0, ind: 0, indRR: 1, offset: 0}
         }
     | JMP '(' E ')'
         {
-            $$ = {JMP: 1, ind: 1, indRR: 0, offset: 0}
+            $$ = {JMP: 1, JMPC: 0, JMPN: 0, ind: 1, indRR: 0, offset: 0}
         }
     | JMP '(' REFERENCE '+' RR ')'
         {
-            $$ = {JMP: 1, ind: 0, indRR: 1, offset: $3}
+            $$ = {JMP: 1, JMPC: 0, JMPN: 0, ind: 0, indRR: 1, offset: $3}
         }
     | JMP '(' REFERENCE '+' E ')'
         {
-            $$ = {JMP: 1, ind: 1, indRR: 0, offset: $3}
+            $$ = {JMP: 1, JMPC: 0, JMPN: 0, ind: 1, indRR: 0, offset: $3}
         }
     | JMPC '(' IDENTIFIER ')'
         {
-            $$ = {JMPC: 1, offset: $3}
+            $$ = {JMPC: 1, JMPN: 0, offset: $3}
+        }
+    | JMPN '(' IDENTIFIER ')'
+        {
+            $$ = {JMPC: 0, JMPN: 1, offset: $3}
         }
     | CALL '(' IDENTIFIER ')'
         {
-            $$ = {JMP: 1, offset: $3, assignment: { in: {type: 'add', values: [{type: 'REG', reg: 'zkPC'}, {type: 'CONST', const: 1}] }, out:['RR']}}
+            $$ = {JMP: 1,  JMPC: 0, JMPN: 0, offset: $3, assignment: { in: {type: 'add', values: [{type: 'REG', reg: 'zkPC'}, {type: 'CONST', const: 1}] }, out:['RR']}}
         }
     | CALL '(' REFERENCE '+' RR ')'
         {
-            $$ = {JMP: 1, offset: $3, ind: 0, indRR: 1, assignment: { in: {type: 'add', values: [{type: 'REG', reg: 'zkPC'}, {type: 'CONST', const: 1}] }, out:['RR']}}
+            $$ = {JMP: 1,  JMPC: 0, JMPN: 0, offset: $3, ind: 0, indRR: 1, assignment: { in: {type: 'add', values: [{type: 'REG', reg: 'zkPC'}, {type: 'CONST', const: 1}] }, out:['RR']}}
         }
     | CALL '(' REFERENCE '+' E ')'
         {
-            $$ = {JMP: 1, offset: $3, ind: 1, indRR: 0, assignment: { in: {type: 'add', values: [{type: 'REG', reg: 'zkPC'}, {type: 'CONST', const: 1}] }, out:['RR']}}
+            $$ = {JMP: 1,  JMPC: 0, JMPN: 0, offset: $3, ind: 1, indRR: 0, assignment: { in: {type: 'add', values: [{type: 'REG', reg: 'zkPC'}, {type: 'CONST', const: 1}] }, out:['RR']}}
         }
     | JMPC '(' RR ')'
         {
-            $$ = {JMPC: 1, ind: 0, indRR: 1, offset: 0}
+            $$ = {JMP: 0, JMPC: 1, JMPN: 0, ind: 0, indRR: 1, offset: 0}
         }
     | JMPC '(' E ')'
         {
-            $$ = {JMPC: 1, ind: 1, indRR: 0, offset: 0}
+            $$ = {JMP: 0, JMPC: 1, JMPN: 0, ind: 1, indRR: 0, offset: 0}
         }
     | JMPC '(' REFERENCE '+' RR ')'
         {
-            $$ = {JMPC: 1, ind: 0, indRR: 1, offset: $3}
+            $$ = {JMP: 0, JMPC: 1, JMPN: 0, ind: 0, indRR: 1, offset: $3}
         }
     | JMPC '(' REFERENCE '+' E ')'
         {
-            $$ = {JMPC: 1, ind: 1, indRR: 0, offset: $3}
+            $$ = {JMP: 0, JMPC: 1, JMPN: 0, ind: 1, indRR: 0, offset: $3}
+        }
+    | JMPN '(' RR ')'
+        {
+            $$ = {JMP: 0, JMPC: 0, JMPN: 1, ind: 0, indRR: 1, offset: 0}
+        }
+    | JMPN '(' E ')'
+        {
+            $$ = {JMP: 0, JMPC: 0, JMPN: 1, ind: 1, indRR: 0, offset: 0}
+        }
+    | JMPN '(' REFERENCE '+' RR ')'
+        {
+            $$ = {JMP: 0, JMPC: 0, JMPN: 1, ind: 0, indRR: 1, offset: $3}
+        }
+    | JMPN '(' REFERENCE '+' E ')'
+        {
+            $$ = {JMP: 0, JMPC: 0, JMPN: 1, ind: 1, indRR: 0, offset: $3}
         }
     | RETURN
         {
-            $$ = {JMP: 1, ind: 0, indRR: 1, offset: 0}
+            $$ = {JMP: 1, JMPC: 0, JMPN: 0,  ind: 0, indRR: 1, offset: 0}
         }
     | ASSERT
         {

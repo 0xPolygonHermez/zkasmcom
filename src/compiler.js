@@ -90,6 +90,10 @@ module.exports = async function compile(fileName, ctx, config) {
                 for (let j=0; j< l.ops.length; j++) {
                     appendOp(traceStep, l.ops[j])
                 }
+
+                if (traceStep.JMPC && !traceStep.bin) {
+                    error(l, "JMPC must go together with a binary op");
+                }
             } catch (err) {
                 error(l, err);
             }
@@ -100,7 +104,7 @@ module.exports = async function compile(fileName, ctx, config) {
                 traceStep.cmdBefore = pendingCommands;
                 pendingCommands = [];
             }
-            lastLineAllowsCommand = !(traceStep.JMP || traceStep.JMPC);
+            lastLineAllowsCommand = !(traceStep.JMP || traceStep.JMPC || traceStep.JMPN);
         } else if (l.type == "label") {
             const id = l.identifier
             if (ctx.definedLabels[id]) error(l, `RedefinedLabel: ${id}` );
@@ -127,7 +131,7 @@ module.exports = async function compile(fileName, ctx, config) {
                     (typeof ctx.out[i].offset !== "undefined") &&
                     (isNaN(ctx.out[i].offset))
                ) {
-                if (ctx.out[i].JMP || ctx.out[i].JMPC) {
+                if (ctx.out[i].JMP || ctx.out[i].JMPC || ctx.out[i].JMPN) {
                     if (typeof ctx.definedLabels[ctx.out[i].offset] === "undefined") {
                         error(ctx.out[i].line, `Label: ${ctx.out[i].offset} not defined.`);
                     }
