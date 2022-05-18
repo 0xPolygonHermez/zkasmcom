@@ -57,6 +57,8 @@ XOR                     { return 'XOR' }
 NOT                     { return 'NOT' }
 SHL                     { return 'SHL' }
 SHR                     { return 'SHR' }
+MEM_ALIGN_RD            { return 'MEM_ALIGN_RD' }
+MEM_ALIGN_WR            { return 'MEM_ALIGN_WR' }
 INST_MAP_ROM            { return 'INST_MAP_ROM' }
 SYS                     { return 'SYS' }
 MEM                     { return 'MEM' }
