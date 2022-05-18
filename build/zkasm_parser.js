@@ -509,12 +509,12 @@ case 111:
 break;
 case 112:
 
-            this.$ = { memAlign: 1, memAlignWrite: 0}
+            this.$ = { memAlign: 1, memAlignWR: 0}
         
 break;
 case 113:
 
-            this.$ = { memAlign: 1, memAlignWrite: 1}
+            this.$ = { memAlign: 1, memAlignWR: 1}
         
 break;
 case 114:

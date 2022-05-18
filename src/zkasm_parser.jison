@@ -651,11 +651,11 @@ op
         }
     | MEM_ALIGN_RD
         {
-            $$ = { memAlign: 1, memAlignWrite: 0}
+            $$ = { memAlign: 1, memAlignWR: 0}
         }
     | MEM_ALIGN_WR
         {
-            $$ = { memAlign: 1, memAlignWrite: 1}
+            $$ = { memAlign: 1, memAlignWR: 1}
         }
     | INST_MAP_ROM
         {
