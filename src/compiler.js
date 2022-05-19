@@ -256,7 +256,7 @@ function defineConstant(ctx, name, ctype, value) {
 
 function getConstant(ctx, name, throwIfNotExists = true) {
     if (ctx.config && ctx.config.defines && typeof ctx.config.defines[name] !== 'undefined') {
-        return [ctx.config.defines[name].value, ctx.config.defines[name].ctype];
+        return [ctx.config.defines[name].value, ctx.config.defines[name].type];
     }
 
     if (typeof ctx.constants[name] === 'undefined') {
