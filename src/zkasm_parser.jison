@@ -43,19 +43,14 @@ SSTORE                  { return 'SSTORE' }
 ARITH                   { return 'ARITH' }
 ARITH_ECADD_DIFFERENT   { return 'ARITH_ECADD_DIFFERENT' }
 ARITH_ECADD_SAME        { return 'ARITH_ECADD_SAME' }
-NOP                     { return 'NOP' }
 ADD                     { return 'ADD' }
 SUB                     { return 'SUB' }
 LT                      { return 'LT' }
-GT                      { return 'GT' }
 SLT                     { return 'SLT' }
-SGT                     { return 'SGT' }
 EQ                      { return 'EQ' }
-ISZERO                  { return 'ISZERO' }
 AND                     { return 'AND' }
 OR                      { return 'OR' }
 XOR                     { return 'XOR' }
-NOT                     { return 'NOT' }
 SHL                     { return 'SHL' }
 SHR                     { return 'SHR' }
 MEM_ALIGN_RD            { return 'MEM_ALIGN_RD' }
@@ -618,57 +613,37 @@ op
         {
             $$ = { shr: 1}
         }
-    | NOP
+    | ADD
         {
             $$ = { bin: 1, binOpcode: 0}
         }
-    | ADD
+    | SUB
         {
             $$ = { bin: 1, binOpcode: 1}
         }
-    | SUB
+    | LT
         {
             $$ = { bin: 1, binOpcode: 2}
         }
-    | LT
+    | SLT
         {
             $$ = { bin: 1, binOpcode: 3}
         }
-    | GT
+    | EQ
         {
             $$ = { bin: 1, binOpcode: 4}
         }
-    | SLT
+    | AND
         {
             $$ = { bin: 1, binOpcode: 5}
         }
-    | SGT
+    | OR
         {
             $$ = { bin: 1, binOpcode: 6}
         }
-    | EQ
-        {
-            $$ = { bin: 1, binOpcode: 7}
-        }
-    | ISZERO
-        {
-            $$ = { bin: 1, binOpcode: 8}
-        }
-    | AND
-        {
-            $$ = { bin: 1, binOpcode: 9}
-        }
-    | OR
-        {
-            $$ = { bin: 1, binOpcode: 10}
-        }
     | XOR
         {
-            $$ = { bin: 1, binOpcode: 11}
-        }
-    | NOT
-        {
-            $$ = { bin: 1, binOpcode: 12}
+            $$ = { bin: 1, binOpcode: 7}
         }
     | MEM_ALIGN_RD
         {
