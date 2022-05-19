@@ -1,11 +1,11 @@
 {
   "name": "@polygon-hermez/zkasm",
-  "version": "0.0.15",
+  "version": "0.0.16",
   "bin": {
     "zkasm": "src/zkasm.js"
   },
   "description": "zkASM compiler",
-  "main": "src/zkasm.js",
+  "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build_parser_zkasm": "mkdir -p build; ./node_modules/.bin/jison src/zkasm_parser.jison -o build/zkasm_parser.js",
