@@ -53,6 +53,7 @@ OR                      { return 'OR' }
 XOR                     { return 'XOR' }
 SHL                     { return 'SHL' }
 SHR                     { return 'SHR' }
+MEM_ALIGN_WR8           { return 'MEM_ALIGN_WR8' }
 MEM_ALIGN_RD            { return 'MEM_ALIGN_RD' }
 MEM_ALIGN_WR            { return 'MEM_ALIGN_WR' }
 INST_MAP_ROM            { return 'INST_MAP_ROM' }
@@ -647,11 +648,15 @@ op
         }
     | MEM_ALIGN_RD
         {
-            $$ = { memAlign: 1, memAlignWR: 0}
+            $$ = { memAlign: 1, memAlignWR: 0, memAlignWR8: 0}
         }
     | MEM_ALIGN_WR
         {
-            $$ = { memAlign: 1, memAlignWR: 1}
+            $$ = { memAlign: 1, memAlignWR: 1, memAlignWR8: 0}
+        }
+    | MEM_ALIGN_WR8
+        {
+            $$ = { memAlign: 1, memAlignWR: 0, memAlignWR8: 1}
         }
     | INST_MAP_ROM
         {
