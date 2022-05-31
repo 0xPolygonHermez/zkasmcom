@@ -53,6 +53,12 @@ OR                      { return 'OR' }
 XOR                     { return 'XOR' }
 SHL                     { return 'SHL' }
 SHR                     { return 'SHR' }
+CNT_MEM_ALIGN           { return 'CNT_MEM_ALIGN' }
+CNT_ARITH               { return 'CNT_ARITH' }
+CNT_BINARY              { return 'CNT_BINARY' }
+CNT_KECCAK_F            { return 'CNT_KECCAK_F' }
+CNT_POSEIDON_G          { return 'CNT_POSEIDON_G' }
+CNT_PADDING_PG          { return 'CNT_PADDING_PG' }
 MEM_ALIGN_WR8           { return 'MEM_ALIGN_WR8' }
 MEM_ALIGN_RD            { return 'MEM_ALIGN_RD' }
 MEM_ALIGN_WR            { return 'MEM_ALIGN_WR' }
@@ -413,6 +419,10 @@ inReg
         {
             $$ = {type: 'REG' , reg: $1}
         }
+    | counter
+        {
+            $$ = {type: 'COUNTER', counter: $1}
+        }
 
     | NUMBER '**' NUMBER
         {
@@ -664,6 +674,14 @@ op
         }
     ;
 
+counter
+    : CNT_ARITH         { $$ = 'cntArith' }
+    | CNT_BINARY        { $$ = 'cntBinary' }
+    | CNT_KECCAK_F      { $$ = 'cntKeccakF' }
+    | CNT_MEM_ALIGN     { $$ = 'cntMemAlign' }
+    | CNT_PADDING_PG    { $$ = 'cntPaddingPG' }
+    | CNT_POSEIDON_G    { $$ = 'cntPoseidonG' }
+    ;
 
 reg
     : A
