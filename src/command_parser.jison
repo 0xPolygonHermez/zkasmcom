@@ -17,6 +17,7 @@ zkPC                    { return 'zkPC'; }
 RR                      { return 'RR'; }
 STEP                    { return 'STEP'; }
 MAXMEM                  { return 'MAXMEM'; }
+HASHPOS                 { return 'HASHPOS'; }
 var                     { return 'VAR'; }
 [a-zA-Z_][a-zA-Z$_0-9]*  { return 'IDENTIFIER'; }
 \(                      { return '('}
@@ -274,6 +275,7 @@ reg
     | RR
     | STEP 
     | MAXMEM 
+    | HASHPOS 
     ;
 
 functionCall
