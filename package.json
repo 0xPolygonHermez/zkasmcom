@@ -31,6 +31,7 @@
     "jison": "^0.4.18"
   },
   "dependencies": {
-    "yargs": "^17.1.1"
+    "yargs": "^17.1.1",
+    "@polygon-hermez/zkevm-commonjs": "https://github.com/hermeznetwork/zkevm-commonjs#v0.0.25"
   }
 }
