@@ -1,7 +1,11 @@
-
+const buildPoseidon = require("@polygon-hermez/zkevm-commonjs").getPoseidon;
+const { scalar2fea, fea2scalar, fe2n, h4toScalar, stringToH4, nodeIsEq } = require("@polygon-hermez/zkevm-commonjs").smtUtils;
 
 module.exports = async function generate(rom, functionName, fileName, bFastMode, bHeader)
 {
+    const poseidon = await buildPoseidon();
+    const Fr = poseidon.F;
+
     let code = "";
 
     // INCLUDES
@@ -49,7 +53,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         return code;
     }
     else
-        code += "{\n";
+        code += "\n{\n";
 
     code += "    // opN are local, uncommitted polynomials\n";
     code += "    FieldElement op0, op1, op2, op3, op4, op5, op6, op7;\n"
@@ -78,7 +82,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
     for (let i=0; i<rom.program.length; i++)
     {
-        code += "//RomLine" + i + ":\n\n";
+        code += "RomLine" + i + ":\n\n";
 
         // INITIALIZATION
         
@@ -176,13 +180,110 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             opInitialized = true;
         }
 
-        if (rom.program[i].CONSTL)
+        if (rom.program[i].CONSTL && (rom.program[i].CONSTL != "0"))
         {
-            code += selectorConstL(rom.program[i].CONSTL, opInitialized, bFastMode);
+            code += selectorConstL(Fr, rom.program[i].CONSTL, opInitialized, bFastMode);
             opInitialized = true;
         }
 
-        
+        // Relative and absolute address auxiliary variables
+        /*uint32_t addrRel = 0;
+        uint64_t addr = 0;
+
+        // If address is involved, load offset into addr
+        if (rom.line[zkPC].mOp==1 || rom.line[zkPC].mWR==1 || rom.line[zkPC].hashK==1 || rom.line[zkPC].hashKLen==1 || rom.line[zkPC].hashKDigest==1 || rom.line[zkPC].hashP==1 || rom.line[zkPC].hashPLen==1 || rom.line[zkPC].hashPDigest==1 || rom.line[zkPC].JMP==1 || rom.line[zkPC].JMPN==1 || rom.line[zkPC].JMPC==1) {
+            if (rom.line[zkPC].ind == 1)
+            {
+                addrRel = fe2n(fr, pols.E0[i]);
+            }
+            if (rom.line[zkPC].indRR == 1)
+            {
+                addrRel = fe2n(fr, pols.RR[i]);
+            }
+            if (rom.line[zkPC].bOffsetPresent && rom.line[zkPC].offset!=0)
+            {
+                // If offset is possitive, and the sum is too big, fail
+                if (rom.line[zkPC].offset>0 && (uint64_t(addrRel)+uint64_t(rom.line[zkPC].offset))>=0x100000000)
+                {
+                    cerr << "Error: addrRel >= 0x100000000 ln: " << zkPC << endl;
+                    exit(-1);                  
+                }
+                // If offset is negative, and its modulo is bigger than addrRel, fail
+                if (rom.line[zkPC].offset<0 && (-rom.line[zkPC].offset)>addrRel)
+                {
+                    cerr << "Error: addrRel < 0 ln: " << zkPC << endl;
+                    exit(-1);
+                }
+                addrRel += rom.line[zkPC].offset;
+            }
+            addr = addrRel;
+#ifdef LOG_ADDR
+            cout << "Any addr=" << addr << endl;
+#endif
+        }
+
+        // If useCTX, addr = addr + CTX*CTX_OFFSET
+        if (rom.line[zkPC].useCTX == 1) {
+            addr += pols.CTX[i]*CTX_OFFSET;
+            pols.useCTX[i] = 1;
+#ifdef LOG_ADDR
+            cout << "useCTX addr=" << addr << endl;
+#endif
+        }
+
+        // If isCode, addr = addr + CODE_OFFSET
+        if (rom.line[zkPC].isCode == 1) {
+            addr += CODE_OFFSET;
+            pols.isCode[i] = 1;
+#ifdef LOG_ADDR
+            cout << "isCode addr=" << addr << endl;
+#endif
+        }
+
+        // If isStack, addr = addr + STACK_OFFSET
+        if (rom.line[zkPC].isStack == 1) {
+            addr += STACK_OFFSET;
+            pols.isStack[i] = 1;
+#ifdef LOG_ADDR
+            cout << "isStack addr=" << addr << endl;
+#endif
+        }
+
+        // If isMem, addr = addr + MEM_OFFSET
+        if (rom.line[zkPC].isMem == 1) {
+            addr += MEM_OFFSET;
+            pols.isMem[i] = 1;
+#ifdef LOG_ADDR
+            cout << "isMem addr=" << addr << endl;
+#endif
+        }*/
+
+
+        if (rom.program[i].incCode && (rom.program[i].incCode != 0) && !bFastMode)
+        {
+            code += "    pols.incCode[i] = " + rom.program[i].incCode + "; // Copy ROM flags into pols\n\n";
+        }
+
+        if (rom.program[i].incStack && (rom.program[i].incStack != 0) && !bFastMode)
+        {
+            code += "    pols.incStack[i] = " + rom.program[i].incStack + "; // Copy ROM flags into pols\n\n";
+        }
+
+        if (rom.program[i].ind && (rom.program[i].ind != 0) && !bFastMode)
+        {
+            code += "    pols.ind[i] = " + rom.program[i].ind + "; // Copy ROM flags into pols\n\n";
+        }
+
+        if (rom.program[i].indRR && (rom.program[i].indRR != 0) && !bFastMode)
+        {
+            code += "    pols.indRR[i] = " + rom.program[i].indRR + "; // Copy ROM flags into pols\n\n";
+        }
+
+        // If offset, record it the committed polynomial
+        if (rom.program[i].offset && (rom.program[i].offset != 0) && !bFastMode)
+        {
+            code += "    pols.offset[i] = " + rom.program[i].offset + "; // Copy ROM flags into pols\n\n";
+        }        
 
         if (!opInitialized)
             code += "    op7 = op6 = op5 = op4 = op3 = op2 = op1 = op0 = fr.zero(); // Initialize op to zero\n\n";
@@ -195,6 +296,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         code += setter8("D", rom.program[i].setD, bFastMode);
         code += setter8("E", rom.program[i].setE, bFastMode);
         code += setter8("SR", rom.program[i].setSR, bFastMode);
+
+        // TODO: When regs are 0, do not copy to nexti.  Set bIsAZero to true at the beginning.
 
         // INCREASE EVALUATION INDEX
 
@@ -319,14 +422,20 @@ function selectorConst (CONST, opInitialized, bFastMode)
     return code;
 }
 
-function selectorConstL (CONSTL, opInitialized, bFastMode)
+function selectorConstL (Fr, CONSTL, opInitialized, bFastMode)
 {
     let code = "";
     let prefix = bFastMode ? "" : "pols.";
     let sufix = bFastMode ? "" : "[i]";
     code += "    // op = op + CONSTL\n";
+    let op = [];
+    op = scalar2fea(Fr, CONSTL);
 
-// scalar2fea
+    if (!bFastMode)
+        for (let j=0; j<8; j++)
+        {
+            code += "    " + prefix + "CONST" + j + sufix + " = " + op[j] + ";\n";
+        }
 
     if (!bFastMode)
         for (let j=0; j<8; j++)

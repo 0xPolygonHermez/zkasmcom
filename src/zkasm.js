@@ -34,6 +34,7 @@ async function run() {
     const outputFile = typeof(argv.output) === "string" ?  argv.output.trim() : fileName + ".json";
 
     const cCodeGeneration = argv.ccodegeneration;
+    const codeGenerationName = typeof(argv.ccodegeneration) === "string" ? argv.ccodegeneration : "main_exec_generated";
 
     const defines = [];
     if (argv.define) {
@@ -69,18 +70,24 @@ async function run() {
     */
     if (cCodeGeneration)
     {
-        let functionName = "MainExecGenerated";
-        let fileName = "main_exec_generated";
+        let functionName = codeGenerationName;
+        let fileName = codeGenerationName;
+        let directoryName = codeGenerationName;
+
+        // Create directory if it does not exist
+        if (!fs.existsSync(directoryName)){
+            fs.mkdirSync(directoryName);
+        }
         const code = await generate(out, functionName, fileName, false, false);
-        await fs.promises.writeFile("build/" + fileName + ".cpp", code, "utf8");
+        await fs.promises.writeFile(directoryName + "/" + fileName + ".cpp", code, "utf8");
         const header = await generate(out, functionName, fileName, false, true);
-        await fs.promises.writeFile("build/" + fileName + ".hpp", header, "utf8");
-        functionName += "Fast";
+        await fs.promises.writeFile(directoryName + "/" + fileName + ".hpp", header, "utf8");
+        functionName += "_fast";
         fileName += "_fast";
         const codeFast = await generate(out, functionName, fileName, true, false);
-        await fs.promises.writeFile("build/" + fileName + ".cpp", codeFast, "utf8");
+        await fs.promises.writeFile(directoryName + "/" + fileName + ".cpp", codeFast, "utf8");
         const headerFast = await generate(out, functionName, fileName, true, true);
-        await fs.promises.writeFile("build/" + fileName + ".hpp", headerFast, "utf8");
+        await fs.promises.writeFile(directoryName + "/" + fileName + ".hpp", headerFast, "utf8");
     }
 }
 
