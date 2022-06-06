@@ -28,6 +28,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         code += "#include \"input.hpp\"\n";
         code += "#include \"counters.hpp\"\n";
         code += "#include \"database.hpp\"\n";
+        code += "#include \"scalar.hpp\"\n";
         if (!bFastMode)
         {
             code += "#include \"commit_pols.hpp\"\n";
@@ -39,6 +40,11 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         code += "#include \"" + fileName + ".hpp\"\n"
     }
     code += "\n";
+
+    code += "#define MEM_OFFSET 0x30000\n";
+    code += "#define STACK_OFFSET 0x20000\n";
+    code += "#define CODE_OFFSET 0x10000\n";
+    code += "#define CTX_OFFSET 0x40000\n\n";
 
     if (bFastMode)
         code += "void " + functionName + " (FiniteField &fr, const Input &input, Database &db, Counters &counters)";
@@ -74,6 +80,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         code += "    FieldElement HASHPOS, GAS, CTX, PC, SP, RR;\n";
         code += "    HASHPOS = GAS = CTX = PC = SP = RR = fr.zero();\n";
     }
+    code += "     uint32_t addrRel = 0; // Relative and absolute address auxiliary variables\n";
+    code += "     uint64_t addr = 0;\n";
     code += "    uint64_t i=0; // Number of this evaluation\n";
     if (!bFastMode)
         code += "    uint64_t nexti=1; // Next evaluation\n";
@@ -186,78 +194,88 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             opInitialized = true;
         }
 
-        // Relative and absolute address auxiliary variables
-        /*uint32_t addrRel = 0;
-        uint64_t addr = 0;
+        code += "    addrRel = 0;\n"; // TODO: Can we skip this initialization?
+        code += "    addr = 0;\n";
 
-        // If address is involved, load offset into addr
-        if (rom.line[zkPC].mOp==1 || rom.line[zkPC].mWR==1 || rom.line[zkPC].hashK==1 || rom.line[zkPC].hashKLen==1 || rom.line[zkPC].hashKDigest==1 || rom.line[zkPC].hashP==1 || rom.line[zkPC].hashPLen==1 || rom.line[zkPC].hashPDigest==1 || rom.line[zkPC].JMP==1 || rom.line[zkPC].JMPN==1 || rom.line[zkPC].JMPC==1) {
-            if (rom.line[zkPC].ind == 1)
+        if (rom.program[i].mOp || rom.program[i].mWR || rom.program[i].hashK || rom.program[i].hashKLen || rom.program[i].hashKDigest || rom.program[i].hashP || rom.program[i].hashPLen || rom.program[i].hashPDigest || rom.program[i].JMP || rom.program[i].JMPN || rom.program[i].JMPC)
+        {
+            code += "    // If address is involved, load offset into addr\n";
+            if (rom.program[i].ind)
+                if (bFastMode)
+                    code += "    addrRel = fe2n(fr, E0);\n";
+                else
+                    code += "    addrRel = fe2n(fr, pols.E0[i]);\n";
+            if (rom.program[i].indRR)
+                if (bFastMode)
+                    code += "    addrRel = fe2n(fr, RR);\n";
+                else
+                    code += "    addrRel = fe2n(fr, pols.RR[i]);\n";
+            if (rom.program[i].offset && (rom.program[i].offset != 0))
             {
-                addrRel = fe2n(fr, pols.E0[i]);
-            }
-            if (rom.line[zkPC].indRR == 1)
-            {
-                addrRel = fe2n(fr, pols.RR[i]);
-            }
-            if (rom.line[zkPC].bOffsetPresent && rom.line[zkPC].offset!=0)
-            {
-                // If offset is possitive, and the sum is too big, fail
-                if (rom.line[zkPC].offset>0 && (uint64_t(addrRel)+uint64_t(rom.line[zkPC].offset))>=0x100000000)
+                if (rom.program[i].offset > 0)
                 {
-                    cerr << "Error: addrRel >= 0x100000000 ln: " << zkPC << endl;
-                    exit(-1);                  
+                code += "    // If offset is possitive, and the sum is too big, fail\n"
+                code += "    if ((uint64_t(addrRel)+uint64_t(" + rom.program[i].offset +  "))>=0x10000)\n"
+                code += "    {\n"
+                code += "        cerr << \"Error: addrRel >= 0x10000 ln: \" << " + i + " << endl;\n"
+                code += "        exit(-1);\n"
+                code += "    }\n"
                 }
-                // If offset is negative, and its modulo is bigger than addrRel, fail
-                if (rom.line[zkPC].offset<0 && (-rom.line[zkPC].offset)>addrRel)
+                else // offset < 0
                 {
-                    cerr << "Error: addrRel < 0 ln: " << zkPC << endl;
-                    exit(-1);
+                code += "    // If offset is negative, and its modulo is bigger than addrRel, fail\n"
+                code += "    if (" + (-rom.program[i].offset) + ">addrRel)\n"
+                code += "    {\n"
+                code += "        cerr << \"Error: addrRel < 0 ln: \" << " + i + " << endl;\n"
+                code += "        exit(-1);\n"
+                code += "    }\n"
                 }
-                addrRel += rom.line[zkPC].offset;
+                code += "    addrRel += " + rom.program[i].offset + ";\n"
             }
-            addr = addrRel;
-#ifdef LOG_ADDR
-            cout << "Any addr=" << addr << endl;
-#endif
+            code += "    addr = addrRel;\n"; // TODO: Can we use addr directly?
         }
 
-        // If useCTX, addr = addr + CTX*CTX_OFFSET
-        if (rom.line[zkPC].useCTX == 1) {
-            addr += pols.CTX[i]*CTX_OFFSET;
-            pols.useCTX[i] = 1;
-#ifdef LOG_ADDR
-            cout << "useCTX addr=" << addr << endl;
-#endif
+        if (rom.program[i].useCtx)
+        {
+            code += "    // If useCTX, addr = addr + CTX*CTX_OFFSET\n";
+            if (bFastMode)
+                code += "    addr += CTX*CTX_OFFSET;\n";
+            else
+            {
+                code += "    addr += pols.CTX[i]*CTX_OFFSET;\n";
+                code += "    pols.useCTX[i] = 1;\n";
+            }
         }
 
-        // If isCode, addr = addr + CODE_OFFSET
-        if (rom.line[zkPC].isCode == 1) {
-            addr += CODE_OFFSET;
-            pols.isCode[i] = 1;
-#ifdef LOG_ADDR
-            cout << "isCode addr=" << addr << endl;
-#endif
+        if (rom.program[i].isCode)
+        {
+            code += "    // If isCode, addr = addr + CODE_OFFSET\n";
+            code += "    addr += CODE_OFFSET;\n";
+            if (!bFastMode)
+            {
+                code += "    pols.isCode[i] = 1;\n";
+            }
         }
 
-        // If isStack, addr = addr + STACK_OFFSET
-        if (rom.line[zkPC].isStack == 1) {
-            addr += STACK_OFFSET;
-            pols.isStack[i] = 1;
-#ifdef LOG_ADDR
-            cout << "isStack addr=" << addr << endl;
-#endif
+        if (rom.program[i].isStack)
+        {
+            code += "    // If isStack, addr = addr + STACK_OFFSET\n";
+            code += "    addr += STACK_OFFSET;\n";
+            if (!bFastMode)
+            {
+                code += "    pols.isStack[i] = 1;\n";
+            }
         }
 
-        // If isMem, addr = addr + MEM_OFFSET
-        if (rom.line[zkPC].isMem == 1) {
-            addr += MEM_OFFSET;
-            pols.isMem[i] = 1;
-#ifdef LOG_ADDR
-            cout << "isMem addr=" << addr << endl;
-#endif
-        }*/
-
+        if (rom.program[i].isMem)
+        {
+            code += "    // If isMem, addr = addr + MEM_OFFSET\n";
+            code += "    addr += MEM_OFFSET;\n";
+            if (!bFastMode)
+            {
+                code += "    pols.isMem[i] = 1;\n";
+            }
+        }
 
         if (rom.program[i].incCode && (rom.program[i].incCode != 0) && !bFastMode)
         {
