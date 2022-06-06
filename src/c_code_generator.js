@@ -88,9 +88,9 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     code += "    uint64_t N=1<<23;\n";
     code += "\n";
 
-    for (let i=0; i<rom.program.length; i++)
+    for (let zkPC=0; zkPC<rom.program.length; zkPC++)
     {
-        code += "RomLine" + i + ":\n\n";
+        code += "RomLine" + zkPC + ":\n\n";
 
         // INITIALIZATION
         
@@ -98,144 +98,144 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
         // SELECTORS
 
-        if (rom.program[i].inA)
+        if (rom.program[zkPC].inA)
         {
-            code += selector8("A", rom.program[i].inA, opInitialized, bFastMode);
+            code += selector8("A", rom.program[zkPC].inA, opInitialized, bFastMode);
             opInitialized = true;
         }
 
-        if (rom.program[i].inB)
+        if (rom.program[zkPC].inB)
         {
-            code += selector8("B", rom.program[i].inB, opInitialized, bFastMode);
+            code += selector8("B", rom.program[zkPC].inB, opInitialized, bFastMode);
             opInitialized = true;
         }
 
-        if (rom.program[i].inC)
+        if (rom.program[zkPC].inC)
         {
-            code += selector8("C", rom.program[i].inC, opInitialized, bFastMode);
+            code += selector8("C", rom.program[zkPC].inC, opInitialized, bFastMode);
             opInitialized = true;
         }
 
-        if (rom.program[i].inD)
+        if (rom.program[zkPC].inD)
         {
-            code += selector8("D", rom.program[i].inD, opInitialized, bFastMode);
+            code += selector8("D", rom.program[zkPC].inD, opInitialized, bFastMode);
             opInitialized = true;
         }
 
-        if (rom.program[i].inE)
+        if (rom.program[zkPC].inE)
         {
-            code += selector8("E", rom.program[i].inE, opInitialized, bFastMode);
+            code += selector8("E", rom.program[zkPC].inE, opInitialized, bFastMode);
             opInitialized = true;
         }
 
-        if (rom.program[i].inSR)
+        if (rom.program[zkPC].inSR)
         {
-            code += selector8("SR", rom.program[i].inSR, opInitialized, bFastMode);
+            code += selector8("SR", rom.program[zkPC].inSR, opInitialized, bFastMode);
             opInitialized = true;
         }
 
-        if (rom.program[i].inCTX)
+        if (rom.program[zkPC].inCTX)
         {
-            code += selector1("CTX", rom.program[i].inCTX, opInitialized, bFastMode);
+            code += selector1("CTX", rom.program[zkPC].inCTX, opInitialized, bFastMode);
             opInitialized = true;
         }
 
-        if (rom.program[i].inSP)
+        if (rom.program[zkPC].inSP)
         {
-            code += selector1("SP", rom.program[i].inSP, opInitialized, bFastMode);
+            code += selector1("SP", rom.program[zkPC].inSP, opInitialized, bFastMode);
             opInitialized = true;
         }
 
-        if (rom.program[i].inPC)
+        if (rom.program[zkPC].inPC)
         {
-            code += selector1("PC", rom.program[i].inPC, opInitialized, bFastMode);
+            code += selector1("PC", rom.program[zkPC].inPC, opInitialized, bFastMode);
             opInitialized = true;
         }
 
-        if (rom.program[i].inGAS)
+        if (rom.program[zkPC].inGAS)
         {
-            code += selector1("GAS", rom.program[i].inGAS, opInitialized, bFastMode);
+            code += selector1("GAS", rom.program[zkPC].inGAS, opInitialized, bFastMode);
             opInitialized = true;
         }
 
-        if (rom.program[i].inMAXMEM)
+        if (rom.program[zkPC].inMAXMEM)
         {
-            code += selector1("MAXMEM", rom.program[i].inMAXMEM, opInitialized, bFastMode);
+            code += selector1("MAXMEM", rom.program[zkPC].inMAXMEM, opInitialized, bFastMode);
             opInitialized = true;
         }
 
-        if (rom.program[i].inSTEP)
+        if (rom.program[zkPC].inSTEP)
         {
-            code += selector1i("STEP", rom.program[i].inSTEP, opInitialized, bFastMode);
+            code += selector1i("STEP", rom.program[zkPC].inSTEP, opInitialized, bFastMode);
             opInitialized = true;
         }
 
-        if (rom.program[i].inRR)
+        if (rom.program[zkPC].inRR)
         {
-            code += selector1("RR", rom.program[i].inRR, opInitialized, bFastMode);
+            code += selector1("RR", rom.program[zkPC].inRR, opInitialized, bFastMode);
             opInitialized = true;
         }
 
-        if (rom.program[i].inHASHPOS)
+        if (rom.program[zkPC].inHASHPOS)
         {
-            code += selector1("HASHPOS", rom.program[i].inHASHPOS, opInitialized, bFastMode);
+            code += selector1("HASHPOS", rom.program[zkPC].inHASHPOS, opInitialized, bFastMode);
             opInitialized = true;
         }
 
-        if (rom.program[i].CONST && (rom.program[i].CONST != 0))
+        if (rom.program[zkPC].CONST && (rom.program[zkPC].CONST != 0))
         {
-            code += selectorConst(rom.program[i].CONST, opInitialized, bFastMode);
+            code += selectorConst(rom.program[zkPC].CONST, opInitialized, bFastMode);
             opInitialized = true;
         }
 
-        if (rom.program[i].CONSTL && (rom.program[i].CONSTL != "0"))
+        if (rom.program[zkPC].CONSTL && (rom.program[zkPC].CONSTL != "0"))
         {
-            code += selectorConstL(Fr, rom.program[i].CONSTL, opInitialized, bFastMode);
+            code += selectorConstL(Fr, rom.program[zkPC].CONSTL, opInitialized, bFastMode);
             opInitialized = true;
         }
 
         code += "    addrRel = 0;\n"; // TODO: Can we skip this initialization?
         code += "    addr = 0;\n";
 
-        if (rom.program[i].mOp || rom.program[i].mWR || rom.program[i].hashK || rom.program[i].hashKLen || rom.program[i].hashKDigest || rom.program[i].hashP || rom.program[i].hashPLen || rom.program[i].hashPDigest || rom.program[i].JMP || rom.program[i].JMPN || rom.program[i].JMPC)
+        if (rom.program[zkPC].mOp || rom.program[zkPC].mWR || rom.program[zkPC].hashK || rom.program[zkPC].hashKLen || rom.program[zkPC].hashKDigest || rom.program[zkPC].hashP || rom.program[zkPC].hashPLen || rom.program[zkPC].hashPDigest || rom.program[zkPC].JMP || rom.program[zkPC].JMPN || rom.program[zkPC].JMPC)
         {
             code += "    // If address is involved, load offset into addr\n";
-            if (rom.program[i].ind)
+            if (rom.program[zkPC].ind)
                 if (bFastMode)
                     code += "    addrRel = fe2n(fr, E0);\n";
                 else
                     code += "    addrRel = fe2n(fr, pols.E0[i]);\n";
-            if (rom.program[i].indRR)
+            if (rom.program[zkPC].indRR)
                 if (bFastMode)
                     code += "    addrRel = fe2n(fr, RR);\n";
                 else
                     code += "    addrRel = fe2n(fr, pols.RR[i]);\n";
-            if (rom.program[i].offset && (rom.program[i].offset != 0))
+            if (rom.program[zkPC].offset && (rom.program[zkPC].offset != 0))
             {
-                if (rom.program[i].offset > 0)
+                if (rom.program[zkPC].offset > 0)
                 {
                 code += "    // If offset is possitive, and the sum is too big, fail\n"
-                code += "    if ((uint64_t(addrRel)+uint64_t(" + rom.program[i].offset +  "))>=0x10000)\n"
+                code += "    if ((uint64_t(addrRel)+uint64_t(" + rom.program[zkPC].offset +  "))>=0x10000)\n"
                 code += "    {\n"
-                code += "        cerr << \"Error: addrRel >= 0x10000 ln: \" << " + i + " << endl;\n"
+                code += "        cerr << \"Error: addrRel >= 0x10000 ln: \" << " + zkPC + " << endl;\n"
                 code += "        exit(-1);\n"
                 code += "    }\n"
                 }
                 else // offset < 0
                 {
                 code += "    // If offset is negative, and its modulo is bigger than addrRel, fail\n"
-                code += "    if (" + (-rom.program[i].offset) + ">addrRel)\n"
+                code += "    if (" + (-rom.program[zkPC].offset) + ">addrRel)\n"
                 code += "    {\n"
-                code += "        cerr << \"Error: addrRel < 0 ln: \" << " + i + " << endl;\n"
+                code += "        cerr << \"Error: addrRel < 0 ln: \" << " + zkPC + " << endl;\n"
                 code += "        exit(-1);\n"
                 code += "    }\n"
                 }
-                code += "    addrRel += " + rom.program[i].offset + ";\n"
+                code += "    addrRel += " + rom.program[zkPC].offset + ";\n"
             }
             code += "    addr = addrRel;\n"; // TODO: Can we use addr directly?
         }
 
-        if (rom.program[i].useCtx)
+        if (rom.program[zkPC].useCtx)
         {
             code += "    // If useCTX, addr = addr + CTX*CTX_OFFSET\n";
             if (bFastMode)
@@ -247,7 +247,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             }
         }
 
-        if (rom.program[i].isCode)
+        if (rom.program[zkPC].isCode)
         {
             code += "    // If isCode, addr = addr + CODE_OFFSET\n";
             code += "    addr += CODE_OFFSET;\n";
@@ -257,7 +257,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             }
         }
 
-        if (rom.program[i].isStack)
+        if (rom.program[zkPC].isStack)
         {
             code += "    // If isStack, addr = addr + STACK_OFFSET\n";
             code += "    addr += STACK_OFFSET;\n";
@@ -267,7 +267,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             }
         }
 
-        if (rom.program[i].isMem)
+        if (rom.program[zkPC].isMem)
         {
             code += "    // If isMem, addr = addr + MEM_OFFSET\n";
             code += "    addr += MEM_OFFSET;\n";
@@ -277,45 +277,117 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             }
         }
 
-        if (rom.program[i].incCode && (rom.program[i].incCode != 0) && !bFastMode)
+        if (rom.program[zkPC].incCode && (rom.program[zkPC].incCode != 0) && !bFastMode)
         {
-            code += "    pols.incCode[i] = " + rom.program[i].incCode + "; // Copy ROM flags into pols\n\n";
+            code += "    pols.incCode[i] = " + rom.program[zkPC].incCode + "; // Copy ROM flags into pols\n\n";
         }
 
-        if (rom.program[i].incStack && (rom.program[i].incStack != 0) && !bFastMode)
+        if (rom.program[zkPC].incStack && (rom.program[zkPC].incStack != 0) && !bFastMode)
         {
-            code += "    pols.incStack[i] = " + rom.program[i].incStack + "; // Copy ROM flags into pols\n\n";
+            code += "    pols.incStack[i] = " + rom.program[zkPC].incStack + "; // Copy ROM flags into pols\n\n";
         }
 
-        if (rom.program[i].ind && (rom.program[i].ind != 0) && !bFastMode)
+        if (rom.program[zkPC].ind && (rom.program[zkPC].ind != 0) && !bFastMode)
         {
-            code += "    pols.ind[i] = " + rom.program[i].ind + "; // Copy ROM flags into pols\n\n";
+            code += "    pols.ind[i] = " + rom.program[zkPC].ind + "; // Copy ROM flags into pols\n\n";
         }
 
-        if (rom.program[i].indRR && (rom.program[i].indRR != 0) && !bFastMode)
+        if (rom.program[zkPC].indRR && (rom.program[zkPC].indRR != 0) && !bFastMode)
         {
-            code += "    pols.indRR[i] = " + rom.program[i].indRR + "; // Copy ROM flags into pols\n\n";
+            code += "    pols.indRR[i] = " + rom.program[zkPC].indRR + "; // Copy ROM flags into pols\n\n";
         }
 
         // If offset, record it the committed polynomial
-        if (rom.program[i].offset && (rom.program[i].offset != 0) && !bFastMode)
+        if (rom.program[zkPC].offset && (rom.program[zkPC].offset != 0) && !bFastMode)
         {
-            code += "    pols.offset[i] = " + rom.program[i].offset + "; // Copy ROM flags into pols\n\n";
+            code += "    pols.offset[i] = " + rom.program[zkPC].offset + "; // Copy ROM flags into pols\n\n";
         }        
 
         if (!opInitialized)
             code += "    op7 = op6 = op5 = op4 = op3 = op2 = op1 = op0 = fr.zero(); // Initialize op to zero\n\n";
 
+        // FREE INOUT
+
+        // INSTRUCTIONS
+
+        if (rom.program[zkPC].opcodeRomMap && !bFastMode)
+            code += "    pols.opcodeRomMap[i] = 1;\n";
+
         // SETTERS
 
-        code += setter8("A", rom.program[i].setA, bFastMode);
-        code += setter8("B", rom.program[i].setB, bFastMode);
-        code += setter8("C", rom.program[i].setC, bFastMode);
-        code += setter8("D", rom.program[i].setD, bFastMode);
-        code += setter8("E", rom.program[i].setE, bFastMode);
-        code += setter8("SR", rom.program[i].setSR, bFastMode);
+        code += setter8("A", rom.program[zkPC].setA, bFastMode);
+        code += setter8("B", rom.program[zkPC].setB, bFastMode);
+        code += setter8("C", rom.program[zkPC].setC, bFastMode);
+        code += setter8("D", rom.program[zkPC].setD, bFastMode);
+        code += setter8("E", rom.program[zkPC].setE, bFastMode);
+        code += setter8("SR", rom.program[zkPC].setSR, bFastMode);
+
+        // If setCTX, CTX'=op
+        if (rom.program[zkPC].setCTX)
+            if (bFastMode)
+                code += "    CTX = fe2n(fr, op0); // If setCTX, CTX'=op\n";
+            else
+            {
+                code += "    pols.CTX[nexti] = fe2n(fr, op0); // If setCTX, CTX'=op\n";
+                code += "    pols.setCTX[i] = 1;\n";
+            }
+        else if (!bFastMode)
+            code += "    pols.CTX[nexti] = pols.CTX[i];\n";
+        
+        // If setSP, SP'=op
+        if (rom.program[zkPC].setSP)
+            if (bFastMode)
+                code += "    SP = fe2n(fr, op0); // If setSP, SP'=op\n";
+            else
+            {
+                code += "    pols.SP[nexti] = fe2n(fr, op0); // If setSP, SP'=op\n"
+                code += "    pols.setSP[i] = 1;\n";
+            }
+        else if (rom.program[zkPC].incStack)
+        {
+            if (bFastMode)
+                code += "   SP = SP + " + rom.program[zkPC].incStack + "; // SP' = SP + incStack\n";
+            else
+                code += "   pols.SP[nexti] = pols.SP[i] + " + rom.program[zkPC].incStack + "; // SP' = SP + incStack\n";
+        }
+        else if (!bFastMode)
+            code += "    pols.SP[nexti] = pols.SP[i];\n";
+        
+        // If setPC, PC'=op
+        if (rom.program[zkPC].setPC)
+            if (bFastMode)
+                code += "    PC = fe2n(fr, op0); // If setPC, PC'=op\n";
+            else
+            {
+                code += "    pols.PC[nexti] = fe2n(fr, op0); // If setPC, PC'=op\n"
+                code += "    pols.setPC[i] = 1;\n";
+            }
+        else if (rom.program[zkPC].incCode)
+        {
+            if (bFastMode)
+                code += "   PC = PC + " + rom.program[zkPC].incCode + "; // PC' = PC + incCode\n";
+            else
+                code += "   pols.PC[nexti] = pols.PC[i] + " + rom.program[zkPC].incCode + "; // PC' = PC + incCode\n";
+        }
+        else if (!bFastMode)
+            code += "    pols.PC[nexti] = pols.PC[i];\n";
+
+        // If setRR, RR'=op0
+        if (rom.program[zkPC].setRR == 1)
+            if (bFastMode)
+                code += "    RR = fe2n(fr, op0); // If setRR, RR'=op0\n";
+            else
+            {
+                code += "    pols.RR[nexti] = fe2n(fr, op0); // If setRR, RR'=op0\n";
+                code += "    pols.setRR[i] = 1;\n";
+            }
+        else if (!bFastMode)
+            code += "    pols.RR[nexti] = pols.RR[i];\n";
+        
 
         // TODO: When regs are 0, do not copy to nexti.  Set bIsAZero to true at the beginning.
+
+        // JUMPS
 
         // INCREASE EVALUATION INDEX
 
