@@ -41,10 +41,15 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     }
     code += "\n";
 
-    code += "#define MEM_OFFSET 0x30000\n";
-    code += "#define STACK_OFFSET 0x20000\n";
-    code += "#define CODE_OFFSET 0x10000\n";
-    code += "#define CTX_OFFSET 0x40000\n\n";
+    if (!bHeader)
+    {
+        code += "#define MEM_OFFSET 0x30000\n";
+        code += "#define STACK_OFFSET 0x20000\n";
+        code += "#define CODE_OFFSET 0x10000\n";
+        code += "#define CTX_OFFSET 0x40000\n\n";
+
+        code += "vector<void *> " + functionName + "_labels;\n";
+    }
 
     if (bFastMode)
         code += "void " + functionName + " (FiniteField &fr, const Input &input, Database &db, Counters &counters)";
@@ -77,26 +82,46 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         code += "    E7 = E6 = E5 = E4 = E3 = E2 = E1 = E0 = fr.zero();\n";
         code += "    FieldElement SR0, SR1, SR2, SR3, SR4, SR5, SR6, SR7;\n";
         code += "    SR7 = SR6 = SR5 = SR4 = SR3 = SR2 = SR1 = SR0 = fr.zero();\n";
-        code += "    FieldElement HASHPOS, GAS, CTX, PC, SP, RR;\n";
-        code += "    HASHPOS = GAS = CTX = PC = SP = RR = fr.zero();\n";
+        code += "    FieldElement HASHPOS, GAS, CTX, PC, SP, RR, carry;\n";
+        code += "    HASHPOS = GAS = CTX = PC = SP = RR = carry = fr.zero();\n";
     }
     code += "     uint32_t addrRel = 0; // Relative and absolute address auxiliary variables\n";
     code += "     uint64_t addr = 0;\n";
-    code += "    uint64_t i=0; // Number of this evaluation\n";
+    code += "     int64_t i=-1; // Number of this evaluation\n";
     if (!bFastMode)
-        code += "    uint64_t nexti=1; // Next evaluation\n";
-    code += "    uint64_t N=1<<23;\n";
+        code += "    uint64_t nexti=0; // Next evaluation\n";
+    code += "    int64_t N=1<<23;\n";
+    code += "    int64_t o;\n";
     code += "\n";
+
+    code += "   if (" + functionName + "_labels.size()==0)\n";
+    code += "    {\n";
+    for (let zkPC=0; zkPC<rom.program.length; zkPC++)
+    {
+        code += "        " + functionName + "_labels.push_back(&&RomLine" + zkPC + ");\n";
+    }
+    code += "    }\n\n";
 
     for (let zkPC=0; zkPC<rom.program.length; zkPC++)
     {
         code += "RomLine" + zkPC + ":\n\n";
 
+        // INCREASE EVALUATION INDEX
+
+        code += "    i++;\n";
+        code += "    if (i==N) return;\n";
+        if (!bFastMode)
+            code += "    nexti=(i+1)%N;\n"
+        code += "    if (i%100000==0) cout<<\"Evaluation=\" << i << endl;\n";
+        code += "\n";
+
         // INITIALIZATION
         
         let opInitialized = false;
 
-        // SELECTORS
+        /*************/
+        /* SELECTORS */
+        /*************/
 
         if (rom.program[zkPC].inA)
         {
@@ -306,14 +331,20 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         if (!opInitialized)
             code += "    op7 = op6 = op5 = op4 = op3 = op2 = op1 = op0 = fr.zero(); // Initialize op to zero\n\n";
 
-        // FREE INOUT
-
-        // INSTRUCTIONS
+        /**************/
+        /* FREE INPUT */
+        /**************/
+        
+        /****************/
+        /* INSTRUCTIONS */
+        /****************/
 
         if (rom.program[zkPC].opcodeRomMap && !bFastMode)
             code += "    pols.opcodeRomMap[i] = 1;\n";
 
-        // SETTERS
+        /***********/
+        /* SETTERS */
+        /***********/
 
         code += setter8("A", rom.program[zkPC].setA, bFastMode);
         code += setter8("B", rom.program[zkPC].setB, bFastMode);
@@ -387,17 +418,79 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
         // TODO: When regs are 0, do not copy to nexti.  Set bIsAZero to true at the beginning.
 
-        // JUMPS
+        /*********/
+        /* JUMPS */
+        /*********/
 
-        // INCREASE EVALUATION INDEX
-
-        code += "    i++;\n";
-        code += "    if (i==N) return;\n";
-        if (!bFastMode)
-            code += "    nexti=(i+1)%N;\n"
+        // If JMPN, jump conditionally if op0<0
+        if (rom.program[zkPC].JMPN)
+        {
+            if (!bFastMode)
+                code += "    pols.JMPN[i] = 1;\n";
+            code += "    o = fe2n(fr, op0);\n"
+            // If op<0, jump to addr: zkPC'=addr
+            code += "    if (o < 0) {\n";
+            if (!bFastMode)
+            {
+                code += "        pols.isNeg[i] = 1;\n";
+                code += "        pols.zkPC[nexti] = addr; // If op<0, jump to addr: zkPC'=addr\n";
+                code += "        required.Byte4[0x100000000 + o] = true;\n";
+            }
+            code += "        goto *" + functionName + "_labels[addr]; // If op<0, jump to addr: zkPC'=addr\n";
+            code += "    }\n";
+            // If op>=0, simply increase zkPC'=zkPC+1
+            code += "    else\n";
+            code += "    {\n";
+            if (!bFastMode)
+            {
+                code += "        pols.zkPC[nexti] = pols.zkPC[i] + 1; // If op>=0, simply increase zkPC'=zkPC+1\n";
+                code += "        required.Byte4[o] = true;\n";
+            }
+            //code += "        goto RomLine" + (zkPC+1) + ";\n";
+            code += "    }\n";
+        }
+        // If JMPC, jump conditionally if carry
+        else if (rom.program[zkPC].JMPC)
+        {
+            if (!bFastMode)
+                code += "    pols.JMPC[i] = 1;\n";
+            if (bFastMode)
+                code += "    if (carry)\n";
+            else
+                code += "    if (pols.carry[i])\n";
+            code += "    {\n";
+            if (!bFastMode)
+                code += "        pols.zkPC[nexti] = addr; // If carry, jump to addr: zkPC'=addr\n";
+            code += "        goto *" + functionName + "_labels[addr]; // If carry, jump to addr: zkPC'=addr\n";
+            code += "    }\n";
+            if (!bFastMode)
+            {
+                code += "    else\n";
+                code += "{\n";
+                code += "        pols.zkPC[nexti] = pols.zkPC[i] + 1; // If not carry, simply increase zkPC'=zkPC+1\n";
+                code += "}\n";
+            }
+        }
+        // If JMP, directly jump zkPC'=addr
+        else if (rom.program[zkPC].JMP)
+        {
+            if (!bFastMode)
+            {
+                code += "    pols.zkPC[nexti] = addr;\n";
+                code += "    pols.JMP[i] = 1;\n";
+            }
+            code += "    goto *" + functionName + "_labels[addr]; // If JMP, directly jump zkPC'=addr\n";
+        }
+        // Else, simply increase zkPC'=zkPC+1
+        else if (!bFastMode)
+        {
+            code += "    pols.zkPC[nexti] = pols.zkPC[i] + 1;\n";
+        }
         code += "\n";
+
     }
-    code += "}\n";
+    code += "}\n\n";
+
     return code;
 }
 
@@ -566,3 +659,4 @@ function setter8 (reg, setReg, bFastMode)
 
     return code;
 }
+
