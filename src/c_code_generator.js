@@ -82,8 +82,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         code += "    E7 = E6 = E5 = E4 = E3 = E2 = E1 = E0 = fr.zero();\n";
         code += "    FieldElement SR0, SR1, SR2, SR3, SR4, SR5, SR6, SR7;\n";
         code += "    SR7 = SR6 = SR5 = SR4 = SR3 = SR2 = SR1 = SR0 = fr.zero();\n";
-        code += "    FieldElement HASHPOS, GAS, CTX, PC, SP, RR, carry;\n";
-        code += "    HASHPOS = GAS = CTX = PC = SP = RR = carry = fr.zero();\n";
+        code += "    FieldElement HASHPOS, GAS, CTX, PC, SP, RR, carry, MAXMEM;\n";
+        code += "    HASHPOS = GAS = CTX = PC = SP = RR = carry = MAXMEM = fr.zero();\n";
     }
     code += "     uint32_t addrRel = 0; // Relative and absolute address auxiliary variables\n";
     code += "     uint64_t addr = 0;\n";
@@ -92,6 +92,9 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         code += "    uint64_t nexti=0; // Next evaluation\n";
     code += "    int64_t N=1<<23;\n";
     code += "    int64_t o;\n";
+    code += "    int64_t maxMemCalculated;\n";
+    code += "    int64_t mm;\n";
+    code += "    int64_t incHashPos = 0;\n"; // TODO: Remove initialization to check it is initialized before being used
     code += "\n";
 
     code += "   if (" + functionName + "_labels.size()==0)\n";
@@ -118,6 +121,13 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         // INITIALIZATION
         
         let opInitialized = false;
+
+        // Evaluate the list cmdBefore commands, and any children command, recursively
+        /*for (uint64_t j=0; j<rom.line[zkPC].cmdBefore.size(); j++)
+        {
+            CommandResult cr;
+            evalCommand(ctx, *rom.line[zkPC].cmdBefore[j], cr);
+        }*/
 
         /*************/
         /* SELECTORS */
@@ -339,6 +349,44 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         /* INSTRUCTIONS */
         /****************/
 
+        // If assert, check that A=op
+        if (rom.program[zkPC].assert == 1)
+        {
+            if (bFastMode)
+            {
+                code += "    if ( (!fr.eq(A0, op0)) ||\n";
+                code += "         (!fr.eq(A1, op1)) ||\n";
+                code += "         (!fr.eq(A2, op2)) ||\n";
+                code += "         (!fr.eq(A3, op3)) ||\n";
+                code += "         (!fr.eq(A4, op4)) ||\n";
+                code += "         (!fr.eq(A5, op5)) ||\n";
+                code += "         (!fr.eq(A6, op6)) ||\n";
+                code += "         (!fr.eq(A7, op7)) )\n";
+            }
+            else
+            {
+                code += "    if ( (!fr.eq(pols.A0[i], op0)) ||\n";
+                code += "         (!fr.eq(pols.A1[i], op1)) ||\n";
+                code += "         (!fr.eq(pols.A2[i], op2)) ||\n";
+                code += "         (!fr.eq(pols.A3[i], op3)) ||\n";
+                code += "         (!fr.eq(pols.A4[i], op4)) ||\n";
+                code += "         (!fr.eq(pols.A5[i], op5)) ||\n";
+                code += "         (!fr.eq(pols.A6[i], op6)) ||\n";
+                code += "         (!fr.eq(pols.A7[i], op7)) )\n";
+            }
+            code += "{\n";
+            code += "        cerr << \"Error: ROM assert failed: AN!=opN ln: \" << " + zkPC + " << endl;\n";
+            if (bFastMode)
+                code += "        cout << \"A: \" << fr.toString(A7, 16) << \":\" << fr.toString(A6, 16) << \":\" << fr.toString(A5, 16) << \":\" << fr.toString(A4, 16) << \":\" << fr.toString(A3, 16) << \":\" << fr.toString(A2, 16) << \":\" << fr.toString(A1, 16) << \":\" << fr.toString(A0, 16) << endl;\n";
+            else
+                code += "        cout << \"A: \" << fr.toString(pols.A7[i], 16) << \":\" << fr.toString(pols.A6[i], 16) << \":\" << fr.toString(pols.A5[i], 16) << \":\" << fr.toString(pols.A4[i], 16) << \":\" << fr.toString(pols.A3[i], 16) << \":\" << fr.toString(pols.A2[i], 16) << \":\" << fr.toString(pols.A1[i], 16) << \":\" << fr.toString(pols.A0[i], 16) << endl;\n";
+            code += "        cout << \"OP:\" << fr.toString(op7, 16) << \":\" << fr.toString(op6, 16) << \":\" << fr.toString(op5, 16) << \":\" << fr.toString(op4,16) << \":\" << fr.toString(op3, 16) << \":\" << fr.toString(op2, 16) << \":\" << fr.toString(op1, 16) << \":\" << fr.toString(op0, 16) << endl;\n";
+            code += "        exit(-1);\n";
+            code += "}\n";
+            if (!bFastMode)
+                code += "    pols.assert[i] = 1;\n";
+        }
+
         if (rom.program[zkPC].opcodeRomMap && !bFastMode)
             code += "    pols.opcodeRomMap[i] = 1;\n";
 
@@ -488,8 +536,89 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         }
         code += "\n";
 
+        code += "    maxMemCalculated = 0;\n";
+        if (bFastMode)
+            code += "    mm = MAXMEM;\n";
+        else
+            code += "    mm = pols.MAXMEM[i];\n";
+        if (rom.program[zkPC].isMem)
+        {
+            code += "    if (addrRel>mm)\n";
+            code += "    {\n";
+            if (!bFastMode)
+                code += "        pols.isMaxMem[i] = 1;\n";
+            code += "        maxMemCalculated = addrRel;\n";
+            if (!bFastMode)
+                code += "        required.Byte4[maxMemCalculated - mm] = true;\n";
+            code += "    } else {\n";
+            code += "        maxMemCalculated = mm;\n";
+            if (!bFastMode)
+                code += "        required.Byte4[0] = true;\n";
+            code += "    }\n";
+        } else {
+            code += "    maxMemCalculated = mm;\n";
+        }
+        
+        // If setMAXMEM, MAXMEM'=op
+        if (rom.program[zkPC].setMAXMEM && !bFastMode)
+        {
+            if (bFastMode)
+                code += "    MAXMEM = fe2n(fr, op0); // If setMAXMEM, MAXMEM'=op\n";
+            else
+            {
+                code += "    pols.MAXMEM[nexti] = fe2n(fr, op0); // If setMAXMEM, MAXMEM'=op\n";
+                code += "    pols.setMAXMEM[i] = 1;\n";
+            }
+        }
+        else if (!bFastMode)
+        {
+            if (bFastMode)
+                code += "    MAXMEM = maxMemCalculated;\n";
+            else
+                code += "    pols.MAXMEM[nexti] = maxMemCalculated;\n";
+        }
+        
+        // If setGAS, GAS'=op
+        if (rom.program[zkPC].setGAS)
+        {
+            if (bFastMode)
+                code += "    GAS = fe2n(fr, op0); // If setGAS, GAS'=op\n";
+            else
+            {
+                code += "    pols.GAS[nexti] = fe2n(fr, op0); // If setGAS, GAS'=op\n";
+                code += "    pols.setGAS[i] = 1;\n"
+            }
+        }
+        else if (!bFastMode)
+        {
+            code += "    pols.GAS[nexti] = pols.GAS[i];\n";
+        }
+        
+        // If setHASHPOS, HASHPOS' = op0 + incHashPos
+        if (rom.program[zkPC].setHASHPOS)
+        {
+            if (bFastMode)
+                code += "    HASHPOS = fe2n(fr, op0) + incHashPos;\n";
+            else
+            {
+                code += "    pols.HASHPOS[nexti] = fe2n(fr, op0) + incHashPos;\n";
+                code += "    pols.setHASHPOS[i] = 1;\n";
+            }
+        }
+        else if (!bFastMode)
+        {
+            code += "    pols.HASHPOS[nexti] = pols.HASHPOS[i] + incHashPos;\n";
+        }
+
+        // Evaluate the list cmdAfter commands, and any children command, recursively
+        /*for (uint64_t j=0; j<rom.line[zkPC].cmdAfter.size(); j++)
+        {
+            CommandResult cr;
+            evalCommand(ctx, *rom.line[zkPC].cmdAfter[j], cr);
+        }*/
+
     }
-    code += "}\n\n";
+    code += "}\n";
 
     return code;
 }
