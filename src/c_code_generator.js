@@ -129,6 +129,13 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             evalCommand(ctx, *rom.line[zkPC].cmdBefore[j], cr);
         }*/
 
+        /*if (rom.program[zkPC].cmdBefore &&
+            rom.program[zkPC].cmdBefore.length==1 &&
+            rom.program[zkPC].cmdBefore[0].funcName=="terminate")
+        {
+            code += "    return;\n";
+        }*/
+
         /*************/
         /* SELECTORS */
         /*************/
