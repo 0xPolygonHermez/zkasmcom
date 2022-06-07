@@ -107,7 +107,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
     for (let zkPC=0; zkPC<rom.program.length; zkPC++)
     {
-        code += "RomLine" + zkPC + ":\n\n";
+        code += "RomLine" + zkPC + ": //" + rom.program[zkPC].lineStr + "\n\n";
 
         // INCREASE EVALUATION INDEX
 
@@ -381,7 +381,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "         (!fr.eq(pols.A6[i], op6)) ||\n";
                 code += "         (!fr.eq(pols.A7[i], op7)) )\n";
             }
-            code += "{\n";
+            code += "    {\n";
             code += "        cerr << \"Error: ROM assert failed: AN!=opN ln: \" << " + zkPC + " << endl;\n";
             if (bFastMode)
                 code += "        cout << \"A: \" << fr.toString(A7, 16) << \":\" << fr.toString(A6, 16) << \":\" << fr.toString(A5, 16) << \":\" << fr.toString(A4, 16) << \":\" << fr.toString(A3, 16) << \":\" << fr.toString(A2, 16) << \":\" << fr.toString(A1, 16) << \":\" << fr.toString(A0, 16) << endl;\n";
@@ -389,9 +389,10 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "        cout << \"A: \" << fr.toString(pols.A7[i], 16) << \":\" << fr.toString(pols.A6[i], 16) << \":\" << fr.toString(pols.A5[i], 16) << \":\" << fr.toString(pols.A4[i], 16) << \":\" << fr.toString(pols.A3[i], 16) << \":\" << fr.toString(pols.A2[i], 16) << \":\" << fr.toString(pols.A1[i], 16) << \":\" << fr.toString(pols.A0[i], 16) << endl;\n";
             code += "        cout << \"OP:\" << fr.toString(op7, 16) << \":\" << fr.toString(op6, 16) << \":\" << fr.toString(op5, 16) << \":\" << fr.toString(op4,16) << \":\" << fr.toString(op3, 16) << \":\" << fr.toString(op2, 16) << \":\" << fr.toString(op1, 16) << \":\" << fr.toString(op0, 16) << endl;\n";
             code += "        exit(-1);\n";
-            code += "}\n";
+            code += "    }\n";
             if (!bFastMode)
                 code += "    pols.assert[i] = 1;\n";
+            code += "\n";
         }
 
         if (rom.program[zkPC].opcodeRomMap && !bFastMode)
@@ -623,6 +624,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             CommandResult cr;
             evalCommand(ctx, *rom.line[zkPC].cmdAfter[j], cr);
         }*/
+
+        code += "\n";
 
     }
     code += "}\n";
