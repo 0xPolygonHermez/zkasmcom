@@ -288,7 +288,9 @@ function processAssignmentIn(ctx, input, currentLine) {
         return res;
     }
     if (input.type == "COUNTER") {
-        return ["in"+ input.counter.charAt(0).toUpperCase + input.counter.slice(1)] = 1n;
+        let res = {};
+        res["in" + input.counter.charAt(0).toUpperCase() + input.counter.slice(1)] = 1n;
+        return res;
     }
     if (input.type == "CONST") {
         res.CONST = BigInt(input.const);
