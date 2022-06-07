@@ -36,6 +36,8 @@ module.exports = async function compile(fileName, ctx, config) {
 
     const lines = zkasm_parser.parse(src);
 
+    const srcLines = src.split(/\r?\n/);
+
     let pendingCommands = [];
     let lastLineAllowsCommand = false;
 
@@ -162,6 +164,7 @@ module.exports = async function compile(fileName, ctx, config) {
             resolveDataOffset(i, ctx.out[i]);
             ctx.out[i].fileName = ctx.out[i].line.fileName;
             ctx.out[i].line = ctx.out[i].line.line;
+            ctx.out[i].lineStr = srcLines[ctx.out[i].line - 1] ?? '';
         }
 
         const res = {
