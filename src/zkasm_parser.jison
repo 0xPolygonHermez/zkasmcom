@@ -53,12 +53,12 @@ OR                      { return 'OR' }
 XOR                     { return 'XOR' }
 SHL                     { return 'SHL' }
 SHR                     { return 'SHR' }
-CNT_MEM_ALIGN           { return 'CNT_MEM_ALIGN' }
 CNT_ARITH               { return 'CNT_ARITH' }
 CNT_BINARY              { return 'CNT_BINARY' }
 CNT_KECCAK_F            { return 'CNT_KECCAK_F' }
-CNT_POSEIDON_G          { return 'CNT_POSEIDON_G' }
+CNT_MEM_ALIGN           { return 'CNT_MEM_ALIGN' }
 CNT_PADDING_PG          { return 'CNT_PADDING_PG' }
+CNT_POSEIDON_G          { return 'CNT_POSEIDON_G' }
 MEM_ALIGN_WR8           { return 'MEM_ALIGN_WR8' }
 MEM_ALIGN_RD            { return 'MEM_ALIGN_RD' }
 MEM_ALIGN_WR            { return 'MEM_ALIGN_WR' }

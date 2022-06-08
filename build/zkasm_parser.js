@@ -1272,17 +1272,17 @@ case 50: return 91
 break;
 case 51: return 92 
 break;
-case 52: return 108 
+case 52: return 105 
 break;
-case 53: return 105 
+case 53: return 106 
 break;
-case 54: return 106 
+case 54: return 107 
 break;
-case 55: return 107 
+case 55: return 108 
 break;
-case 56: return 110 
+case 56: return 109 
 break;
-case 57: return 109 
+case 57: return 110 
 break;
 case 58: return 103 
 break;
@@ -1386,7 +1386,7 @@ case 107: /* console.log("INVALID: " + yy_.yytext); */ return 'INVALID';
 break;
 }
 },
-rules: [/^(?:;[^\n\r]*)/,/^(?:((0x[0-9A-Fa-f][0-9A-Fa-f_]*)|([0-9][0-9_]*))n\b)/,/^(?:(0x[0-9A-Fa-f][0-9A-Fa-f_]*)|([0-9][0-9_]*))/,/^(?:\$\$\{[^\}]*\})/,/^(?:(\$(\{[^\}]*\})?))/,/^(?:[\r\n]+)/,/^(?:[ \t]+)/,/^(?:A\b)/,/^(?:B\b)/,/^(?:C\b)/,/^(?:D\b)/,/^(?:E\b)/,/^(?:SR\b)/,/^(?:CTX\b)/,/^(?:SP\b)/,/^(?:PC\b)/,/^(?:GAS\b)/,/^(?:zkPC\b)/,/^(?:RR\b)/,/^(?:STEP\b)/,/^(?:MAXMEM\b)/,/^(?:HASHPOS\b)/,/^(?:MLOAD\b)/,/^(?:MSTORE\b)/,/^(?:HASHK\b)/,/^(?:HASHKLEN\b)/,/^(?:HASHKDIGEST\b)/,/^(?:HASHP\b)/,/^(?:HASHPLEN\b)/,/^(?:HASHPDIGEST\b)/,/^(?:ECRECOVER\b)/,/^(?:JMP\b)/,/^(?:JMPC\b)/,/^(?:JMPN\b)/,/^(?:CALL\b)/,/^(?:RETURN\b)/,/^(?:ASSERT\b)/,/^(?:SLOAD\b)/,/^(?:SSTORE\b)/,/^(?:ARITH\b)/,/^(?:ARITH_ECADD_DIFFERENT\b)/,/^(?:ARITH_ECADD_SAME\b)/,/^(?:ADD\b)/,/^(?:SUB\b)/,/^(?:LT\b)/,/^(?:SLT\b)/,/^(?:EQ\b)/,/^(?:AND\b)/,/^(?:OR\b)/,/^(?:XOR\b)/,/^(?:SHL\b)/,/^(?:SHR\b)/,/^(?:CNT_MEM_ALIGN\b)/,/^(?:CNT_ARITH\b)/,/^(?:CNT_BINARY\b)/,/^(?:CNT_KECCAK_F\b)/,/^(?:CNT_POSEIDON_G\b)/,/^(?:CNT_PADDING_PG\b)/,/^(?:MEM_ALIGN_WR8\b)/,/^(?:MEM_ALIGN_RD\b)/,/^(?:MEM_ALIGN_WR\b)/,/^(?:INST_MAP_ROM\b)/,/^(?:SYS\b)/,/^(?:MEM\b)/,/^(?:CODE\b)/,/^(?:STACK\b)/,/^(?:INCLUDE\b)/,/^(?:VAR\b)/,/^(?:GLOBAL\b)/,/^(?:CTX\b)/,/^(?:CONST\b)/,/^(?:CONSTL\b)/,/^(?:"[^"]+")/,/^(?:[a-zA-Z_][a-zA-Z$_0-9]*)/,/^(?:%[a-zA-Z_][a-zA-Z$_0-9]*)/,/^(?:@[a-zA-Z_][a-zA-Z$_0-9]*)/,/^(?::)/,/^(?:,)/,/^(?:\()/,/^(?:\))/,/^(?:\+\+)/,/^(?:--)/,/^(?:\+)/,/^(?:-)/,/^(?:\/)/,/^(?:\*\*)/,/^(?:\*)/,/^(?:%)/,/^(?:=>)/,/^(?:<<)/,/^(?:>>)/,/^(?:\^)/,/^(?:\|\|)/,/^(?:&&)/,/^(?:&)/,/^(?:\|)/,/^(?:==)/,/^(?:!=)/,/^(?:<=)/,/^(?:>=)/,/^(?:>)/,/^(?:<)/,/^(?:=)/,/^(?:!)/,/^(?:\?\?)/,/^(?:\?)/,/^(?:$)/,/^(?:.)/],
+rules: [/^(?:;[^\n\r]*)/,/^(?:((0x[0-9A-Fa-f][0-9A-Fa-f_]*)|([0-9][0-9_]*))n\b)/,/^(?:(0x[0-9A-Fa-f][0-9A-Fa-f_]*)|([0-9][0-9_]*))/,/^(?:\$\$\{[^\}]*\})/,/^(?:(\$(\{[^\}]*\})?))/,/^(?:[\r\n]+)/,/^(?:[ \t]+)/,/^(?:A\b)/,/^(?:B\b)/,/^(?:C\b)/,/^(?:D\b)/,/^(?:E\b)/,/^(?:SR\b)/,/^(?:CTX\b)/,/^(?:SP\b)/,/^(?:PC\b)/,/^(?:GAS\b)/,/^(?:zkPC\b)/,/^(?:RR\b)/,/^(?:STEP\b)/,/^(?:MAXMEM\b)/,/^(?:HASHPOS\b)/,/^(?:MLOAD\b)/,/^(?:MSTORE\b)/,/^(?:HASHK\b)/,/^(?:HASHKLEN\b)/,/^(?:HASHKDIGEST\b)/,/^(?:HASHP\b)/,/^(?:HASHPLEN\b)/,/^(?:HASHPDIGEST\b)/,/^(?:ECRECOVER\b)/,/^(?:JMP\b)/,/^(?:JMPC\b)/,/^(?:JMPN\b)/,/^(?:CALL\b)/,/^(?:RETURN\b)/,/^(?:ASSERT\b)/,/^(?:SLOAD\b)/,/^(?:SSTORE\b)/,/^(?:ARITH\b)/,/^(?:ARITH_ECADD_DIFFERENT\b)/,/^(?:ARITH_ECADD_SAME\b)/,/^(?:ADD\b)/,/^(?:SUB\b)/,/^(?:LT\b)/,/^(?:SLT\b)/,/^(?:EQ\b)/,/^(?:AND\b)/,/^(?:OR\b)/,/^(?:XOR\b)/,/^(?:SHL\b)/,/^(?:SHR\b)/,/^(?:CNT_ARITH\b)/,/^(?:CNT_BINARY\b)/,/^(?:CNT_KECCAK_F\b)/,/^(?:CNT_MEM_ALIGN\b)/,/^(?:CNT_PADDING_PG\b)/,/^(?:CNT_POSEIDON_G\b)/,/^(?:MEM_ALIGN_WR8\b)/,/^(?:MEM_ALIGN_RD\b)/,/^(?:MEM_ALIGN_WR\b)/,/^(?:INST_MAP_ROM\b)/,/^(?:SYS\b)/,/^(?:MEM\b)/,/^(?:CODE\b)/,/^(?:STACK\b)/,/^(?:INCLUDE\b)/,/^(?:VAR\b)/,/^(?:GLOBAL\b)/,/^(?:CTX\b)/,/^(?:CONST\b)/,/^(?:CONSTL\b)/,/^(?:"[^"]+")/,/^(?:[a-zA-Z_][a-zA-Z$_0-9]*)/,/^(?:%[a-zA-Z_][a-zA-Z$_0-9]*)/,/^(?:@[a-zA-Z_][a-zA-Z$_0-9]*)/,/^(?::)/,/^(?:,)/,/^(?:\()/,/^(?:\))/,/^(?:\+\+)/,/^(?:--)/,/^(?:\+)/,/^(?:-)/,/^(?:\/)/,/^(?:\*\*)/,/^(?:\*)/,/^(?:%)/,/^(?:=>)/,/^(?:<<)/,/^(?:>>)/,/^(?:\^)/,/^(?:\|\|)/,/^(?:&&)/,/^(?:&)/,/^(?:\|)/,/^(?:==)/,/^(?:!=)/,/^(?:<=)/,/^(?:>=)/,/^(?:>)/,/^(?:<)/,/^(?:=)/,/^(?:!)/,/^(?:\?\?)/,/^(?:\?)/,/^(?:$)/,/^(?:.)/],
 conditions: {"INITIAL":{"rules":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107],"inclusive":true}}
 });
 return lexer;

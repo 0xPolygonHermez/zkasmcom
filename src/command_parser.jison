@@ -17,6 +17,12 @@ zkPC                    { return 'zkPC'; }
 RR                      { return 'RR'; }
 STEP                    { return 'STEP'; }
 MAXMEM                  { return 'MAXMEM'; }
+CNT_ARITH               { return 'CNT_ARITH' }
+CNT_BINARY              { return 'CNT_BINARY' }
+CNT_KECCAK_F            { return 'CNT_KECCAK_F' }
+CNT_MEM_ALIGN           { return 'CNT_MEM_ALIGN' }
+CNT_PADDING_PG          { return 'CNT_PADDING_PG' }
+CNT_POSEIDON_G          { return 'CNT_POSEIDON_G' }
 var                     { return 'VAR'; }
 [a-zA-Z_][a-zA-Z$_0-9]*  { return 'IDENTIFIER'; }
 \(                      { return '('}
@@ -238,6 +244,10 @@ e0
         {
             $$ = {op: "getReg", regName: $1}
         }
+    | counter
+        {
+            $$ = {op: "getReg", regName: $1}
+        }
     | '(' expression ')'
         {
             $$ = $2;
@@ -259,21 +269,30 @@ leftExpression
         }
     ;
 
-reg 
-    : A 
-    | B 
-    | C 
-    | D 
-    | E 
-    | SR 
-    | CTX 
-    | SP 
-    | PC 
-    | GAS 
-    | zkPC 
+reg
+    : A
+    | B
+    | C
+    | D
+    | E
+    | SR
+    | CTX
+    | SP
+    | PC
+    | GAS
+    | zkPC
     | RR
-    | STEP 
-    | MAXMEM 
+    | STEP
+    | MAXMEM
+    ;
+
+counter
+    : CNT_ARITH         { $$ = 'CNT_ARITH' }
+    | CNT_BINARY        { $$ = 'CNT_BINARY' }
+    | CNT_KECCAK_F      { $$ = 'CNT_KECCAK_F' }
+    | CNT_MEM_ALIGN     { $$ = 'CNT_MEM_ALIGN' }
+    | CNT_PADDING_PG    { $$ = 'CNT_PADDING_PG' }
+    | CNT_POSEIDON_G    { $$ = 'CNT_POSEIDON_G' }
     ;
 
 functionCall
