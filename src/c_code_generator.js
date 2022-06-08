@@ -85,9 +85,9 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         code += "    FieldElement HASHPOS, GAS, CTX, PC, SP, RR, carry, MAXMEM;\n";
         code += "    HASHPOS = GAS = CTX = PC = SP = RR = carry = MAXMEM = fr.zero();\n";
     }
-    code += "     uint32_t addrRel = 0; // Relative and absolute address auxiliary variables\n";
-    code += "     uint64_t addr = 0;\n";
-    code += "     int64_t i=-1; // Number of this evaluation\n";
+    code += "    uint32_t addrRel = 0; // Relative and absolute address auxiliary variables\n";
+    code += "    uint64_t addr = 0;\n";
+    code += "    int64_t i=-1; // Number of this evaluation\n";
     if (!bFastMode)
         code += "    uint64_t nexti=0; // Next evaluation\n";
     code += "    int64_t N=1<<23;\n";
@@ -97,17 +97,17 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     code += "    int64_t incHashPos = 0;\n"; // TODO: Remove initialization to check it is initialized before being used
     code += "\n";
 
-    code += "   if (" + functionName + "_labels.size()==0)\n";
+    code += "    if (" + functionName + "_labels.size()==0)\n";
     code += "    {\n";
     for (let zkPC=0; zkPC<rom.program.length; zkPC++)
     {
-        code += "        " + functionName + "_labels.push_back(&&RomLine" + zkPC + ");\n";
+        code += "        " + functionName + "_labels.push_back(&&" + functionName + "_rom_line_" + zkPC + ");\n";
     }
     code += "    }\n\n";
 
     for (let zkPC=0; zkPC<rom.program.length; zkPC++)
     {
-        code += "RomLine" + zkPC + ": //" + rom.program[zkPC].lineStr + "\n\n";
+        code += functionName + "_rom_line_" + zkPC + ": //" + rom.program[zkPC].lineStr + "\n\n";
 
         // INCREASE EVALUATION INDEX
 
