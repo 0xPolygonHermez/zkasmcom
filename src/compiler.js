@@ -36,7 +36,7 @@ module.exports = async function compile(fileName, ctx, config) {
 
     const lines = zkasm_parser.parse(src);
 
-    const srcLines = src.split(/\r?\n/);
+    const srcLines = src.split(/(?:\r\n|\n|\r)/);
 
     let pendingCommands = [];
     let lastLineAllowsCommand = false;
