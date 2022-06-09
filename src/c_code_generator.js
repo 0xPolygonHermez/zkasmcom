@@ -8,6 +8,21 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
     let code = "";
 
+    let usedLabels = [];
+    for(var key in rom.labels)
+    {
+        let labelNumber = rom.labels[key];
+        usedLabels.push(labelNumber);
+        if (key=="mapping_opcodes")
+        {
+            for (let i=1; i<256; i++)
+            {
+                usedLabels.push(labelNumber + i);
+            
+            }
+        }
+    }
+
     // INCLUDES
 
     if (bHeader)
@@ -48,7 +63,10 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         code += "#define CODE_OFFSET 0x10000\n";
         code += "#define CTX_OFFSET 0x40000\n\n";
 
-        code += "vector<void *> " + functionName + "_labels;\n";
+        code += "vector<void *> " + functionName + "_labels;\n\n";
+
+        code += "#pragma GCC push_options\n";
+        code += "#pragma GCC optimize (\"O0\")\n\n";
     }
 
     if (bFastMode)
@@ -99,14 +117,30 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
     code += "    if (" + functionName + "_labels.size()==0)\n";
     code += "    {\n";
-    for (let zkPC=0; zkPC<rom.program.length; zkPC++)
-    {
-        code += "        " + functionName + "_labels.push_back(&&" + functionName + "_rom_line_" + zkPC + ");\n";
-    }
-    code += "    }\n\n";
+    code += "        void * aux = &&" + functionName + "_error;\n";
+    code += "        for (uint64_t i=0; i<" + rom.program.length + "; i++)\n";
+    code += "            " + functionName + "_labels.push_back(aux);\n";
 
     for (let zkPC=0; zkPC<rom.program.length; zkPC++)
     {
+        if (usedLabels.includes(zkPC))
+            code += "        " + functionName + "_labels[" + zkPC + "] = &&" + functionName + "_rom_line_" + zkPC + ";\n";
+        //else
+          //  code += "        " + functionName + "_labels.push_back(&&" + functionName + "_error);\n";
+    }
+    code += "    }\n\n";
+
+
+    code += "    goto " + functionName + "_rom_line_0;\n\n";
+    code += functionName + "_error: // This label should never be used\n";
+    code += "    cerr << \"Error: Invalid label used in " + functionName + "\" << endl;\n";
+    code += "    exit(-1);\n\n";
+
+
+    for (let zkPC=0; zkPC<rom.program.length; zkPC++)
+    {
+        if (!usedLabels.includes(zkPC))
+            code += "// ";
         code += functionName + "_rom_line_" + zkPC + ": //" + rom.program[zkPC].lineStr + "\n\n";
 
         // INCREASE EVALUATION INDEX
@@ -628,7 +662,12 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         code += "\n";
 
     }
-    code += "}\n";
+
+    code += "    return;\n\n";
+
+    code += "}\n\n";
+
+    code += "#pragma GCC pop_options\n";
 
     return code;
 }
