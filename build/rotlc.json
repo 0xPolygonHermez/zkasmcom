@@ -1,0 +1,85 @@
+{
+ "program": [
+  {
+   "inSTEP": "1",
+   "setA": 1,
+   "line": 2,
+   "fileName": "/home/zkronos73/devel/zkasm/test/rotlc.zkasm",
+   "lineStr": "        STEP => A"
+  },
+  {
+   "CONST": "0",
+   "assert": 1,
+   "line": 3,
+   "fileName": "/home/zkronos73/devel/zkasm/test/rotlc.zkasm",
+   "lineStr": "        0   :ASSERT"
+  },
+  {
+   "CONSTL": "7267166723221643883484708801544872771229447249834358198308748947886097378863",
+   "line": 5,
+   "fileName": "/home/zkronos73/devel/zkasm/test/rotlc.zkasm",
+   "lineStr": "        0x101112131415161718191A1B1C1D1E1F202122232425262728292A2B2C2D2E2Fn"
+  },
+  {
+   "inROTL_C": "1",
+   "setA": 1,
+   "line": 6,
+   "fileName": "/home/zkronos73/devel/zkasm/test/rotlc.zkasm",
+   "lineStr": "        ROTL_C => A"
+  },
+  {
+   "CONSTL": "7267166723221643883484708801544872771229447249834358198308748947886097378863",
+   "line": 7,
+   "fileName": "/home/zkronos73/devel/zkasm/test/rotlc.zkasm",
+   "lineStr": "        0x101112131415161718191A1B1C1D1E1F202122232425262728292A2B2C2D2E2Fn"
+  },
+  {
+   "CONST": "0",
+   "setA": 1,
+   "setB": 1,
+   "setC": 1,
+   "setD": 1,
+   "setE": 1,
+   "setCTX": 1,
+   "setSP": 1,
+   "setPC": 1,
+   "setGAS": 1,
+   "setMAXMEM": 1,
+   "setSR": 1,
+   "line": 10,
+   "fileName": "/home/zkronos73/devel/zkasm/test/rotlc.zkasm",
+   "lineStr": "       0 => A,B,C,D,E,CTX, SP, PC, GAS, MAXMEM, SR"
+  },
+  {
+   "freeInTag": {
+    "op": "functionCall",
+    "funcName": "beforeLast",
+    "params": []
+   },
+   "inFREE": "1",
+   "JMPC": 0,
+   "JMPN": 1,
+   "offset": 6,
+   "line": 13,
+   "offsetLabel": "finalWait",
+   "fileName": "/home/zkronos73/devel/zkasm/test/rotlc.zkasm",
+   "lineStr": "        ${beforeLast()}  : JMPN(finalWait)"
+  },
+  {
+   "JMP": 1,
+   "JMPC": 0,
+   "JMPN": 0,
+   "offset": 0,
+   "line": 15,
+   "offsetLabel": "start",
+   "fileName": "/home/zkronos73/devel/zkasm/test/rotlc.zkasm",
+   "lineStr": "                         : JMP(start)"
+  }
+ ],
+ "labels": {
+  "start": 0,
+  "end": 5,
+  "finalWait": 6,
+  "opINVALID": 8
+ }
+}
