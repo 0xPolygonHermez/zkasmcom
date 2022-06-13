@@ -39,7 +39,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         }
         code += "\n";
         code += "#include <string>\n";
-        code += "#include \"ff/ff.hpp\"\n";
+        code += "#include \"goldilocks/goldilocks_base_field.hpp\"\n";
         code += "#include \"input.hpp\"\n";
         code += "#include \"counters.hpp\"\n";
         code += "#include \"database.hpp\"\n";
@@ -70,9 +70,9 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     }
 
     if (bFastMode)
-        code += "void " + functionName + " (FiniteField &fr, const Input &input, Database &db, Counters &counters)";
+        code += "void " + functionName + " (Goldilocks &fr, const Input &input, Database &db, Counters &counters)";
     else
-        code += "void "+ functionName + " (FiniteField &fr, const Input &input, MainCommitPols &pols, Database &db, Counters &counters, MainExecRequired &required)";
+        code += "void "+ functionName + " (Goldilocks &fr, const Input &input, MainCommitPols &pols, Database &db, Counters &counters, MainExecRequired &required)";
     
     if (bHeader)
     {
@@ -85,22 +85,22 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         code += "\n{\n";
 
     code += "    // opN are local, uncommitted polynomials\n";
-    code += "    FieldElement op0, op1, op2, op3, op4, op5, op6, op7;\n"
+    code += "    Goldilocks::Element op0, op1, op2, op3, op4, op5, op6, op7;\n"
     if (bFastMode)
     {
-        code += "    FieldElement A0, A1, A2, A3, A4, A5, A6, A7;\n";
+        code += "    Goldilocks::Element A0, A1, A2, A3, A4, A5, A6, A7;\n";
         code += "    A7 = A6 = A5 = A4 = A3 = A2 = A1 = A0 = fr.zero();\n";
-        code += "    FieldElement B0, B1, B2, B3, B4, B5, B6, B7;\n";
+        code += "    Goldilocks::Element B0, B1, B2, B3, B4, B5, B6, B7;\n";
         code += "    B7 = B6 = B5 = B4 = B3 = B2 = B1 = B0 = fr.zero();\n";
-        code += "    FieldElement C0, C1, C2, C3, C4, C5, C6, C7;\n";
+        code += "    Goldilocks::Element C0, C1, C2, C3, C4, C5, C6, C7;\n";
         code += "    C7 = C6 = C5 = C4 = C3 = C2 = C1 = C0 = fr.zero();\n";
-        code += "    FieldElement D0, D1, D2, D3, D4, D5, D6, D7;\n";
+        code += "    Goldilocks::Element D0, D1, D2, D3, D4, D5, D6, D7;\n";
         code += "    D7 = D6 = D5 = D4 = D3 = D2 = D1 = D0 = fr.zero();\n";
-        code += "    FieldElement E0, E1, E2, E3, E4, E5, E6, E7;\n";
+        code += "    Goldilocks::Element E0, E1, E2, E3, E4, E5, E6, E7;\n";
         code += "    E7 = E6 = E5 = E4 = E3 = E2 = E1 = E0 = fr.zero();\n";
-        code += "    FieldElement SR0, SR1, SR2, SR3, SR4, SR5, SR6, SR7;\n";
+        code += "    Goldilocks::Element SR0, SR1, SR2, SR3, SR4, SR5, SR6, SR7;\n";
         code += "    SR7 = SR6 = SR5 = SR4 = SR3 = SR2 = SR1 = SR0 = fr.zero();\n";
-        code += "    FieldElement HASHPOS, GAS, CTX, PC, SP, RR, carry, MAXMEM;\n";
+        code += "    Goldilocks::Element HASHPOS, GAS, CTX, PC, SP, RR, carry, MAXMEM;\n";
         code += "    HASHPOS = GAS = CTX = PC = SP = RR = carry = MAXMEM = fr.zero();\n";
     }
     code += "    uint32_t addrRel = 0; // Relative and absolute address auxiliary variables\n";
@@ -278,14 +278,14 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    // If address is involved, load offset into addr\n";
             if (rom.program[zkPC].ind)
                 if (bFastMode)
-                    code += "    addrRel = fe2n(fr, E0);\n";
+                    code += "    addrRel = fr.toS32(E0);\n";
                 else
-                    code += "    addrRel = fe2n(fr, pols.E0[i]);\n";
+                    code += "    addrRel = fr.toS32(pols.E0[i]);\n";
             if (rom.program[zkPC].indRR)
                 if (bFastMode)
-                    code += "    addrRel = fe2n(fr, RR);\n";
+                    code += "    addrRel = fr.toS32(RR);\n";
                 else
-                    code += "    addrRel = fe2n(fr, pols.RR[i]);\n";
+                    code += "    addrRel = fr.toS32(pols.RR[i]);\n";
             if (rom.program[zkPC].offset && (rom.program[zkPC].offset != 0))
             {
                 if (rom.program[zkPC].offset > 0)
@@ -315,11 +315,11 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         {
             code += "    // If useCTX, addr = addr + CTX*CTX_OFFSET\n";
             if (bFastMode)
-                code += "    addr += CTX*CTX_OFFSET;\n";
+                code += "    addr += fr.toU64(CTX)*CTX_OFFSET;\n";
             else
             {
-                code += "    addr += pols.CTX[i]*CTX_OFFSET;\n";
-                code += "    pols.useCTX[i] = 1;\n";
+                code += "    addr += fr.toU64(pols.CTX[i])*CTX_OFFSET;\n";
+                code += "    pols.useCTX[i] = fr.one();\n";
             }
         }
 
@@ -329,7 +329,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    addr += CODE_OFFSET;\n";
             if (!bFastMode)
             {
-                code += "    pols.isCode[i] = 1;\n";
+                code += "    pols.isCode[i] = fr.one();\n";
             }
         }
 
@@ -339,7 +339,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    addr += STACK_OFFSET;\n";
             if (!bFastMode)
             {
-                code += "    pols.isStack[i] = 1;\n";
+                code += "    pols.isStack[i] = fr.one();\n";
             }
         }
 
@@ -349,34 +349,34 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    addr += MEM_OFFSET;\n";
             if (!bFastMode)
             {
-                code += "    pols.isMem[i] = 1;\n";
+                code += "    pols.isMem[i] = fr.one();\n";
             }
         }
 
         if (rom.program[zkPC].incCode && (rom.program[zkPC].incCode != 0) && !bFastMode)
         {
-            code += "    pols.incCode[i] = " + rom.program[zkPC].incCode + "; // Copy ROM flags into pols\n\n";
+            code += "    pols.incCode[i] = fr.fromS32(" + rom.program[zkPC].incCode + "); // Copy ROM flags into pols\n\n";
         }
 
         if (rom.program[zkPC].incStack && (rom.program[zkPC].incStack != 0) && !bFastMode)
         {
-            code += "    pols.incStack[i] = " + rom.program[zkPC].incStack + "; // Copy ROM flags into pols\n\n";
+            code += "    pols.incStack[i] = fr.fromS32(" + rom.program[zkPC].incStack + "); // Copy ROM flags into pols\n\n";
         }
 
         if (rom.program[zkPC].ind && (rom.program[zkPC].ind != 0) && !bFastMode)
         {
-            code += "    pols.ind[i] = " + rom.program[zkPC].ind + "; // Copy ROM flags into pols\n\n";
+            code += "    pols.ind[i] = fr.one();\n\n";
         }
 
         if (rom.program[zkPC].indRR && (rom.program[zkPC].indRR != 0) && !bFastMode)
         {
-            code += "    pols.indRR[i] = " + rom.program[zkPC].indRR + "; // Copy ROM flags into pols\n\n";
+            code += "    pols.indRR[i] = fr.one();\n\n";
         }
 
         // If offset, record it the committed polynomial
         if (rom.program[zkPC].offset && (rom.program[zkPC].offset != 0) && !bFastMode)
         {
-            code += "    pols.offset[i] = " + rom.program[zkPC].offset + "; // Copy ROM flags into pols\n\n";
+            code += "    pols.offset[i] = fr.fromU64(" + rom.program[zkPC].offset + "); // Copy ROM flags into pols\n\n";
         }        
 
         if (!opInitialized)
@@ -395,25 +395,25 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         {
             if (bFastMode)
             {
-                code += "    if ( (!fr.eq(A0, op0)) ||\n";
-                code += "         (!fr.eq(A1, op1)) ||\n";
-                code += "         (!fr.eq(A2, op2)) ||\n";
-                code += "         (!fr.eq(A3, op3)) ||\n";
-                code += "         (!fr.eq(A4, op4)) ||\n";
-                code += "         (!fr.eq(A5, op5)) ||\n";
-                code += "         (!fr.eq(A6, op6)) ||\n";
-                code += "         (!fr.eq(A7, op7)) )\n";
+                code += "    if ( (!fr.equal(A0, op0)) ||\n";
+                code += "         (!fr.equal(A1, op1)) ||\n";
+                code += "         (!fr.equal(A2, op2)) ||\n";
+                code += "         (!fr.equal(A3, op3)) ||\n";
+                code += "         (!fr.equal(A4, op4)) ||\n";
+                code += "         (!fr.equal(A5, op5)) ||\n";
+                code += "         (!fr.equal(A6, op6)) ||\n";
+                code += "         (!fr.equal(A7, op7)) )\n";
             }
             else
             {
-                code += "    if ( (!fr.eq(pols.A0[i], op0)) ||\n";
-                code += "         (!fr.eq(pols.A1[i], op1)) ||\n";
-                code += "         (!fr.eq(pols.A2[i], op2)) ||\n";
-                code += "         (!fr.eq(pols.A3[i], op3)) ||\n";
-                code += "         (!fr.eq(pols.A4[i], op4)) ||\n";
-                code += "         (!fr.eq(pols.A5[i], op5)) ||\n";
-                code += "         (!fr.eq(pols.A6[i], op6)) ||\n";
-                code += "         (!fr.eq(pols.A7[i], op7)) )\n";
+                code += "    if ( (!fr.equal(pols.A0[i], op0)) ||\n";
+                code += "         (!fr.equal(pols.A1[i], op1)) ||\n";
+                code += "         (!fr.equal(pols.A2[i], op2)) ||\n";
+                code += "         (!fr.equal(pols.A3[i], op3)) ||\n";
+                code += "         (!fr.equal(pols.A4[i], op4)) ||\n";
+                code += "         (!fr.equal(pols.A5[i], op5)) ||\n";
+                code += "         (!fr.equal(pols.A6[i], op6)) ||\n";
+                code += "         (!fr.equal(pols.A7[i], op7)) )\n";
             }
             code += "    {\n";
             code += "        cerr << \"Error: ROM assert failed: AN!=opN ln: \" << " + zkPC + " << endl;\n";
@@ -425,12 +425,9 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "        exit(-1);\n";
             code += "    }\n";
             if (!bFastMode)
-                code += "    pols.assert[i] = 1;\n";
+                code += "    pols.assert[i] = fr.one();\n";
             code += "\n";
         }
-
-        if (rom.program[zkPC].opcodeRomMap && !bFastMode)
-            code += "    pols.opcodeRomMap[i] = 1;\n";
 
         /***********/
         /* SETTERS */
@@ -446,11 +443,11 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         // If setCTX, CTX'=op
         if (rom.program[zkPC].setCTX)
             if (bFastMode)
-                code += "    CTX = fe2n(fr, op0); // If setCTX, CTX'=op\n";
+                code += "    CTX = op0; // If setCTX, CTX'=op\n";
             else
             {
-                code += "    pols.CTX[nexti] = fe2n(fr, op0); // If setCTX, CTX'=op\n";
-                code += "    pols.setCTX[i] = 1;\n";
+                code += "    pols.CTX[nexti] = op0; // If setCTX, CTX'=op\n";
+                code += "    pols.setCTX[i] = fr.one();\n";
             }
         else if (!bFastMode)
             code += "    pols.CTX[nexti] = pols.CTX[i];\n";
@@ -458,18 +455,18 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         // If setSP, SP'=op
         if (rom.program[zkPC].setSP)
             if (bFastMode)
-                code += "    SP = fe2n(fr, op0); // If setSP, SP'=op\n";
+                code += "    SP = op0; // If setSP, SP'=op\n";
             else
             {
-                code += "    pols.SP[nexti] = fe2n(fr, op0); // If setSP, SP'=op\n"
-                code += "    pols.setSP[i] = 1;\n";
+                code += "    pols.SP[nexti] = op0; // If setSP, SP'=op\n"
+                code += "    pols.setSP[i] = fr.one();\n";
             }
         else if (rom.program[zkPC].incStack)
         {
             if (bFastMode)
-                code += "   SP = SP + " + rom.program[zkPC].incStack + "; // SP' = SP + incStack\n";
+                code += "   SP = fr.add(SP, fr.fromS32(" + rom.program[zkPC].incStack + ")); // SP' = SP + incStack\n";
             else
-                code += "   pols.SP[nexti] = pols.SP[i] + " + rom.program[zkPC].incStack + "; // SP' = SP + incStack\n";
+                code += "   pols.SP[nexti] = fr.add(pols.SP[i], fr.fromS32(" + rom.program[zkPC].incStack + ")); // SP' = SP + incStack\n";
         }
         else if (!bFastMode)
             code += "    pols.SP[nexti] = pols.SP[i];\n";
@@ -477,18 +474,18 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         // If setPC, PC'=op
         if (rom.program[zkPC].setPC)
             if (bFastMode)
-                code += "    PC = fe2n(fr, op0); // If setPC, PC'=op\n";
+                code += "    PC = op0; // If setPC, PC'=op\n";
             else
             {
-                code += "    pols.PC[nexti] = fe2n(fr, op0); // If setPC, PC'=op\n"
-                code += "    pols.setPC[i] = 1;\n";
+                code += "    pols.PC[nexti] = op0; // If setPC, PC'=op\n"
+                code += "    pols.setPC[i] = fr.one();\n";
             }
         else if (rom.program[zkPC].incCode)
         {
             if (bFastMode)
-                code += "   PC = PC + " + rom.program[zkPC].incCode + "; // PC' = PC + incCode\n";
+                code += "   PC = fr.add(PC, fr.fromS32(" + rom.program[zkPC].incCode + ")); // PC' = PC + incCode\n";
             else
-                code += "   pols.PC[nexti] = pols.PC[i] + " + rom.program[zkPC].incCode + "; // PC' = PC + incCode\n";
+                code += "   pols.PC[nexti] = fr.add(pols.PC[i], fr.fromS32(" + rom.program[zkPC].incCode + ")); // PC' = PC + incCode\n";
         }
         else if (!bFastMode)
             code += "    pols.PC[nexti] = pols.PC[i];\n";
@@ -496,11 +493,11 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         // If setRR, RR'=op0
         if (rom.program[zkPC].setRR == 1)
             if (bFastMode)
-                code += "    RR = fe2n(fr, op0); // If setRR, RR'=op0\n";
+                code += "    RR = op0; // If setRR, RR'=op0\n";
             else
             {
-                code += "    pols.RR[nexti] = fe2n(fr, op0); // If setRR, RR'=op0\n";
-                code += "    pols.setRR[i] = 1;\n";
+                code += "    pols.RR[nexti] = op0; // If setRR, RR'=op0\n";
+                code += "    pols.setRR[i] = fr.one();\n";
             }
         else if (!bFastMode)
             code += "    pols.RR[nexti] = pols.RR[i];\n";
@@ -516,14 +513,14 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         if (rom.program[zkPC].JMPN)
         {
             if (!bFastMode)
-                code += "    pols.JMPN[i] = 1;\n";
-            code += "    o = fe2n(fr, op0);\n"
+                code += "    pols.JMPN[i] = fr.one();\n";
+            code += "    o = fr.toS32(op0);\n"
             // If op<0, jump to addr: zkPC'=addr
             code += "    if (o < 0) {\n";
             if (!bFastMode)
             {
-                code += "        pols.isNeg[i] = 1;\n";
-                code += "        pols.zkPC[nexti] = addr; // If op<0, jump to addr: zkPC'=addr\n";
+                code += "        pols.isNeg[i] = fr.one();\n";
+                code += "        pols.zkPC[nexti] = fr.fromU64(addr); // If op<0, jump to addr: zkPC'=addr\n";
                 code += "        required.Byte4[0x100000000 + o] = true;\n";
             }
             code += "        goto *" + functionName + "_labels[addr]; // If op<0, jump to addr: zkPC'=addr\n";
@@ -533,7 +530,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    {\n";
             if (!bFastMode)
             {
-                code += "        pols.zkPC[nexti] = pols.zkPC[i] + 1; // If op>=0, simply increase zkPC'=zkPC+1\n";
+                code += "        pols.zkPC[nexti] = fr.add(pols.zkPC[i], fr.one()); // If op>=0, simply increase zkPC'=zkPC+1\n";
                 code += "        required.Byte4[o] = true;\n";
             }
             //code += "        goto RomLine" + (zkPC+1) + ";\n";
@@ -543,21 +540,21 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         else if (rom.program[zkPC].JMPC)
         {
             if (!bFastMode)
-                code += "    pols.JMPC[i] = 1;\n";
+                code += "    pols.JMPC[i] = fr.one();\n";
             if (bFastMode)
-                code += "    if (carry)\n";
+                code += "    if (!fr.isZero(carry))\n";
             else
-                code += "    if (pols.carry[i])\n";
+                code += "    if (!fr.isZero(pols.carry[i]))\n";
             code += "    {\n";
             if (!bFastMode)
-                code += "        pols.zkPC[nexti] = addr; // If carry, jump to addr: zkPC'=addr\n";
+                code += "        pols.zkPC[nexti] = fr.fromU64(addr); // If carry, jump to addr: zkPC'=addr\n";
             code += "        goto *" + functionName + "_labels[addr]; // If carry, jump to addr: zkPC'=addr\n";
             code += "    }\n";
             if (!bFastMode)
             {
                 code += "    else\n";
                 code += "{\n";
-                code += "        pols.zkPC[nexti] = pols.zkPC[i] + 1; // If not carry, simply increase zkPC'=zkPC+1\n";
+                code += "        pols.zkPC[nexti] = fr.add(pols.zkPC[i], fr.one()); // If not carry, simply increase zkPC'=zkPC+1\n";
                 code += "}\n";
             }
         }
@@ -566,29 +563,29 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         {
             if (!bFastMode)
             {
-                code += "    pols.zkPC[nexti] = addr;\n";
-                code += "    pols.JMP[i] = 1;\n";
+                code += "    pols.zkPC[nexti] = fr.fromU64(addr);\n";
+                code += "    pols.JMP[i] = fr.one();\n";
             }
             code += "    goto *" + functionName + "_labels[addr]; // If JMP, directly jump zkPC'=addr\n";
         }
         // Else, simply increase zkPC'=zkPC+1
         else if (!bFastMode)
         {
-            code += "    pols.zkPC[nexti] = pols.zkPC[i] + 1;\n";
+            code += "    pols.zkPC[nexti] = fr.add(pols.zkPC[i], fr.one());\n";
         }
         code += "\n";
 
         code += "    maxMemCalculated = 0;\n";
         if (bFastMode)
-            code += "    mm = MAXMEM;\n";
+            code += "    mm = fr.toS32(MAXMEM);\n";
         else
-            code += "    mm = pols.MAXMEM[i];\n";
+            code += "    mm = fr.toS32(pols.MAXMEM[i]);\n";
         if (rom.program[zkPC].isMem)
         {
             code += "    if (addrRel>mm)\n";
             code += "    {\n";
             if (!bFastMode)
-                code += "        pols.isMaxMem[i] = 1;\n";
+                code += "        pols.isMaxMem[i] = fr.one();\n";
             code += "        maxMemCalculated = addrRel;\n";
             if (!bFastMode)
                 code += "        required.Byte4[maxMemCalculated - mm] = true;\n";
@@ -605,30 +602,30 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         if (rom.program[zkPC].setMAXMEM && !bFastMode)
         {
             if (bFastMode)
-                code += "    MAXMEM = fe2n(fr, op0); // If setMAXMEM, MAXMEM'=op\n";
+                code += "    MAXMEM = op0; // If setMAXMEM, MAXMEM'=op\n";
             else
             {
-                code += "    pols.MAXMEM[nexti] = fe2n(fr, op0); // If setMAXMEM, MAXMEM'=op\n";
-                code += "    pols.setMAXMEM[i] = 1;\n";
+                code += "    pols.MAXMEM[nexti] = op0; // If setMAXMEM, MAXMEM'=op\n";
+                code += "    pols.setMAXMEM[i] = fr.one();\n";
             }
         }
         else if (!bFastMode)
         {
             if (bFastMode)
-                code += "    MAXMEM = maxMemCalculated;\n";
+                code += "    MAXMEM = fr.fromU64(maxMemCalculated);\n";
             else
-                code += "    pols.MAXMEM[nexti] = maxMemCalculated;\n";
+                code += "    pols.MAXMEM[nexti] = fr.fromU64(maxMemCalculated);\n";
         }
         
         // If setGAS, GAS'=op
         if (rom.program[zkPC].setGAS)
         {
             if (bFastMode)
-                code += "    GAS = fe2n(fr, op0); // If setGAS, GAS'=op\n";
+                code += "    GAS = op0; // If setGAS, GAS'=op\n";
             else
             {
-                code += "    pols.GAS[nexti] = fe2n(fr, op0); // If setGAS, GAS'=op\n";
-                code += "    pols.setGAS[i] = 1;\n"
+                code += "    pols.GAS[nexti] = op0; // If setGAS, GAS'=op\n";
+                code += "    pols.setGAS[i] = fr.one();\n";
             }
         }
         else if (!bFastMode)
@@ -640,16 +637,16 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         if (rom.program[zkPC].setHASHPOS)
         {
             if (bFastMode)
-                code += "    HASHPOS = fe2n(fr, op0) + incHashPos;\n";
+                code += "    HASHPOS = fr.fromU64(fr.toS32(op0) + incHashPos);\n";
             else
             {
-                code += "    pols.HASHPOS[nexti] = fe2n(fr, op0) + incHashPos;\n";
-                code += "    pols.setHASHPOS[i] = 1;\n";
+                code += "    pols.HASHPOS[nexti] = fr.fromU64(fr.toS32(op0) + incHashPos);\n";
+                code += "    pols.setHASHPOS[i] = fr.one();\n";
             }
         }
         else if (!bFastMode)
         {
-            code += "    pols.HASHPOS[nexti] = pols.HASHPOS[i] + incHashPos;\n";
+            code += "    pols.HASHPOS[nexti] = fr.add(pols.HASHPOS[i], fr.fromU64(incHashPos));\n";
         }
 
         // Evaluate the list cmdAfter commands, and any children command, recursively
@@ -690,13 +687,13 @@ function selector8 (reg, inReg, opInitialized, bFastMode)
         else if (inReg == -1)
             value = "fr.neg(" + prefix + reg + j + sufix + ")";
         else
-            value = "fr.mul(" + inReg + ", " + prefix + reg + j + sufix + ")";
+            value = "fr.mul(fr.fromS32(" + inReg + "), " + prefix + reg + j + sufix + ")";
         if (opInitialized)
             value = "fr.add(op" + j + ", " + value + ")"
         code += "    op" + j + " = " + value + ";\n";
     }
     if (!bFastMode)
-        code += "    " + prefix + "in" + reg + sufix + " = " + inReg + ";\n";
+        code += "    " + prefix + "in" + reg + sufix + " = fr.fromS32(" + inReg + ");\n";
     code += "\n";
     return code;
 }
@@ -714,7 +711,7 @@ function selector1 (reg, inReg, opInitialized, bFastMode)
     else if (inReg == -1)
         value = "fr.neg(" + prefix + reg + sufix + ")";
     else
-        value = "fr.mul(" + inReg + ", " + prefix + reg + sufix + ")";
+        value = "fr.mul(fr.fromS32(" + inReg + "), " + prefix + reg + sufix + ")";
     if (opInitialized)
         value = "fr.add(op0, " + value + ")"
     code += "    op0 = " + value + ";\n";
@@ -724,7 +721,7 @@ function selector1 (reg, inReg, opInitialized, bFastMode)
             code += "    op" + j + " = fr.zero();\n";
         }
     if (!bFastMode)
-        code += "    " + prefix + "in" + reg + sufix + " = " + inReg + ";\n";
+        code += "    " + prefix + "in" + reg + sufix + " = fr.fromS32(" + inReg + ");\n";
     code += "\n";
     return code;
 }
@@ -742,17 +739,17 @@ function selector1i (reg, inReg, opInitialized, bFastMode)
     else if (inReg == -1)
         value = "fr.neg(i)";
     else
-        value = "fr.mul(" + inReg + ", i)";
+        value = "fr.mul(fr.fromS32(" + inReg + "), i)";
     if (opInitialized)
         value = "fr.add(op0, " + value + ")"
-    code += "    op0 = " + value + ";\n";
+    code += "    op0 = fr.fromU64(" + value + ");\n";
     if (!opInitialized)
         for (let j=1; j<8; j++)
         {
             code += "    op" + j + " = fr.zero();\n";
         }
     if (!bFastMode)
-        code += "    " + prefix + "in" + reg + sufix + " = " + inReg + ";\n";
+        code += "    " + prefix + "in" + reg + sufix + " = fr.fromS32(" + inReg + ");\n";
     code += "\n";
     return code;
 }
@@ -766,9 +763,9 @@ function selectorConst (CONST, opInitialized, bFastMode)
 
     let value = "";
     if (CONST > 0)
-        value += CONST;
+        value += "fr.fromU64(" + CONST + ")";
     else
-        value += "fr.neg(" + (-CONST) + ")";
+        value += "fr.neg(fr.fromU64(" + (-CONST) + "))";
     if (opInitialized)
         value = "fr.add(op0, " + value + ")"
     code += "    op0 = " + value + ";\n";
@@ -778,7 +775,7 @@ function selectorConst (CONST, opInitialized, bFastMode)
             code += "    op" + j + " = fr.zero();\n";
         }
     if (!bFastMode)
-        code += "    " + prefix + "CONST0" + sufix + " = " + CONST + ";\n\n";
+        code += "    " + prefix + "CONST0" + sufix + " = fr.fromS32(" + CONST + ");\n\n";
     code += "\n";
     return code;
 }
@@ -795,14 +792,14 @@ function selectorConstL (Fr, CONSTL, opInitialized, bFastMode)
     if (!bFastMode)
         for (let j=0; j<8; j++)
         {
-            code += "    " + prefix + "CONST" + j + sufix + " = " + op[j] + ";\n";
+            code += "    " + prefix + "CONST" + j + sufix + " = fr.fromU64(" + op[j] + ");\n";
         }
 
-    if (!bFastMode)
+    /*if (!bFastMode)
         for (let j=0; j<8; j++)
         {
             code += "    " + prefix + "CONST" + j + sufix + " = op" + j + ";\n";
-        }
+        }*/
     code += "\n";
     return code;
 }
@@ -824,7 +821,7 @@ function setter8 (reg, setReg, bFastMode)
         for (let j=0; j<8; j++)
             code += "    " + prefix + reg + j + sufixNext + " = op" + j + ";\n";
         if (!bFastMode)
-            code += "    " + prefix + "in" + reg + sufix + " = 1;\n";
+            code += "    " + prefix + "set" + reg + sufix + " = fr.one();\n";
         code += "\n";
     }
     else if (!bFastMode)
