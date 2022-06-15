@@ -86,6 +86,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
     code += "    // opN are local, uncommitted polynomials\n";
     code += "    Goldilocks::Element op0, op1, op2, op3, op4, op5, op6, op7;\n"
+    code += "    Goldilocks::Element fi0, fi1, fi2, fi3, fi4, fi5, fi6, fi7;\n"
     if (bFastMode)
     {
         code += "    Goldilocks::Element A0, A1, A2, A3, A4, A5, A6, A7;\n";
@@ -102,6 +103,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         code += "    SR7 = SR6 = SR5 = SR4 = SR3 = SR2 = SR1 = SR0 = fr.zero();\n";
         code += "    Goldilocks::Element HASHPOS, GAS, CTX, PC, SP, RR, carry, MAXMEM;\n";
         code += "    HASHPOS = GAS = CTX = PC = SP = RR = carry = MAXMEM = fr.zero();\n";
+        code += "    Goldilocks::Element FREE0, FREE1, FREE2, FREE3, FREE4, FREE5, FREE6, FREE7;\n";
+        code += "    FREE7 = FREE6 = FREE5 = FREE4 = FREE3 = FREE2 = FREE1 = FREE0 = fr.zero();\n";
     }
     code += "    uint32_t addrRel = 0; // Relative and absolute address auxiliary variables\n";
     code += "    uint64_t addr = 0;\n";
@@ -379,13 +382,62 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    pols.offset[i] = fr.fromU64(" + rom.program[zkPC].offset + "); // Copy ROM flags into pols\n\n";
         }        
 
-        if (!opInitialized)
-            code += "    op7 = op6 = op5 = op4 = op3 = op2 = op1 = op0 = fr.zero(); // Initialize op to zero\n\n";
-
         /**************/
         /* FREE INPUT */
         /**************/
+
+        if (rom.program[zkPC].inFREE) {
+
+            if (!rom.program[zkPC].freeInTag) {
+                throw new Error(`Instruction with freeIn without freeInTag`);
+            }
+
+            let fi;
+            if (rom.program[zkPC].freeInTag.op=='')
+            {
+            }
+            else if (rom.program[zkPC].freeInTag.op == 'functionCall')
+            {
+                if (rom.program[zkPC].freeInTag.funcName == 'getGlobalHash')
+                {
+                    if (!opInitialized)
+                    {
+                        opInitialized = true;
+                        if (rom.program[zkPC].inFREE==1)
+                        {
+                            code += "    scalar2fea(fr, input.globalHash, op0, op1, op2, op3, op4, op5, op6, op7);\n";
+                            if (!bFastMode) for (let j=0; j<8; j++) code += "    pols.FREE" + j + "[i] = op" + j + ";\n";
+                        }
+                        else
+                        {
+                            code += "    scalar2fea(fr, input.globalHash, fi0, fi1, fi2, fi3, fi4, fi5, fi6, fi7);\n";
+                            if (!bFastMode) for (let j=0; j<8; j++) code += "    pols.FREE" + j + "[i] = fi" + j + ";\n";
+                            for (let j=0; j<8; j++)
+                                code += "    op" + j + " = fr.mul(fr.fromS32(" + rom.program[zkPC].inFREE + "), fi" + j + ");\n";
+                        }
+                    }
+                    else
+                    {
+                        code += "    scalar2fea(fr, input.globalHash, fi0, fi1, fi2, fi3, fi4, fi5, fi6, fi7);\n";
+                        if (!bFastMode) for (let j=0; j<8; j++) code += "    pols.FREE" + j + "[i] = fi" + j + ";\n";
+                        if (rom.program[zkPC].inFree==1)
+                            for (let j=0; j<8; j++)
+                                code += "    op" + j + " = fr.add(op" + j + ", fi" + j + "));\n";
+                        else
+                            for (let j=0; j<8; j++)
+                                code += "    op" + j + " = fr.add(op" + j + ", fr.mul(fr.fromS32(" + rom.program[zkPC].inFREE + "), fi" + j + "));\n";
+                        if (!bFastMode)
+                            for (let j=0; j<8; j++)
+                                code += "    pols.FREE" + j + "[i] = fi" + j + ";\n";
+                    }
+                }
+            }
+            code += "\n";
+        }
         
+        if (!opInitialized)
+            code += "    op7 = op6 = op5 = op4 = op3 = op2 = op1 = op0 = fr.zero(); // Initialize op to zero\n\n";
+
         /****************/
         /* INSTRUCTIONS */
         /****************/
@@ -656,6 +708,12 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             evalCommand(ctx, *rom.line[zkPC].cmdAfter[j], cr);
         }*/
 
+        code += "\n";
+
+        if (bFastMode)
+            code += "   cout << \"<-- Completed step: \" << i << \" zkPC: " + zkPC + " op0: \" << fr.toString(op0,16) << \" A0: \" << fr.toString(A0,16) << \" FREE0: \" << fr.toString(FREE0,16) << endl;\n";
+        else
+            code += "   cout << \"<-- Completed step: \" << i << \" zkPC: " + zkPC + " op0: \" << fr.toString(op0,16) << \" A0: \" << fr.toString(pols.A0[i]) << \" FREE0: \" << fr.toString(pols.FREE0[i],16) << endl;\n";
         code += "\n";
 
     }
