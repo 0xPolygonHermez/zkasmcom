@@ -23,6 +23,7 @@ CNT_KECCAK_F            { return 'CNT_KECCAK_F' }
 CNT_MEM_ALIGN           { return 'CNT_MEM_ALIGN' }
 CNT_PADDING_PG          { return 'CNT_PADDING_PG' }
 CNT_POSEIDON_G          { return 'CNT_POSEIDON_G' }
+HASHPOS                 { return 'HASHPOS'; }
 var                     { return 'VAR'; }
 [a-zA-Z_][a-zA-Z$_0-9]*  { return 'IDENTIFIER'; }
 \(                      { return '('}
@@ -284,6 +285,7 @@ reg
     | RR
     | STEP
     | MAXMEM
+    | HASHPOS
     ;
 
 counter
