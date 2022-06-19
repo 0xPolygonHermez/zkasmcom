@@ -250,24 +250,6 @@ case 41:
             this.$ = {op: "getVar", varName: $$[$0]}
         
 break;
-case 57:
- this.$ = 'CNT_ARITH' 
-break;
-case 58:
- this.$ = 'CNT_BINARY' 
-break;
-case 59:
- this.$ = 'CNT_KECCAK_F' 
-break;
-case 60:
- this.$ = 'CNT_MEM_ALIGN' 
-break;
-case 61:
- this.$ = 'CNT_PADDING_PG' 
-break;
-case 62:
- this.$ = 'CNT_POSEIDON_G' 
-break;
 case 63:
 
             this.$ = {op: "functionCall", funcName: $$[$0-3], params: $$[$0-1]}

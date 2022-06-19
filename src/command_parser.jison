@@ -289,12 +289,12 @@ reg
     ;
 
 counter
-    : CNT_ARITH         { $$ = 'CNT_ARITH' }
-    | CNT_BINARY        { $$ = 'CNT_BINARY' }
-    | CNT_KECCAK_F      { $$ = 'CNT_KECCAK_F' }
-    | CNT_MEM_ALIGN     { $$ = 'CNT_MEM_ALIGN' }
-    | CNT_PADDING_PG    { $$ = 'CNT_PADDING_PG' }
-    | CNT_POSEIDON_G    { $$ = 'CNT_POSEIDON_G' }
+    : CNT_ARITH
+    | CNT_BINARY
+    | CNT_KECCAK_F
+    | CNT_MEM_ALIGN
+    | CNT_PADDING_PG
+    | CNT_POSEIDON_G
     ;
 
 functionCall
