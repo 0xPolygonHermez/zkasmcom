@@ -206,6 +206,8 @@ module.exports = async function compile(fileName, ctx, config) {
                 const name = cmd.offset;
                 cmd.op = 'number'
                 cmd.num = getConstantValue(ctx, name);
+                cmd.offsetLabel = name;
+                delete cmd.offset;
                 return;
             }
             else {
