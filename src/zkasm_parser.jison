@@ -2,6 +2,7 @@
 %lex
 %%
 \;[^\n\r]*              { /* console.log("COMMENT: "+yytext) */ }
+\/\*([^*]|[\r\n]|(\*+([^*/]|[\r\n])))*\*+\/ { /* console.log("MULTILINE COMMENT: "+yytext); */  }
 ((0x[0-9A-Fa-f][0-9A-Fa-f_]*)|([0-9][0-9_]*))n          { yytext = BigInt(yytext.replace(/[\_n]/g, "")); return 'NUMBERL'; }
 (0x[0-9A-Fa-f][0-9A-Fa-f_]*)|([0-9][0-9_]*)          { yytext = Number(yytext.replace(/\_/g, "")); return 'NUMBER'; }
 \$\$\{[^\}]*\}          { yytext = yytext.slice(3, -1); return "COMMAND"; }
