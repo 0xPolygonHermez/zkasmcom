@@ -378,7 +378,7 @@ function processAssignmentIn(ctx, input, currentLine) {
         if (typeof ctx.definedLabels[input.identifier] !== 'undefined') {
             res.CONST = BigInt(ctx.definedLabels[input.identifier]);
         }
-        if (typeof ctx.vars[input.identifier] !== 'undefined') {
+        else if (typeof ctx.vars[input.identifier] !== 'undefined') {
             res.CONST = BigInt(ctx.vars[input.identifier].offset);
         }
         else {
