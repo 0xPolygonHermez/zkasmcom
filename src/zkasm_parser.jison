@@ -108,6 +108,8 @@ CONSTL                  { return 'CONSTL' }
 \!                      { return '!' }
 \?\?                    { return '??' }
 \?                      { return '?' }
+\[                      { return '[' }
+\]                      { return ']' }
 <<EOF>>                 { return 'EOF'; }
 .                       { /* console.log("INVALID: " + yytext); */ return 'INVALID'; }
 
@@ -222,7 +224,11 @@ label
 varDef
     :  VAR scope IDENTIFIER
         {
-            $$ = {type: "var", scope: $2, name: $3}
+            $$ = {type: "var", scope: $2, name: $3, count: 1 }
+        }
+    |  VAR scope IDENTIFIER '[' NUMBER ']'
+        {
+            $$ = {type: "var", scope: $2, name: $3, count: $5 }
         }
     ;
 

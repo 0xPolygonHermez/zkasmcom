@@ -1,0 +1,26 @@
+VAR GLOBAL a[100]
+VAR GLOBAL b
+VAR GLOBAL c[300]
+VAR GLOBAL d
+
+start:
+        STEP => A
+        0   :ASSERT
+
+        1   :MSTORE(a)
+        2   :MSTORE(b)
+        3   :MSTORE(c)
+        4   :MSTORE(d)
+        @a => A
+        @b => A
+        @c => A
+        @d => A
+
+end:
+       0 => A,B,C,D,E,CTX, SP, PC, GAS, MAXMEM, SR
+
+finalWait:
+        ${beforeLast()}  : JMPN(finalWait)
+
+                         : JMP(start)
+opINVALID:
