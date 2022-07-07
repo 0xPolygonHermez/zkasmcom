@@ -4,11 +4,13 @@ const path = require("path");
 const fs = require("fs");
 const version = require("../package").version;
 const compile = require("./compiler.js");
+const generate = require("./c_code_generator.js");
 
 const argv = require("yargs")
     .version(version)
     .usage("zkasm <source.zkasm> -o <output.json>")
     .alias("o", "output")
+    .alias("c", "ccodegeneration")
     .option('D', {
         alias: 'define',
         array: true
@@ -30,6 +32,9 @@ async function run() {
     const fileName = path.basename(fullFileName, ".zkasm");
 
     const outputFile = typeof(argv.output) === "string" ?  argv.output.trim() : fileName + ".json";
+
+    const cCodeGeneration = argv.ccodegeneration;
+    const codeGenerationName = typeof(argv.ccodegeneration) === "string" ? argv.ccodegeneration : "main_exec_generated";
 
     const defines = [];
     if (argv.define) {
@@ -63,6 +68,27 @@ async function run() {
     await new Promise(fulfill => writeStream.on("finish", fulfill));
 
     */
+    if (cCodeGeneration)
+    {
+        let functionName = codeGenerationName;
+        let fileName = codeGenerationName;
+        let directoryName = codeGenerationName;
+
+        // Create directory if it does not exist
+        if (!fs.existsSync(directoryName)){
+            fs.mkdirSync(directoryName);
+        }
+        const code = await generate(out, functionName, fileName, false, false);
+        await fs.promises.writeFile(directoryName + "/" + fileName + ".cpp", code, "utf8");
+        const header = await generate(out, functionName, fileName, false, true);
+        await fs.promises.writeFile(directoryName + "/" + fileName + ".hpp", header, "utf8");
+        functionName += "_fast";
+        fileName += "_fast";
+        const codeFast = await generate(out, functionName, fileName, true, false);
+        await fs.promises.writeFile(directoryName + "/" + fileName + ".cpp", codeFast, "utf8");
+        const headerFast = await generate(out, functionName, fileName, true, true);
+        await fs.promises.writeFile(directoryName + "/" + fileName + ".hpp", headerFast, "utf8");
+    }
 }
 
 run().then(()=> {
