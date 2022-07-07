@@ -9,6 +9,7 @@ const maxConst = (1n << 32n) - 1n;
 const minConst = -(1n << 31n);
 const maxConstl = (1n << 256n) - 1n;
 const minConstl = -(1n << 255n);
+const readOnlyRegisters = ['STEP', 'ROTL_C'];
 
 module.exports = async function compile(fileName, ctx, config) {
 
@@ -36,7 +37,7 @@ module.exports = async function compile(fileName, ctx, config) {
 
     const lines = zkasm_parser.parse(src);
 
-    const srcLines = src.split(/\r?\n/);
+    const srcLines = src.split(/(?:\r\n|\n|\r)/);
 
     let pendingCommands = [];
     let lastLineAllowsCommand = false;
@@ -87,7 +88,7 @@ module.exports = async function compile(fileName, ctx, config) {
 
                 if (l.assignment) {
                     appendOp(traceStep, processAssignmentIn(ctx, l.assignment.in, ctx.out.length));
-                    appendOp(traceStep, processAssignmentOut(l.assignment.out));
+                    appendOp(traceStep, processAssignmentOut(ctx, l.assignment.out));
                 }
                 for (let j=0; j< l.ops.length; j++) {
                     appendOp(traceStep, l.ops[j])
@@ -205,6 +206,8 @@ module.exports = async function compile(fileName, ctx, config) {
                 const name = cmd.offset;
                 cmd.op = 'number'
                 cmd.num = getConstantValue(ctx, name);
+                cmd.offsetLabel = name;
+                delete cmd.offset;
                 return;
             }
             else {
@@ -288,6 +291,11 @@ function processAssignmentIn(ctx, input, currentLine) {
         else {
             res["in"+ input.reg] = 1n;
         }
+        return res;
+    }
+    if (input.type == "COUNTER") {
+        let res = {};
+        res["in" + input.counter.charAt(0).toUpperCase() + input.counter.slice(1)] = 1n;
         return res;
     }
     if (input.type == "CONST") {
@@ -442,10 +450,14 @@ function evaluateExpression(ctx, input) {
     throw new Error(`Operation ${input.type} with ${values.length} operators, not allowed in numeric expression. ${l.fileName}:${l.line}`);
 }
 
-function processAssignmentOut(outputs) {
+function processAssignmentOut(ctx, outputs) {
     const res = {};
     for (let i=0; i<outputs.length; i++) {
         if (typeof res["set"+ outputs[i]] !== "undefined") throw new Error(`Register ${outputs[i]} added twice in asssignment output`);
+        if (readOnlyRegisters.includes(outputs[i])) {
+            const l = ctx.currentLine;
+            throw new Error(`Register ${outputs[i]} is readonly register, could not be used as output destination. ${l.fileName}:${l.line}`);
+        }
         res["set"+ outputs[i]] = 1;
     }
     return res;

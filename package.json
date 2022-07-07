@@ -26,12 +26,14 @@
     "type": "git",
     "url": "https://github.com/hermeznetwork/zkasm.git"
   },
-  "devDependencies": {
-    "ffjavascript": "^0.2.46",
-    "jison": "^0.4.18"
-  },
   "dependencies": {
+<<<<<<< HEAD
     "yargs": "^17.1.1",
     "@polygon-hermez/zkevm-commonjs": "git+ssh://git@github.com/hermeznetwork/zkevm-commonjs.git#v0.0.25"
+=======
+    "ffjavascript": "^0.2.46",
+    "jison": "^0.4.18",
+    "yargs": "^17.1.1"
+>>>>>>> origin/main
   }
 }
