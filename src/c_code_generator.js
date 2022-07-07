@@ -1,10 +1,22 @@
-const buildPoseidon = require("@polygon-hermez/zkevm-commonjs").getPoseidon;
-const { scalar2fea, fea2scalar, fe2n, h4toScalar, stringToH4, nodeIsEq } = require("@polygon-hermez/zkevm-commonjs").smtUtils;
+const {F1Field, Scalar} = require("ffjavascript");
+
+function scalar2fea(Fr, scalar) {
+    scalar = Scalar.e(scalar);
+    const r0 = Scalar.band(scalar, Scalar.e('0xFFFFFFFF'));
+    const r1 = Scalar.band(Scalar.shr(scalar, 32), Scalar.e('0xFFFFFFFF'));
+    const r2 = Scalar.band(Scalar.shr(scalar, 64), Scalar.e('0xFFFFFFFF'));
+    const r3 = Scalar.band(Scalar.shr(scalar, 96), Scalar.e('0xFFFFFFFF'));
+    const r4 = Scalar.band(Scalar.shr(scalar, 128), Scalar.e('0xFFFFFFFF'));
+    const r5 = Scalar.band(Scalar.shr(scalar, 160), Scalar.e('0xFFFFFFFF'));
+    const r6 = Scalar.band(Scalar.shr(scalar, 192), Scalar.e('0xFFFFFFFF'));
+    const r7 = Scalar.band(Scalar.shr(scalar, 224), Scalar.e('0xFFFFFFFF'));
+
+    return [Fr.e(r0), Fr.e(r1), Fr.e(r2), Fr.e(r3), Fr.e(r4), Fr.e(r5), Fr.e(r6), Fr.e(r7)];
+}
 
 module.exports = async function generate(rom, functionName, fileName, bFastMode, bHeader)
 {
-    const poseidon = await buildPoseidon();
-    const Fr = poseidon.F;
+    const Fr = new F1Field(0xffffffff00000001n);
 
     let code = "";
 
@@ -18,7 +30,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             for (let i=1; i<256; i++)
             {
                 usedLabels.push(labelNumber + i);
-            
+
             }
         }
     }
@@ -73,7 +85,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         code += "void " + functionName + " (Goldilocks &fr, const Input &input, Database &db, Counters &counters)";
     else
         code += "void "+ functionName + " (Goldilocks &fr, const Input &input, MainCommitPols &pols, Database &db, Counters &counters, MainExecRequired &required)";
-    
+
     if (bHeader)
     {
         code += ";\n";
@@ -156,7 +168,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         code += "\n";
 
         // INITIALIZATION
-        
+
         let opInitialized = false;
 
         // Evaluate the list cmdBefore commands, and any children command, recursively
@@ -380,7 +392,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         if (rom.program[zkPC].offset && (rom.program[zkPC].offset != 0) && !bFastMode)
         {
             code += "    pols.offset[i] = fr.fromU64(" + rom.program[zkPC].offset + "); // Copy ROM flags into pols\n\n";
-        }        
+        }
 
         /**************/
         /* FREE INPUT */
@@ -434,7 +446,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             }
             code += "\n";
         }
-        
+
         if (!opInitialized)
             code += "    op7 = op6 = op5 = op4 = op3 = op2 = op1 = op0 = fr.zero(); // Initialize op to zero\n\n";
 
@@ -503,7 +515,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             }
         else if (!bFastMode)
             code += "    pols.CTX[nexti] = pols.CTX[i];\n";
-        
+
         // If setSP, SP'=op
         if (rom.program[zkPC].setSP)
             if (bFastMode)
@@ -522,7 +534,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         }
         else if (!bFastMode)
             code += "    pols.SP[nexti] = pols.SP[i];\n";
-        
+
         // If setPC, PC'=op
         if (rom.program[zkPC].setPC)
             if (bFastMode)
@@ -553,7 +565,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             }
         else if (!bFastMode)
             code += "    pols.RR[nexti] = pols.RR[i];\n";
-        
+
 
         // TODO: When regs are 0, do not copy to nexti.  Set bIsAZero to true at the beginning.
 
@@ -649,7 +661,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         } else {
             code += "    maxMemCalculated = mm;\n";
         }
-        
+
         // If setMAXMEM, MAXMEM'=op
         if (rom.program[zkPC].setMAXMEM && !bFastMode)
         {
@@ -668,7 +680,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             else
                 code += "    pols.MAXMEM[nexti] = fr.fromU64(maxMemCalculated);\n";
         }
-        
+
         // If setGAS, GAS'=op
         if (rom.program[zkPC].setGAS)
         {
@@ -684,7 +696,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         {
             code += "    pols.GAS[nexti] = pols.GAS[i];\n";
         }
-        
+
         // If setHASHPOS, HASHPOS' = op0 + incHashPos
         if (rom.program[zkPC].setHASHPOS)
         {
