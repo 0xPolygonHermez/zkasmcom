@@ -56,13 +56,15 @@ module.exports = async function compile(fileName, ctx, config) {
             if (l.scope == "GLOBAL") {
                 ctx.vars[l.name] = {
                     scope: "GLOBAL",
-                    offset: ++ctx.lastGlobalVarAssigned
+                    offset: ctx.lastGlobalVarAssigned + 1
                 }
+                ctx.lastGlobalVarAssigned += l.count;
             } else if (l.scope == "CTX") {
                 ctx.vars[l.name] = {
                     scope: "CTX",
-                    offset: ++(ctx.lastLocalVarCtxAssigned)
+                    offset: ctx.lastLocalVarCtxAssigned + 1
                 }
+                ctx.lastLocalVarCtxAssigned += l.count;
             } else {
                 throw error(l, `Invalid scope ${l.scope}`);
             }
@@ -376,8 +378,11 @@ function processAssignmentIn(ctx, input, currentLine) {
         if (typeof ctx.definedLabels[input.identifier] !== 'undefined') {
             res.CONST = BigInt(ctx.definedLabels[input.identifier]);
         }
+        else if (typeof ctx.vars[input.identifier] !== 'undefined') {
+            res.CONST = BigInt(ctx.vars[input.identifier].offset);
+        }
         else {
-            throw new Error(`Not found label ${input.identifier}`)
+            throw new Error(`Not found label/variable ${input.identifier}`)
         }
         return res;
     }
