@@ -29,3 +29,11 @@ Example:
 ROTL_C => A
 0x1415161718191A1B1C1D1E1F202122232425262728292A2B2C2D2E2F10111213n: ASSERT
 `````
+
+## License
+```
+Copyright
+Polygon zkasmcom was developed by Polygon. While we plan to adopt an open source license, we haven’t selected one yet, so all rights are reserved for the time being. Please reach out to us if you have thoughts on licensing.
+Disclaimer
+This code has not yet been audited, and should not be used in any production systems.
+```
