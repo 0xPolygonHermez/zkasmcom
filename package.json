@@ -1,5 +1,5 @@
 {
-  "name": "@polygon-hermez/zkasm",
+  "name": "@0xpolygonhermez/zkasmcom",
   "version": "0.0.17",
   "bin": {
     "zkasm": "src/zkasm.js"
@@ -20,11 +20,11 @@
     "hermez",
     "polygon"
   ],
-  "author": "Jordi Baylina",
-  "license": "GPL-3.0",
+  "author": "Polygon Hermez",
+  "license": "UNLICENSED",
   "repository": {
     "type": "git",
-    "url": "https://github.com/hermeznetwork/zkasm.git"
+    "url": "https://github.com/0xpolygonhermez/zkasm.git"
   },
   "dependencies": {
     "yargs": "^17.1.1",
