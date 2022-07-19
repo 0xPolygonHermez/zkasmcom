@@ -1,18 +1,25 @@
 # zkASM Compiler
+Compiles zkasm file to a json ready for the zkExecutor
 
-This repo compiles .zkasm to a json ready for the zkExecutor
+## General info
 
+## Setup
+
+```sh
+$ npm install
+$ npm run build
+```
 ## Usage
+Generate json file from zkasm file:
+```sh
+$ node src/zkasm.js <input.zkasm> -o <output.json>
+```
+Generate C++ code from zkasm file (C++ files will be generated in the ./main_exec_generated folder):
+```sh
+$ node src/zkasm.js <input.zkasm> -c
+```
 
-`````
-npm install
-npm run build
-
-node src/zkasm.js [inputFile.zkasm] -o [outFile.json]
-
-`````
-
-## INSTRUCTIONS
+## Instruction
 
 ### ROTL_C
 Left rotate one register (4 bytes) of C, only valid for register C.
@@ -31,9 +38,9 @@ ROTL_C => A
 `````
 
 ## License
-```
-Copyright
-Polygon zkasmcom was developed by Polygon. While we plan to adopt an open source license, we haven’t selected one yet, so all rights are reserved for the time being. Please reach out to us if you have thoughts on licensing.
-Disclaimer
+
+### Copyright
+Polygon `zkasmcom` was developed by Polygon. While we plan to adopt an open source license, we haven’t selected one yet, so all rights are reserved for the time being. Please reach out to us if you have thoughts on licensing.  
+  
+### Disclaimer
 This code has not yet been audited, and should not be used in any production systems.
-```
