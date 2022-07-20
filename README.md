@@ -1,8 +1,6 @@
 # zkASM Compiler
 Compiles zkasm file to a json ready for the zkExecutor
 
-## General info
-
 ## Setup
 
 ```sh
