@@ -42,13 +42,15 @@ module.exports = async function compile(fileName, ctx, config) {
     let pendingCommands = [];
     let lastLineAllowsCommand = false;
 
-    let relativeFileName = ctx.relativeFileName ? ctx.relativeFileName : path.basename(fullFileName);
+    let relativeFileName;
     if (isMain) {
         relativeFileName = path.basename(fullFileName);
         ctx.basePath = fileDir;
     } else {
         if (fullFileName.startsWith(ctx.basePath)) {
             relativeFileName = fullFileName.substring(ctx.basePath.length+1);
+        } else {
+            relativeFileName = fullFileName;
         }
     }
 
