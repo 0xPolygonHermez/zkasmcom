@@ -42,10 +42,21 @@ module.exports = async function compile(fileName, ctx, config) {
     let pendingCommands = [];
     let lastLineAllowsCommand = false;
 
+    let relativeFileName = ctx.relativeFileName ? ctx.relativeFileName : path.basename(fullFileName);
+    if (isMain) {
+        relativeFileName = path.basename(fullFileName);
+        ctx.basePath = fileDir;
+    } else {
+        if (fullFileName.startsWith(ctx.basePath)) {
+            relativeFileName = fullFileName.substring(ctx.basePath.length+1);
+        }
+    }
+
+
     for (let i=0; i<lines.length; i++) {
         const l = lines[i];
         ctx.currentLine = l;
-        l.fileName = fileName;
+        l.fileName = relativeFileName;
         if (l.type == "include") {
             const fullFileNameI = path.resolve(fileDir, l.file);
             await compile(fullFileNameI, ctx);
