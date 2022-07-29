@@ -23,7 +23,8 @@ module.exports = async function compile(fileName, ctx, config) {
             constants: {},
             lastGlobalVarAssigned: -1,
             lastLocalVarCtxAssigned: -1,
-            config: config
+            config: config,
+            srcLines: [],
         }
         isMain = true;
     } else {
@@ -36,8 +37,6 @@ module.exports = async function compile(fileName, ctx, config) {
     const src = await fs.promises.readFile(fullFileName, "utf8") + "\n";
 
     const lines = zkasm_parser.parse(src);
-
-    const srcLines = src.split(/(?:\r\n|\n|\r)/);
 
     let pendingCommands = [];
     let lastLineAllowsCommand = false;
@@ -54,6 +53,7 @@ module.exports = async function compile(fileName, ctx, config) {
         }
     }
 
+    ctx.srcLines[relativeFileName] = src.split(/(?:\r\n|\n|\r)/);
 
     for (let i=0; i<lines.length; i++) {
         const l = lines[i];
@@ -180,7 +180,7 @@ module.exports = async function compile(fileName, ctx, config) {
             resolveDataOffset(i, ctx.out[i]);
             ctx.out[i].fileName = ctx.out[i].line.fileName;
             ctx.out[i].line = ctx.out[i].line.line;
-            ctx.out[i].lineStr = srcLines[ctx.out[i].line - 1] ?? '';
+            ctx.out[i].lineStr = ctx.srcLines[ctx.out[i].fileName][ctx.out[i].line - 1] ?? '';
         }
 
         const res = {
