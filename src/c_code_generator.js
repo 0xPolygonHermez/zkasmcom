@@ -98,7 +98,6 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         code += "\n{\n";
 
     code += "    // opN are local, uncommitted polynomials\n";
-    code += "    Goldilocks::Element op0, op1, op2, op3, op4, op5, op6, op7;\n"
     //code += "    Goldilocks::Element fi0, fi1, fi2, fi3, fi4, fi5, fi6, fi7;\n"
     if (bFastMode)
     {
@@ -107,15 +106,14 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     }
     code += "    int32_t addrRel = 0; // Relative and absolute address auxiliary variables\n";
     code += "    uint64_t addr = 0;\n";
-    code += "    int64_t i=-1; // Number of this evaluation\n";
-    code += "    uint64_t nexti=0; // Next evaluation\n";
-    code += "    int64_t N=1<<23;\n";
+    //code += "    int64_t i=-1; // Number of this evaluation\n";
+    //code += "    uint64_t nexti=0; // Next evaluation\n";
+    //code += "    int64_t N=1<<23;\n";
     code += "    int32_t o;\n";
     code += "    int64_t maxMemCalculated;\n";
     code += "    int32_t mm;\n";
     code += "    int32_t i32Aux;\n";
-    code += "    int64_t incHashPos = 0;\n"; // TODO: Remove initialization to check it is initialized before being used
-    code += "    Context ctx(mainExecutor.fr, mainExecutor.fec, mainExecutor.fnec, pols, mainExecutor.rom, proverRequest, mainExecutor.pStateDB);\n";
+    //code += "    int64_t incHashPos = 0;\n"; // TODO: Remove initialization to check it is initialized before being used
     code += "    Rom &rom = mainExecutor.rom;\n";
     code += "    Goldilocks &fr = mainExecutor.fr;\n";
     code += "\n";
@@ -135,6 +133,66 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     }
     code += "    }\n\n";
 
+    code += "    // Init execution flags\n";
+    code += "    bool bProcessBatch = proverRequest.bProcessBatch;\n";
+    code += "    bool bUnsignedTransaction = (proverRequest.input.from != \"\") && (proverRequest.input.from != \"0x\");\n";
+    code += "    bool bSkipAsserts = bProcessBatch || bUnsignedTransaction;\n\n";
+
+    code += "    Context ctx(mainExecutor.fr, mainExecutor.fec, mainExecutor.fnec, pols, mainExecutor.rom, proverRequest, mainExecutor.pStateDB);\n\n";
+
+    code += "#ifdef LOG_COMPLETED_STEPS_TO_FILE\n";
+    code += "    remove(\"c.txt\");\n";
+    code += "#endif\n\n";
+
+    code += "    // Copy database key-value content provided with the input\n";
+    code += "    if ((proverRequest.input.db.size() > 0) || (proverRequest.input.contractsBytecode.size() > 0))\n";
+    code += "    {\n";
+    code += "        Database * pDatabase = mainExecutor.pStateDB->getDatabase();\n";
+    code += "        if (pDatabase != NULL)\n";
+    code += "        {\n";
+    code += "            /* Copy input database content into context database */\n";
+    code += "            map< string, vector<Goldilocks::Element> >::const_iterator it;\n";
+    code += "            for (it=proverRequest.input.db.begin(); it!=proverRequest.input.db.end(); it++)\n";
+    code += "            {\n";
+    code += "                pDatabase->write(it->first, it->second, false);\n";
+    code += "            }\n\n";
+
+    code += "            /* Copy input contracts database content into context database (dbProgram)*/\n";
+    code += "            map< string, vector<uint8_t> >::const_iterator itp;\n";
+    code += "            for (itp=proverRequest.input.contractsBytecode.begin(); itp!=proverRequest.input.contractsBytecode.end(); itp++)\n";
+    code += "            {\n";
+    code += "                pDatabase->setProgram(itp->first, itp->second, false);\n";
+    code += "            }\n";
+    code += "        }\n";
+    code += "    }\n\n";
+
+    code += "    Goldilocks::Element op0, op1, op2, op3, op4, op5, op6, op7;\n\n"
+
+    code += "    uint64_t zkPC = 0; // Zero-knowledge program counter\n";
+    code += "    uint64_t step = 0; // Step, number of polynomial evaluation\n";
+    code += "    uint64_t i=0; // Step, as it is used internally, set to 0 in fast mode to reuse the same evaluation all the time\n";
+    code += "    uint64_t nexti=0; // Next step, as it is used internally, set to 0 in fast mode to reuse the same evaluation all the time\n";
+    code += "    ctx.N = mainExecutor.N; // Numer of evaluations\n";
+    code += "    ctx.pStep = &i; // ctx.pStep is used inside evaluateCommand() to find the current value of the registers, e.g. pols(A0)[ctx.step]\n";
+    code += "    ctx.pZKPC = &zkPC; // Pointer to the zkPC\n\n";
+
+    code += "    uint64_t incHashPos = 0;\n";
+    code += "    uint64_t incCounter = 0;\n\n";
+
+    //#ifdef LOG_START_STEPS
+    //    cout << "--> Starting step=" << step << " zkPC=" << zkPC << " zkasm=" << rom.line[zkPC].lineStr << endl;
+    //#endif
+    //#ifdef LOG_PRINT_ROM_LINES
+    //        cout << "step=" << step << " rom.line[" << zkPC << "] =[" << rom.line[zkPC].toString(fr) << "]" << endl;
+    //#endif
+    //#ifdef LOG_START_STEPS_TO_FILE
+    //        {
+    //        std::ofstream outfile;
+    //        outfile.open("c.txt", std::ios_base::app); // append instead of overwrite
+    //        outfile << "--> Starting step=" << step << " zkPC=" << zkPC << " instruction= " << rom.line[zkPC].toString(fr) << endl;
+    //        outfile.close();
+    //        }
+    //#endif
 
     code += "    goto " + functionName + "_rom_line_0;\n\n";
     code += functionName + "_error: // This label should never be used\n";
@@ -144,22 +202,16 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
     for (let zkPC=0; zkPC<rom.program.length; zkPC++)
     {
+        // ROM instruction line, commented if not used to save compilation workload
         if (!usedLabels.includes(zkPC))
             code += "// ";
         code += functionName + "_rom_line_" + zkPC + ": //" + rom.program[zkPC].lineStr + "\n\n";
-
-        // INCREASE EVALUATION INDEX
-
-        code += "    i++;\n";
-        code += "    if (i==N) return;\n";
-        code += "    nexti=(i+1)%N;\n" // TODO: Avoid nexti usage in bFastMode
-        code += "    if (i%100000==0) cout<<\"Evaluation=\" << i << endl;\n";
-        code += "\n";
 
         // INITIALIZATION
 
         let opInitialized = false;
 
+        // COMMAND BEFORE
         if (rom.program[zkPC].cmdBefore &&
             rom.program[zkPC].cmdBefore.length>0)
         {
@@ -264,6 +316,42 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         if (rom.program[zkPC].inHASHPOS)
         {
             code += selector1("HASHPOS", rom.program[zkPC].inHASHPOS, opInitialized, bFastMode);
+            opInitialized = true;
+        }
+
+        if (rom.program[zkPC].inCntArith)
+        {
+            code += selector1("cntArith", rom.program[zkPC].inCntArith, opInitialized, bFastMode);
+            opInitialized = true;
+        }
+
+        if (rom.program[zkPC].inCntBinary)
+        {
+            code += selector1("cntBinary", rom.program[zkPC].inCntBinary, opInitialized, bFastMode);
+            opInitialized = true;
+        }
+
+        if (rom.program[zkPC].inCntMemAlign)
+        {
+            code += selector1("cntMemAlign", rom.program[zkPC].inCntMemAlign, opInitialized, bFastMode);
+            opInitialized = true;
+        }
+
+        if (rom.program[zkPC].inCntKeccakF)
+        {
+            code += selector1("cntKeccakF", rom.program[zkPC].inCntKeccakF, opInitialized, bFastMode);
+            opInitialized = true;
+        }
+
+        if (rom.program[zkPC].inCntPoseidonG)
+        {
+            code += selector1("cntPoseidonG", rom.program[zkPC].inCntPoseidonG, opInitialized, bFastMode);
+            opInitialized = true;
+        }
+
+        if (rom.program[zkPC].inCntPaddingPG)
+        {
+            code += selector1("cntPaddingPG", rom.program[zkPC].inCntPaddingPG, opInitialized, bFastMode);
             opInitialized = true;
         }
 
@@ -639,12 +727,6 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    pols.HASHPOS[nexti] = fr.add(pols.HASHPOS[i], fr.fromU64(incHashPos));\n";
         }
 
-        // Evaluate the list cmdAfter commands, and any children command, recursively
-        /*for (uint64_t j=0; j<rom.line[zkPC].cmdAfter.size(); j++)
-        {
-            CommandResult cr;
-            evalCommand(ctx, *rom.line[zkPC].cmdAfter[j], cr);
-        }*/
         if (rom.program[zkPC].cmdAfter &&
             rom.program[zkPC].cmdAfter.length>0)
         {
@@ -671,6 +753,14 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         if (zkPC == rom.labels.finalizeExecution)
             code += "    goto " + functionName + "_end;\n\n";
 
+        // INCREASE EVALUATION INDEX
+
+        code += "    i++;\n";
+        code += "    if (i==mainExecutor.N) return;\n";
+        code += "    nexti=(i+1)%mainExecutor.N;\n" // TODO: Avoid nexti usage in bFastMode
+        code += "    if (i%100000==0) cout<<\"Evaluation=\" << i << endl;\n";
+        code += "\n";
+
     }
 
     code += functionName + "_end:\n\n";
@@ -689,42 +779,44 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 /* SELECTORS */
 /*************/
 
-function selector8 (reg, inReg, opInitialized, bFastMode)
+function selector8 (regName, inRegValue, opInitialized, bFastMode)
 {
+    let inRegName = "in" + regName.substring(0, 1).toUpperCase() + regName.substring(1);
     let code = "";
-    code += "    // op = op + in" + reg + "*" + reg + ", where in" + reg + "=" + inReg + "\n";
+    code += "    // op = op + " + inRegName + "*" + regName + ", where " + inRegName + "=" + inRegValue + "\n";
     for (let j=0; j<8; j++)
     {
         let value = "";
-        if (inReg == 1)
-            value = "pols." + reg + j + "[i]";
-        else if (inReg == -1)
-            value = "fr.neg(pols." + reg + j + "[i])";
+        if (inRegValue == 1)
+            value = "pols." + regName + j + "[i]";
+        else if (inRegValue == -1)
+            value = "fr.neg(pols." + regName + j + "[i])";
         else
-            value = "fr.mul(fr.fromS32(" + inReg + "), pols." + reg + j + "[i])";
+            value = "fr.mul(fr.fromS32(" + inRegValue + "), pols." + regName + j + "[i])";
         if (opInitialized)
             value = "fr.add(op" + j + ", " + value + ")"
         code += "    op" + j + " = " + value + ";\n";
     }
     if (!bFastMode)
-        code += "    pols.in" + reg + "[i] = fr.fromS32(" + inReg + ");\n";
+        code += "    pols." + inRegName + "[i] = fr.fromS32(" + inRegValue + ");\n";
     code += "\n";
     return code;
 }
 
-function selector1 (reg, inReg, opInitialized, bFastMode)
+function selector1 (regName, inRegValue, opInitialized, bFastMode)
 {
+    let inRegName = "in" + regName.substring(0, 1).toUpperCase() + regName.substring(1);
     let code = "";
-    code += "    // op0 = op0 + in" + reg + "*"+reg+", where in" + reg + "=" + inReg + "\n";
+    code += "    // op0 = op0 + " + inRegName + "*" + regName + ", where " + inRegName + "=" + inRegValue + "\n";
 
     // Calculate value
     let value = "";
-    if (inReg == 1)
-        value = "pols." + reg + "[i]";
-    else if (inReg == -1)
-        value = "fr.neg(pols." + reg + "[i])";
+    if (inRegValue == 1)
+        value = "pols." + regName + "[i]";
+    else if (inRegValue == -1)
+        value = "fr.neg(pols." + regName + "[i])";
     else
-        value = "fr.mul(fr.fromS32(" + inReg + "), pols." + reg + "[i])";
+        value = "fr.mul(fr.fromS32(" + inRegValue + "), pols." + regName + "[i])";
 
     // Add to op0
     if (opInitialized)
@@ -740,24 +832,25 @@ function selector1 (reg, inReg, opInitialized, bFastMode)
 
     // Set selector
     if (!bFastMode)
-        code += "    pols.in" + reg + "[i] = fr.fromS32(" + inReg + ");\n";
+        code += "    pols." + inRegName + "[i] = fr.fromS32(" + inRegValue + ");\n";
     
     code += "\n";
     return code;
 }
 
-function selector1i (reg, inReg, opInitialized, bFastMode)
+function selector1i (regName, inRegValue, opInitialized, bFastMode)
 {
+    let inRegName = "in" + regName.substring(0, 1).toUpperCase() + regName.substring(1);
     let code = "";
-    code += "    // op0 = op0 + in" + reg + "*"+reg+", where in" + reg + "=" + inReg + "\n";
+    code += "    // op0 = op0 + " + inRegName + "*" + regName + ", where " + inRegName + "=" + inRegValue + "\n";
 
     let value = "";
-    if (inReg == 1)
+    if (inRegValue == 1)
         value = "i";
-    else if (inReg == -1)
+    else if (inRegValue == -1)
         value = "fr.neg(i)";
     else
-        value = "fr.mul(fr.fromS32(" + inReg + "), i)";
+        value = "fr.mul(fr.fromS32(" + inRegValue + "), i)";
     if (opInitialized)
         value = "fr.add(op0, " + value + ")"
     code += "    op0 = fr.fromU64(" + value + ");\n";
@@ -767,7 +860,7 @@ function selector1i (reg, inReg, opInitialized, bFastMode)
             code += "    op" + j + " = fr.zero();\n";
         }
     if (!bFastMode)
-        code += "    pols.in" + reg + "[i] = fr.fromS32(" + inReg + ");\n";
+        code += "    pols." + inRegName + "[i] = fr.fromS32(" + inRegValue + ");\n";
     code += "\n";
     return code;
 }
