@@ -69,6 +69,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         code += "#include \"eval_command.hpp\"\n";
         code += "#include <fstream>\n";
         code += "#include \"utils.hpp\"\n";
+        code += "#include \"timer.hpp\"\n";
+
     }
     code += "\n";
 
@@ -99,19 +101,14 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     }
     else
         code += "\n{\n";
-
-    code += "    // opN are local, uncommitted polynomials\n";
-    //code += "    Goldilocks::Element fi0, fi1, fi2, fi3, fi4, fi5, fi6, fi7;\n"
+        
     if (bFastMode)
     {
-        code += "    uint8_t polsBuffer[MainCommitPols::pilSize()];\n";
+        code += "    uint8_t polsBuffer[MainCommitPols::pilSize()] = { 0 };\n";
         code += "    MainCommitPols pols((void *)polsBuffer, 1);\n";
     }
     code += "    int32_t addrRel = 0; // Relative and absolute address auxiliary variables\n";
     code += "    uint64_t addr = 0;\n";
-    //code += "    int64_t i=-1; // Number of this evaluation\n";
-    //code += "    uint64_t nexti=0; // Next evaluation\n";
-    //code += "    int64_t N=1<<23;\n";
     code += "    int32_t o;\n";
     if (!bFastMode)
     {
@@ -129,13 +126,10 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     code += "        void * aux = &&" + functionName + "_error;\n";
     code += "        for (uint64_t i=0; i<" + rom.program.length + "; i++)\n";
     code += "            " + functionName + "_labels.push_back(aux);\n";
-
     for (let zkPC=0; zkPC<rom.program.length; zkPC++)
     {
         if (usedLabels.includes(zkPC))
             code += "        " + functionName + "_labels[" + zkPC + "] = &&" + functionName + "_rom_line_" + zkPC + ";\n";
-        //else
-          //  code += "        " + functionName + "_labels.push_back(&&" + functionName + "_error);\n";
     }
     code += "    }\n\n";
 
@@ -172,10 +166,53 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     code += "        }\n";
     code += "    }\n\n";
 
+    code += "    // opN are local, uncommitted polynomials\n";
     code += "    Goldilocks::Element op0, op1, op2, op3, op4, op5, op6, op7;\n"
+
+    // Free in
     code += "    Goldilocks::Element fi0, fi1, fi2, fi3, fi4, fi5, fi6, fi7;\n";
     code += "    CommandResult cr;\n";
-    code += "    uint64_t nHits;\n";
+
+    // Storage free in
+    code += "    Goldilocks::Element Kin0[12];\n";
+    code += "    Goldilocks::Element Kin1[12];\n";
+    code += "    mpz_class scalarD;\n";
+    code += "    zkresult zkResult;\n";
+    code += "    Goldilocks::Element Kin0Hash[4];\n";
+    code += "    Goldilocks::Element Kin1Hash[4];\n";  // TODO: Reuse global variables
+    code += "    Goldilocks::Element oldRoot[4];\n";
+    code += "    Goldilocks::Element key[4];\n";
+    code += "    SmtGetResult smtGetResult;\n";
+    code += "    mpz_class value;\n";
+    if (!bFastMode)
+        code += "    array<Goldilocks::Element,16> pg;\n";
+
+    // Hash free in
+    code += "    mpz_class s;\n";
+    code += "    int32_t iPos;\n";
+    code += "    uint64_t pos;\n";
+    code += "    int32_t iSize;\n";
+    code += "    uint64_t size;\n";
+
+    // Mem allign free in
+    code += "    mpz_class m0;\n";
+    code += "    mpz_class m1;\n";
+    code += "    mpz_class offsetScalar;\n";
+    code += "    uint64_t offset;\n";
+    code += "    mpz_class leftV;\n";
+    code += "    mpz_class rightV;\n";
+    code += "    mpz_class _V;\n";
+
+    // Binary free in
+    code += "    mpz_class a, b, c;\n";
+
+    code += "    #ifdef LOG_TIME\n";
+    code += "    uint64_t poseidonTime=0, poseidonTimes=0;\n";
+    code += "    uint64_t smtTime=0, smtTimes=0;\n";
+    code += "    uint64_t keccakTime=0, keccakTimes=0;\n";
+    code += "    struct timeval t;\n";
+    code += "    #endif\n";
+
     if (!bFastMode)
         code += "    MemoryAccess memoryAccess;\n";
     code += "\n";
@@ -494,15 +531,15 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 throw new Error(`Instruction with freeIn without freeInTag`);
             }
 
-            let fi;
             if ( (rom.program[zkPC].freeInTag.op == undefined) ||
                  (rom.program[zkPC].freeInTag.op == '') )
             {
-                code += "    nHits = 0;\n\n"; // TODO: Do we need this?  Can we check it in JS?
+                let nHits = 0;
 
-                // If mRD (memory read) get fi=mem[addr], if it exsists
+                // Memory read free in: get fi=mem[addr], if it exists
                 if ( (rom.program[zkPC].mOp==1) && (rom.program[zkPC].mWR==0) )
                 {
+                    code += "    // Memory read free in: get fi=mem[addr], if it exists\n";
                     code += "    if (ctx.mem.find(addr) != ctx.mem.end()) {\n";
                     code += "        fi0 = ctx.mem[addr].fe0;\n";
                     code += "        fi1 = ctx.mem[addr].fe1;\n";
@@ -522,10 +559,521 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     code += "        fi6 = fr.zero();\n";
                     code += "        fi7 = fr.zero();\n";
                     code += "    }\n";
-                    code += "    nHits++;\n\n";
+                    nHits++;
+                }
+
+                // Storage read free in: get a poseidon hash, and read fi=sto[hash]
+                if (rom.program[zkPC].sRD == 1)
+                {
+                    code += "    // Storage read free in: get a poseidon hash, and read fi=sto[hash]\n";
+                    code += "    Kin0[0] = pols.C0[i];\n";
+                    code += "    Kin0[1] = pols.C1[i];\n";
+                    code += "    Kin0[2] = pols.C2[i];\n";
+                    code += "    Kin0[3] = pols.C3[i];\n";
+                    code += "    Kin0[4] = pols.C4[i];\n";
+                    code += "    Kin0[5] = pols.C5[i];\n";
+                    code += "    Kin0[6] = pols.C6[i];\n";
+                    code += "    Kin0[7] = pols.C7[i];\n";
+                    code += "    Kin0[8] = fr.zero();\n";
+                    code += "    Kin0[9] = fr.zero();\n";
+                    code += "    Kin0[10] = fr.zero();\n";
+                    code += "    Kin0[11] = fr.zero();\n";
+
+                    code += "    Kin1[0] = pols.A0[i];\n";
+                    code += "    Kin1[1] = pols.A1[i];\n";
+                    code += "    Kin1[2] = pols.A2[i];\n";
+                    code += "    Kin1[3] = pols.A3[i];\n";
+                    code += "    Kin1[4] = pols.A4[i];\n";
+                    code += "    Kin1[5] = pols.A5[i];\n";
+                    code += "    Kin1[6] = pols.B0[i];\n";
+                    code += "    Kin1[7] = pols.B1[i];\n";
+
+                    code += "    #ifdef LOG_TIME\n";
+                    code += "    gettimeofday(&t, NULL);\n";
+                    code += "    #endif\n";
+                    if (!bFastMode)
+                    {
+                        code += "    // Prepare PoseidonG required data\n";
+                        code += "    for (uint64_t j=0; j<12; j++) pg[j] = Kin0[j];\n";
+                    }
+                    code += "    // Call poseidon and get the hash key\n";
+                    code += "    mainExecutor.poseidon.hash(Kin0Hash, Kin0);\n";
+
+                    if (!bFastMode)
+                    {
+                        code += "    // Complete PoseidonG required data\n";
+                        code += "    pg[12] = Kin0Hash[0];\n";
+                        code += "    pg[13] = Kin0Hash[1];\n";
+                        code += "    pg[14] = Kin0Hash[2];\n";
+                        code += "    pg[15] = Kin0Hash[3];\n";
+                        code += "    required.PoseidonG.push_back(pg);\n";
+                    }
+                    
+                    code += "    // Reinject the first resulting hash as the capacity for the next poseidon hash\n";
+                    code += "    Kin1[8] = Kin0Hash[0];\n";
+                    code += "    Kin1[9] = Kin0Hash[1];\n";
+                    code += "    Kin1[10] = Kin0Hash[2];\n";
+                    code += "    Kin1[11] = Kin0Hash[3];\n";
+
+                    if (!bFastMode)
+                    {
+                        code += "    // Prepare PoseidonG required data\n";
+                        code += "    for (uint64_t j=0; j<12; j++) pg[j] = Kin1[j];\n";
+                    }
+
+                    code += "    // Call poseidon hash\n";
+                    code += "    mainExecutor.poseidon.hash(Kin1Hash, Kin1);\n";
+
+                    if (!bFastMode)
+                    {
+                        code += "    // Complete PoseidonG required data\n";
+                        code += "    pg[12] = Kin1Hash[0];\n";
+                        code += "    pg[13] = Kin1Hash[1];\n";
+                        code += "    pg[14] = Kin1Hash[2];\n";
+                        code += "    pg[15] = Kin1Hash[3];\n";
+                        code += "    required.PoseidonG.push_back(pg);\n";
+                    }
+
+                    code += "    key[0] = Kin1Hash[0];\n";
+                    code += "    key[1] = Kin1Hash[1];\n";
+                    code += "    key[2] = Kin1Hash[2];\n";
+                    code += "    key[3] = Kin1Hash[3];\n";
+                    code += "    #ifdef LOG_TIME\n";
+                    code += "    poseidonTime += TimeDiff(t);\n";
+                    code += "    poseidonTimes+=3;\n";
+                    code += "    #endif\n";
+
+                    code += "    #ifdef LOG_STORAGE\n";
+                    code += "    cout << \"Storage read sRD got poseidon key: \" << ctx.fr.toString(ctx.lastSWrite.key, 16) << endl;\n";
+                    code += "    #endif \n";
+                    code += "    sr8to4(fr, pols.SR0[i], pols.SR1[i], pols.SR2[i], pols.SR3[i], pols.SR4[i], pols.SR5[i], pols.SR6[i], pols.SR7[i], oldRoot[0], oldRoot[1], oldRoot[2], oldRoot[3]);\n";
+                    
+                    code += "    zkResult = mainExecutor.pStateDB->get(oldRoot, key, value, &smtGetResult);\n";
+                    code += "    if (zkResult != ZKR_SUCCESS)\n";
+                    code += "    {\n";
+                    code += "        cerr << \"MainExecutor::Execute() failed calling pStateDB->get() result=\" << zkresult2string(zkResult) << endl;\n";
+                    code += "        proverRequest.result = zkResult;\n";
+                    code += "        return;\n";
+                    code += "    }\n";
+                    code += "    incCounter = smtGetResult.proofHashCounter + 2;\n";
+                    
+                    code += "    scalar2fea(fr, smtGetResult.value, fi0, fi1, fi2, fi3, fi4, fi5, fi6, fi7);\n";
+
+                    code += "    #ifdef LOG_STORAGE\n";
+                    code += "    cout << \"Storage read sRD read from key: \" << ctx.fr.toString(ctx.lastSWrite.key, 16) << \" value:\" << fr.toString(fi3, 16) << \":\" << fr.toString(fi2, 16) << \":\" << fr.toString(fi1, 16) << \":\" << fr.toString(fi0, 16) << endl;\n";
+                    code += "    #endif\n";
+
+                    nHits++;
+                }
+
+                // Storage write free in: calculate the poseidon hash key, check its entry exists in storage, and update new root hash
+                if (rom.program[zkPC].sWR == 1)
+                {
+                    code += "    // Storage write free in: calculate the poseidon hash key, check its entry exists in storage, and update new root hash\n";
+                    code += "    // reset lastSWrite\n";
+                    code += "    ctx.lastSWrite.reset();\n";
+                    code += "    Kin0[0] = pols.C0[i];\n";
+                    code += "    Kin0[1] = pols.C1[i];\n";
+                    code += "    Kin0[2] = pols.C2[i];\n";
+                    code += "    Kin0[3] = pols.C3[i];\n";
+                    code += "    Kin0[4] = pols.C4[i];\n";
+                    code += "    Kin0[5] = pols.C5[i];\n";
+                    code += "    Kin0[6] = pols.C6[i];\n";
+                    code += "    Kin0[7] = pols.C7[i];\n";
+                    code += "    Kin0[8] = fr.zero();\n";
+                    code += "    Kin0[9] = fr.zero();\n";
+                    code += "    Kin0[10] = fr.zero();\n";
+                    code += "    Kin0[11] = fr.zero();\n";
+
+                    code += "    Kin1[0] = pols.A0[i];\n";
+                    code += "    Kin1[1] = pols.A1[i];\n";
+                    code += "    Kin1[2] = pols.A2[i];\n";
+                    code += "    Kin1[3] = pols.A3[i];\n";
+                    code += "    Kin1[4] = pols.A4[i];\n";
+                    code += "    Kin1[5] = pols.A5[i];\n";
+                    code += "    Kin1[6] = pols.B0[i];\n";
+                    code += "    Kin1[7] = pols.B1[i];\n";
+
+                    code += "    #ifdef LOG_TIME\n";
+                    code += "    gettimeofday(&t, NULL);\n";
+                    code += "    #endif\n";
+
+                    if (!bFastMode)
+                    {
+                        code += "    // Prepare PoseidonG required data\n";
+                        code += "    for (uint64_t j=0; j<12; j++) pg[j] = Kin0[j];\n";
+                    }
+
+                    code += "    // Call poseidon and get the hash key\n";
+                    code += "    mainExecutor.poseidon.hash(Kin0Hash, Kin0);\n";
+
+                    if (!bFastMode)
+                    {
+                        code += "    // Complete PoseidonG required data\n";
+                        code += "    pg[12] = Kin0Hash[0];\n";
+                        code += "    pg[13] = Kin0Hash[1];\n";
+                        code += "    pg[14] = Kin0Hash[2];\n";
+                        code += "    pg[15] = Kin0Hash[3];\n";
+                        code += "    required.PoseidonG.push_back(pg);\n";
+                    }
+                    
+                    code += "    Kin1[8] = Kin0Hash[0];\n";
+                    code += "    Kin1[9] = Kin0Hash[1];\n";
+                    code += "    Kin1[10] = Kin0Hash[2];\n";
+                    code += "    Kin1[11] = Kin0Hash[3];\n";
+
+                    code += "    ctx.lastSWrite.keyI[0] = Kin0Hash[0];\n";
+                    code += "    ctx.lastSWrite.keyI[1] = Kin0Hash[1];\n";
+                    code += "    ctx.lastSWrite.keyI[2] = Kin0Hash[2];\n";
+                    code += "    ctx.lastSWrite.keyI[3] = Kin0Hash[3];\n";
+
+                    if (!bFastMode)
+                    {
+                        code += "    // Prepare PoseidonG required data\n";
+                        code += "    for (uint64_t j=0; j<12; j++) pg[j] = Kin1[j];\n";
+                    }
+
+                    code += "    // Call poseidon hash\n";
+                    code += "    mainExecutor.poseidon.hash(Kin1Hash, Kin1);\n";
+
+                    if (!bFastMode)
+                    {
+                        code += "    // Complete PoseidonG required data\n";
+                        code += "    pg[12] = Kin1Hash[0];\n";
+                        code += "    pg[13] = Kin1Hash[1];\n";
+                        code += "    pg[14] = Kin1Hash[2];\n";
+                        code += "    pg[15] = Kin1Hash[3];\n";
+                        code += "    required.PoseidonG.push_back(pg);\n";
+                    }
+
+                    code += "    ctx.lastSWrite.key[0] = Kin1Hash[0];\n";
+                    code += "    ctx.lastSWrite.key[1] = Kin1Hash[1];\n";
+                    code += "    ctx.lastSWrite.key[2] = Kin1Hash[2];\n";
+                    code += "    ctx.lastSWrite.key[3] = Kin1Hash[3];\n";
+                    code += "    #ifdef LOG_TIME\n";
+                    code += "    poseidonTime += TimeDiff(t);\n";
+                    code += "    poseidonTimes++;\n";
+                    code += "    #endif\n";
+
+                    code += "    #ifdef LOG_STORAGE\n";
+                    code += "    cout << \"Storage write sWR got poseidon key: \" << ctx.fr.toString(ctx.lastSWrite.key, 16) << endl;\n";
+                    code += "    #endif\n";
+                    code += "    // Call SMT to get the new Merkel Tree root hash\n";
+                    code += "    fea2scalar(fr, scalarD, pols.D0[i], pols.D1[i], pols.D2[i], pols.D3[i], pols.D4[i], pols.D5[i], pols.D6[i], pols.D7[i]);\n";
+                    code += "    #ifdef LOG_TIME\n";
+                    code += "    gettimeofday(&t, NULL);\n";
+                    code += "    #endif\n";
+                    code += "    sr8to4(fr, pols.SR0[i], pols.SR1[i], pols.SR2[i], pols.SR3[i], pols.SR4[i], pols.SR5[i], pols.SR6[i], pols.SR7[i], oldRoot[0], oldRoot[1], oldRoot[2], oldRoot[3]);\n";
+                    
+                    code += "    zkResult = mainExecutor.pStateDB->set(oldRoot, ctx.lastSWrite.key, scalarD, proverRequest.bUpdateMerkleTree, ctx.lastSWrite.newRoot, &ctx.lastSWrite.res);\n";
+                    code += "    if (zkResult != ZKR_SUCCESS)\n";
+                    code += "    {\n";
+                    code += "        cerr << \"MainExecutor::Execute() failed calling pStateDB->set() result=\" << zkresult2string(zkResult) << endl;\n";
+                    code += "        proverRequest.result = zkResult;\n";
+                    code += "        return;\n";
+                    code += "    }\n";
+                    code += "    incCounter = ctx.lastSWrite.res.proofHashCounter + 2;\n";
+                    code += "    #ifdef LOG_TIME\n";
+                    code += "    smtTime += TimeDiff(t);\n";
+                    code += "    smtTimes++;\n";
+                    code += "    #endif\n";
+                    code += "    ctx.lastSWrite.step = i;\n";
+
+                    code += "    sr4to8(fr, ctx.lastSWrite.newRoot[0], ctx.lastSWrite.newRoot[1], ctx.lastSWrite.newRoot[2], ctx.lastSWrite.newRoot[3], fi0, fi1, fi2, fi3, fi4, fi5, fi6, fi7);\n";
+
+                    code += "    #ifdef LOG_STORAGE\n";
+                    code += "    cout << \"Storage write sWR stored at key: \" << ctx.fr.toString(ctx.lastSWrite.key, 16) << \" newRoot: \" << fr.toString(res.newRoot, 16) << endl;\n";
+                    code += "    #endif\n";
+
+                    nHits++;
+                }
+
+                // HashK free in
+                if (rom.program[zkPC].hashK == 1)
+                {
+                    code += "    // HashK free in\n";
+                    code += "    // If there is no entry in the hash database for this address, then create a new one\n";
+                    code += "    if (ctx.hashK.find(addr) == ctx.hashK.end())\n";
+                    code += "    {\n";
+                    code += "        HashValue hashValue;\n";
+                    code += "        ctx.hashK[addr] = hashValue;\n";
+                    code += "    }\n";
+                    
+                    code += "    // Get the size of the hash from D0\n";
+                    code += "    if (!fr.toS32(iSize, pols.D0[i]))\n";
+                    code += "    {\n";
+                    code += "        cerr << \"Error: failed calling fr.toS32() with pols.D0[i]=\" << fr.toString(pols.D0[i], 16) << \" step=\" << step << \" zkPC=" + zkPC + " instruction=\" << rom.line[" + zkPC + "].toString(fr) << endl;\n";
+                    code += "        exitProcess();\n";
+                    code += "    }\n";
+                    code += "    if ((iSize<0) || (iSize>32)) {\n";
+                    code += "        cerr << \"Error: Invalid size for hashK 1:  Size:\" << iSize << \" zkPC=" + zkPC + "\" << endl;\n";
+                    code += "        proverRequest.result = ZKR_SM_MAIN_HASHK;\n";
+                    code += "        return;\n";
+                    code += "    }\n";
+                    code += "    size = iSize;\n";
+
+                    code += "    // Get the positon of the hash from HASHPOS\n";
+                    code += "    if (!fr.toS32(iPos, pols.HASHPOS[i]))\n";
+                    code += "    {\n";
+                    code += "        cerr << \"Error: failed calling fr.toS32() with pols.HASHPOS[i]=\" << fr.toString(pols.HASHPOS[i], 16) << \" step=\" << step << \" zkPC=" + zkPC + " instruction=\" << rom.line[" + zkPC + "].toString(fr) << endl;\n";
+                    code += "        exitProcess();\n";
+                    code += "    }\n";
+                    code += "    if (iPos < 0)\n";
+                    code += "    {\n";
+                    code += "        cerr << \"Error: invalid pos for HashK 1: pos:\" << iPos << \" zkPC=" + zkPC + "\" << endl;\n";
+                    code += "        proverRequest.result = ZKR_SM_MAIN_HASHK;\n";
+                    code += "        return;\n";
+                    code += "    }\n";
+                    code += "    pos = iPos;\n";
+
+                    code += "    // Check that pos+size do not exceed data size\n";
+                    code += "    if ( (pos+size) > ctx.hashK[addr].data.size())\n";
+                    code += "    {\n";
+                    code += "        cerr << \"Error: hashK 1 invalid size of hash: pos=\" << pos << \" size=\" << size << \" data.size=\" << ctx.hashK[addr].data.size() << endl;\n";
+                    code += "        proverRequest.result = ZKR_SM_MAIN_HASHK;\n";
+                    code += "        return;\n";
+                    code += "    }\n";
+
+                    code += "    // Copy data into fi\n";
+                    code += "    for (uint64_t j=0; j<size; j++)\n";
+                    code += "    {\n";
+                    code += "        uint8_t data = ctx.hashK[addr].data[pos+j];\n";
+                    code += "        s = (s<<uint64_t(8)) + mpz_class(data);\n";
+                    code += "    }\n";
+                    code += "    scalar2fea(fr, s, fi0, fi1, fi2, fi3, fi4 ,fi5 ,fi6 ,fi7);\n";
+
+                    code += "    #ifdef LOG_HASHK\n";
+                    code += "    cout << \"hashK 1 i=\" << i << \" zkPC=" + zkPC + " addr=\" << addr << \" pos=\" << pos << \" size=\" << size << \" data=\" << s.get_str(16) << endl;\n";
+                    code += "    #endif\n";
+
+                    nHits++;
+                }
+
+                // HashKDigest free in
+                if (rom.program[zkPC].hashKDigest == 1)
+                {
+                    code += "    // HashKDigest free in\n";
+                    code += "    // If there is no entry in the hash database for this address, this is an error\n";
+                    code += "    if (ctx.hashK.find(addr) == ctx.hashK.end())\n";
+                    code += "    {\n";
+                    code += "        cerr << \"Error: hashKDigest 1: digest not defined for addr=\" << addr << endl;\n";
+                    code += "        proverRequest.result = ZKR_SM_MAIN_HASHK;\n";
+                    code += "        return;\n";
+                    code += "    }\n";
+
+                    code += "    // If digest was not calculated, this is an error\n";
+                    code += "    if (!ctx.hashK[addr].bDigested)\n";
+                    code += "    {\n";
+                    code += "        cerr << \"Error: hashKDigest 1: digest not calculated for addr=\" << addr << \".  Call hashKLen to finish digest.\" << endl;\n";
+                    code += "        proverRequest.result = ZKR_SM_MAIN_HASHK;\n";
+                    code += "        return;\n";
+                    code += "    }\n";
+
+                    code += "    // Copy digest into fi\n";
+                    code += "    scalar2fea(fr, ctx.hashK[addr].digest, fi0, fi1, fi2, fi3, fi4 ,fi5 ,fi6 ,fi7);\n";
+
+                    code += "    #ifdef LOG_HASHK\n";
+                    code += "    cout << \"hashKDigest 1 i=\" << i << \" zkPC=" + zkPC + " addr=\" << addr << \" digest=\" << ctx.hashK[addr].digest.get_str(16) << endl;\n";
+                    code += "    #endif\n";
+
+                    nHits++;
+                }
+
+                // HashP free in
+                if (rom.program[zkPC].hashP == 1)
+                {
+                    code += "    // HashP free in\n";
+                    code += "    // If there is no entry in the hash database for this address, then create a new one\n";
+                    code += "    if (ctx.hashP.find(addr) == ctx.hashP.end())\n";
+                    code += "    {\n";
+                    code += "        HashValue hashValue;\n";
+                    code += "        ctx.hashP[addr] = hashValue;\n";
+                    code += "    }\n";
+                    
+                    code += "    // Get the size of the hash from D0\n";
+                    code += "    if (!fr.toS32(iSize, pols.D0[i]))\n";
+                    code += "    {\n";
+                    code += "        cerr << \"Error: failed calling fr.toS32() with pols.D0[i]=\" << fr.toString(pols.D0[i], 16) << \" step=\" << step << \" zkPC=" + zkPC + " instruction=\" << rom.line[" + zkPC + "].toString(fr) << endl;\n";
+                    code += "        exitProcess();\n";
+                    code += "    }\n";
+                    code += "    if ((iSize<0) || (iSize>32)) {\n";
+                    code += "        cerr << \"Error: Invalid size for hashP 1:  Size:\" << iSize << \" zkPC=" + zkPC + "\" << endl;\n";
+                    code += "        proverRequest.result = ZKR_SM_MAIN_HASHP;\n";
+                    code += "        return;\n";
+                    code += "    }\n";
+                    code += "    size = iSize;\n";
+
+                    code += "    // Get the positon of the hash from HASHPOS\n";
+                    code += "    if (!fr.toS32(iPos, pols.HASHPOS[i]))\n";
+                    code += "    {\n";
+                    code += "        cerr << \"Error: failed calling fr.toS32() with pols.HASHPOS[i]=\" << fr.toString(pols.HASHPOS[i], 16) << \" step=\" << step << \" zkPC=" + zkPC + " instruction=\" << rom.line[" + zkPC + "].toString(fr) << endl;\n";
+                    code += "        exitProcess();\n";
+                    code += "    }\n";
+                    code += "    if (iPos < 0)\n";
+                    code += "    {\n";
+                    code += "        cerr << \"Error: invalid pos for HashP 1: pos:\" << iPos << \" zkPC=" + zkPC + "\" << endl;\n";
+                    code += "        proverRequest.result = ZKR_SM_MAIN_HASHP;\n";
+                    code += "        return;\n";
+                    code += "    }\n";
+                    code += "    pos = iPos;\n";
+
+                    code += "    // Check that pos+size do not exceed data size\n";
+                    code += "    if ( (pos+size) > ctx.hashP[addr].data.size())\n";
+                    code += "    {\n";
+                    code += "        cerr << \"Error: hashP 1 invalid size of hash: pos=\" << pos << \" size=\" << size << \" data.size=\" << ctx.hashP[addr].data.size() << endl;\n";
+                    code += "        proverRequest.result = ZKR_SM_MAIN_HASHP;\n";
+                    code += "        return;\n";
+                    code += "    }\n";
+
+                    code += "    // Copy data into fi\n";
+                    code += "    for (uint64_t j=0; j<size; j++)\n";
+                    code += "    {\n";
+                    code += "        uint8_t data = ctx.hashP[addr].data[pos+j];\n";
+                    code += "        s = (s<<uint64_t(8)) + mpz_class(data);\n";
+                    code += "    }\n";
+                    code += "    scalar2fea(fr, s, fi0, fi1, fi2, fi3, fi4 ,fi5 ,fi6 ,fi7);\n";
+
+                    nHits++;
+                }
+
+                // HashPDigest free in
+                if (rom.program[zkPC].hashPDigest == 1)
+                {
+                    code += "    // HashPDigest free in\n";
+                    code += "    // If there is no entry in the hash database for this address, this is an error\n";
+                    code += "    if (ctx.hashP.find(addr) == ctx.hashP.end())\n";
+                    code += "    {\n";
+                    code += "        cerr << \"Error: hashPDigest 1: digest not defined\" << endl;\n";
+                    code += "        proverRequest.result = ZKR_SM_MAIN_HASHP;\n";
+                    code += "        return;\n";
+                    code += "    }\n";
+                    code += "    // If digest was not calculated, this is an error\n";
+                    code += "    if (!ctx.hashP[addr].bDigested)\n";
+                    code += "    {\n";
+                    code += "        cerr << \"Error: hashPDigest 1: digest not calculated.  Call hashPLen to finish digest.\" << endl;\n";
+                    code += "        proverRequest.result = ZKR_SM_MAIN_HASHP;\n";
+                    code += "        return;\n";
+                    code += "    }\n";
+                    code += "    // Copy digest into fi\n";
+                    code += "    scalar2fea(fr, ctx.hashP[addr].digest, fi0, fi1, fi2, fi3, fi4 ,fi5 ,fi6 ,fi7);\n";
+                    nHits++;
+                }
+
+                // Binary free in
+                if (rom.program[zkPC].bin == 1)
+                {
+                    if (rom.program[zkPC].binOpcode == 0) // ADD
+                    {
+                        code += "    //Binary free in ADD\n";
+                        code += "    fea2scalar(fr, a, pols.A0[i], pols.A1[i], pols.A2[i], pols.A3[i], pols.A4[i], pols.A5[i], pols.A6[i], pols.A7[i]);\n";
+                        code += "    fea2scalar(fr, b, pols.B0[i], pols.B1[i], pols.B2[i], pols.B3[i], pols.B4[i], pols.B5[i], pols.B6[i], pols.B7[i]);\n";
+                        code += "    c = (a + b) & Mask256;\n";
+                        code += "    scalar2fea(fr, c, fi0, fi1, fi2, fi3, fi4, fi5, fi6, fi7);\n";
+                        nHits++;
+                    }
+                    else if (rom.program[zkPC].binOpcode == 1) // SUB
+                    {
+                        code += "    //Binary free in SUB\n";
+                        code += "    fea2scalar(fr, a, pols.A0[i], pols.A1[i], pols.A2[i], pols.A3[i], pols.A4[i], pols.A5[i], pols.A6[i], pols.A7[i]);\n";
+                        code += "    fea2scalar(fr, b, pols.B0[i], pols.B1[i], pols.B2[i], pols.B3[i], pols.B4[i], pols.B5[i], pols.B6[i], pols.B7[i]);\n";
+                        code += "    c = (a - b + TwoTo256) & Mask256;\n";
+                        code += "    scalar2fea(fr, c, fi0, fi1, fi2, fi3, fi4, fi5, fi6, fi7);\n";
+                        nHits++;
+                    }
+                    else if (rom.program[zkPC].binOpcode == 2) // LT
+                    {
+                        code += "    //Binary free in LT\n";
+                        code += "    fea2scalar(fr, a, pols.A0[i], pols.A1[i], pols.A2[i], pols.A3[i], pols.A4[i], pols.A5[i], pols.A6[i], pols.A7[i]);\n";
+                        code += "    fea2scalar(fr, b, pols.B0[i], pols.B1[i], pols.B2[i], pols.B3[i], pols.B4[i], pols.B5[i], pols.B6[i], pols.B7[i]);\n";
+                        code += "    c = (a < b);\n";
+                        code += "    scalar2fea(fr, c, fi0, fi1, fi2, fi3, fi4, fi5, fi6, fi7);\n";
+                        nHits++;
+                    }
+                    else if (rom.program[zkPC].binOpcode == 3) // SLT
+                    {
+                        code += "    //Binary free in SLT\n";
+                        code += "    fea2scalar(fr, a, pols.A0[i], pols.A1[i], pols.A2[i], pols.A3[i], pols.A4[i], pols.A5[i], pols.A6[i], pols.A7[i]);\n";
+                        code += "    fea2scalar(fr, b, pols.B0[i], pols.B1[i], pols.B2[i], pols.B3[i], pols.B4[i], pols.B5[i], pols.B6[i], pols.B7[i]);\n";
+                        code += "    if (a >= TwoTo255) a = a - TwoTo256;\n";
+                        code += "    if (b >= TwoTo255) b = b - TwoTo256;\n";
+                        code += "    c = (a < b);\n";
+                        code += "    scalar2fea(fr, c, fi0, fi1, fi2, fi3, fi4, fi5, fi6, fi7);\n";
+                        nHits++;
+                    }
+                    else if (rom.program[zkPC].binOpcode == 4) // EQ
+                    {
+                        code += "    //Binary free in EQ\n";
+                        code += "    fea2scalar(fr, a, pols.A0[i], pols.A1[i], pols.A2[i], pols.A3[i], pols.A4[i], pols.A5[i], pols.A6[i], pols.A7[i]);\n";
+                        code += "    fea2scalar(fr, b, pols.B0[i], pols.B1[i], pols.B2[i], pols.B3[i], pols.B4[i], pols.B5[i], pols.B6[i], pols.B7[i]);\n";
+                        code += "    c = (a == b);\n";
+                        code += "    scalar2fea(fr, c, fi0, fi1, fi2, fi3, fi4, fi5, fi6, fi7);\n";
+                        nHits++;
+                    }
+                    else if (rom.program[zkPC].binOpcode == 5) // AND
+                    {
+                        code += "    //Binary free in AND\n";
+                        code += "    fea2scalar(fr, a, pols.A0[i], pols.A1[i], pols.A2[i], pols.A3[i], pols.A4[i], pols.A5[i], pols.A6[i], pols.A7[i]);\n";
+                        code += "    fea2scalar(fr, b, pols.B0[i], pols.B1[i], pols.B2[i], pols.B3[i], pols.B4[i], pols.B5[i], pols.B6[i], pols.B7[i]);\n";
+                        code += "    c = (a & b);\n";
+                        code += "    scalar2fea(fr, c, fi0, fi1, fi2, fi3, fi4, fi5, fi6, fi7);\n";
+                        nHits++;
+                    }
+                    else if (rom.program[zkPC].binOpcode == 6) // OR
+                    {
+                        code += "    //Binary free in OR\n";
+                        code += "    fea2scalar(fr, a, pols.A0[i], pols.A1[i], pols.A2[i], pols.A3[i], pols.A4[i], pols.A5[i], pols.A6[i], pols.A7[i]);\n";
+                        code += "    fea2scalar(fr, b, pols.B0[i], pols.B1[i], pols.B2[i], pols.B3[i], pols.B4[i], pols.B5[i], pols.B6[i], pols.B7[i]);\n";
+                        code += "    c = (a | b);\n";
+                        code += "    scalar2fea(fr, c, fi0, fi1, fi2, fi3, fi4, fi5, fi6, fi7);\n";
+                        nHits++;
+                    }
+                    else if (rom.program[zkPC].binOpcode == 7) // XOR
+                    {
+                        code += "    //Binary free in XOR\n";
+                        code += "    fea2scalar(fr, a, pols.A0[i], pols.A1[i], pols.A2[i], pols.A3[i], pols.A4[i], pols.A5[i], pols.A6[i], pols.A7[i]);\n";
+                        code += "    fea2scalar(fr, b, pols.B0[i], pols.B1[i], pols.B2[i], pols.B3[i], pols.B4[i], pols.B5[i], pols.B6[i], pols.B7[i]);\n";
+                        code += "    c = (a ^ b);\n";
+                        code += "    scalar2fea(fr, c, fi0, fi1, fi2, fi3, fi4, fi5, fi6, fi7);\n";
+                        nHits++;
+                    }
+                    else
+                    {
+                        console.log("Error: Invalid binary operation: opcode=" + rom.program[zkPC].binOpcode);
+                        process.exit();
+                    }
+                    code += "\n";
+                }
+
+                // Mem allign read free in
+                if (rom.program[zkPC].memAlign==1 && rom.program[zkPC].memAlignWR==0)
+                {
+                    code += "    // Mem allign read free in\n";
+                    code += "    fea2scalar(fr, m0, pols.A0[i], pols.A1[i], pols.A2[i], pols.A3[i], pols.A4[i], pols.A5[i], pols.A6[i], pols.A7[i]);\n";
+                    code += "    fea2scalar(fr, m1, pols.B0[i], pols.B1[i], pols.B2[i], pols.B3[i], pols.B4[i], pols.B5[i], pols.B6[i], pols.B7[i]);\n";
+                    code += "    fea2scalar(fr, offsetScalar, pols.C0[i], pols.C1[i], pols.C2[i], pols.C3[i], pols.C4[i], pols.C5[i], pols.C6[i], pols.C7[i]);\n";
+                    code += "    if (offsetScalar<0 || offsetScalar>32)\n";
+                    code += "    {\n";
+                    code += "        cerr << \"Error: MemAlign out of range offset=\" << offsetScalar.get_str() << endl;\n";
+                    code += "        proverRequest.result = ZKR_SM_MAIN_MEMALIGN;\n";
+                    code += "        return;\n";
+                    code += "    }\n";
+                    code += "    offset = offsetScalar.get_ui();\n";
+                    code += "    leftV = (m0 << (offset*8)) & Mask256;\n";
+                    code += "    rightV = (m1 >> (256 - offset*8)) & (Mask256 >> (256 - offset*8));\n";
+                    code += "    _V = leftV | rightV;\n";
+                    code += "    scalar2fea(fr, _V, fi0, fi1, fi2, fi3, fi4, fi5, fi6, fi7);\n";
+                    nHits++;
+                }
+
+                // Check that one and only one instruction has been requested
+                if (nHits != 1)
+                {
+                    console.log("Error: Empty freeIn without just one instruction: zkPC=" + zkPC + " nHits=" + nHits);
+                    process.exit();
                 }
 
             }
+            // If freeInTag.op!="", then evaluate the requested command (recursively)
             else
             {
                 code += "    // Call evalCommand()\n";
