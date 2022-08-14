@@ -128,7 +128,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     code += "            " + functionName + "_labels.push_back(aux);\n";
     for (let zkPC=0; zkPC<rom.program.length; zkPC++)
     {
-        if (usedLabels.includes(zkPC))
+        //if (usedLabels.includes(zkPC))
             code += "        " + functionName + "_labels[" + zkPC + "] = &&" + functionName + "_rom_line_" + zkPC + ";\n";
     }
     code += "    }\n\n";
@@ -261,6 +261,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
     code += "    uint64_t incHashPos = 0;\n";
     code += "    uint64_t incCounter = 0;\n\n";
+    code += "    bool bJump = false;\n";
 
     code += "    goto " + functionName + "_rom_line_0;\n\n";
     code += functionName + "_error: // This label should never be used\n";
@@ -273,9 +274,12 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         // When bJump=true, the code will go to the proper label after all the work has been done
         let bJump = false;
 
+        // When bIncHashPos=true, incHashPos will be added to HASHPOS
+        let bIncHashPos = false;
+
         // ROM instruction line, commented if not used to save compilation workload
-        if (!usedLabels.includes(zkPC))
-            code += "// ";
+        //if (!usedLabels.includes(zkPC))
+        //    code += "// ";
         code += functionName + "_rom_line_" + zkPC + ": //" + rom.program[zkPC].lineStr + "\n\n";
 
         // START LOGS
@@ -489,7 +493,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    addr = addrRel;\n"; // TODO: Can we use addr directly?
         }
 
-        if (rom.program[zkPC].useCtx)
+        if (rom.program[zkPC].useCTX == 1)
         {
             code += "    // If useCTX, addr = addr + CTX*CTX_OFFSET\n";
             code += "    addr += fr.toU64(pols.CTX[" + (bFastMode?"0":"i") + "])*CTX_OFFSET;\n";
@@ -497,7 +501,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "    pols.useCTX[i] = fr.one();\n";
         }
 
-        if (rom.program[zkPC].isCode)
+        if (rom.program[zkPC].isCode == 1)
         {
             code += "    // If isCode, addr = addr + CODE_OFFSET\n";
             code += "    addr += CODE_OFFSET;\n";
@@ -505,7 +509,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "    pols.isCode[i] = fr.one();\n";
         }
 
-        if (rom.program[zkPC].isStack)
+        if (rom.program[zkPC].isStack == 1)
         {
             code += "    // If isStack, addr = addr + STACK_OFFSET\n";
             code += "    addr += STACK_OFFSET;\n";
@@ -513,7 +517,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "    pols.isStack[i] = fr.one();\n";
         }
 
-        if (rom.program[zkPC].isMem)
+        if (rom.program[zkPC].isMem == 1)
         {
             code += "    // If isMem, addr = addr + MEM_OFFSET\n";
             code += "    addr += MEM_OFFSET;\n";
@@ -521,7 +525,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "    pols.isMem[i] = fr.one();\n";
         }
 
-        if (rom.program[zkPC].incCode && (rom.program[zkPC].incCode != 0) && !bFastMode)
+        if ((rom.program[zkPC].incCode != undefined) && (rom.program[zkPC].incCode != 0) && !bFastMode)
         {
             code += "    pols.incCode[i] = fr.fromS32(" + rom.program[zkPC].incCode + "); // Copy ROM flags into pols\n\n";
         }
@@ -1719,6 +1723,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
             code += "    // Store the size\n";
             code += "    incHashPos = size;\n\n";
+            bIncHashPos = true;
 
             code += "    #ifdef LOG_HASHK\n";
             code += "    cout << \"hashK 2 i=\" << i << \" zkPC=" + zkPC + " addr=\" << addr << \" pos=\" << pos << \" size=\" << size << \" data=\" << a.get_str(16) << endl;\n";
@@ -1882,6 +1887,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
             code += "    // Store the size\n";
             code += "    incHashPos = size;\n";
+            bIncHashPos = true;
         }
 
         // HashPLen instruction
@@ -2628,6 +2634,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "        required.Byte4[0x100000000 + o] = true;\n";
             }
             //code += "        goto *" + functionName + "_labels[addr]; // If op<0, jump to addr: zkPC'=addr\n";
+            code += "        bJump = true;\n";
             bJump = true;
             code += "    }\n";
             // If op>=0, simply increase zkPC'=zkPC+1
@@ -2638,6 +2645,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "        pols.zkPC[nexti] = fr.add(pols.zkPC[i], fr.one()); // If op>=0, simply increase zkPC'=zkPC+1\n";
                 code += "        required.Byte4[o] = true;\n";
             }
+            code += "        addr = " + (zkPC+1) + ";\n";
             //code += "        goto RomLine" + (zkPC+1) + ";\n";
             code += "    }\n";
         }
@@ -2652,6 +2660,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "        pols.zkPC[nexti] = fr.fromU64(addr); // If carry, jump to addr: zkPC'=addr\n";
             //code += "        goto *" + functionName + "_labels[addr]; // If carry, jump to addr: zkPC'=addr\n";
             bJump = true;
+            code += "        bJump = true;\n";
             code += "    }\n";
             if (!bFastMode)
             {
@@ -2671,6 +2680,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             }
             //code += "    goto *" + functionName + "_labels[addr]; // If JMP, directly jump zkPC'=addr\n";
             bJump = true;
+            code += "    bJump = true;\n";
         }
         // Else, simply increase zkPC'=zkPC+1
         else if (!bFastMode)
@@ -2730,13 +2740,19 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "        cerr << \"Error: failed calling fr.toS32() with op0=\" << fr.toString(op0, 16) << \" step=\" << step << \" zkPC=\" << zkPC << \" instruction=\" << rom.line[zkPC].toString(fr) << endl;\n";
             code += "        exitProcess();\n";
             code += "    }\n";
-            code += "    pols.HASHPOS[" + (bFastMode?"0":"nexti") + "] = fr.fromU64(i32Aux + incHashPos);\n";
+            if (bIncHashPos)
+                code += "    pols.HASHPOS[" + (bFastMode?"0":"nexti") + "] = fr.fromU64(i32Aux + incHashPos);\n";
+            else
+                code += "    pols.HASHPOS[" + (bFastMode?"0":"nexti") + "] = fr.fromU64(i32Aux);\n";
             if (!bFastMode)
                 code += "    pols.setHASHPOS[i] = fr.one();\n";
         }
         else //if (!bFastMode)
         {
-            code += "    pols.HASHPOS[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.HASHPOS[" + (bFastMode?"0":"i") + "], fr.fromU64(incHashPos));\n";
+            if (bIncHashPos)
+                code += "    pols.HASHPOS[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.HASHPOS[" + (bFastMode?"0":"i") + "], fr.fromU64(incHashPos));\n";
+            else
+                code += "    pols.HASHPOS[" + (bFastMode?"0":"nexti") + "] = pols.HASHPOS[" + (bFastMode?"0":"i") + "];\n";
         }
 
         if (rom.program[zkPC].cmdAfter &&
@@ -2786,7 +2802,13 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
         // In case we had a pending jump, do it now, after the work has been done
         if (bJump)
-            code += "    goto *" + functionName + "_labels[addr];\n\n";
+        {
+            code += "    if (bJump)\n";
+            code += "    {\n";
+            code += "        bJump = false;\n";
+            code += "        goto *" + functionName + "_labels[addr];\n\n";
+            code += "    }\n";
+        }
     }
 
     code += functionName + "_end:\n\n";
@@ -2921,6 +2943,11 @@ function selectorConstL (Fr, CONSTL, opInitialized, bFastMode)
     code += "    // op = op + CONSTL\n";
     let op = [];
     op = scalar2fea(Fr, CONSTL);
+
+    for (let j=0; j<8; j++) // TODO: Should we ADD it, not just copy it?
+    {
+        code += "    op" + j + " = fr.fromU64(" + op[j] + ");\n";
+    }
 
     if (!bFastMode)
         for (let j=0; j<8; j++)
