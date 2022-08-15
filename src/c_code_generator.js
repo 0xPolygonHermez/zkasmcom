@@ -104,7 +104,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         
     if (bFastMode)
     {
-        code += "    uint8_t polsBuffer[MainCommitPols::pilSize()] = { 0 };\n";
+        code += "    uint8_t polsBuffer[CommitPols::numPols()*sizeof(Goldilocks::Element)] = { 0 };\n";
         code += "    MainCommitPols pols((void *)polsBuffer, 1);\n";
     }
     code += "    int32_t addrRel = 0; // Relative and absolute address auxiliary variables\n";
@@ -309,7 +309,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    // Evaluate the list cmdBefore commands, and any children command, recursively\n";
             code += "    for (uint64_t j=0; j<rom.line[" + zkPC + "].cmdBefore.size(); j++)\n";
             code += "    {\n";
-            code += "        CommandResult cr;\n";
+            code += "        cr.reset();\n";
+            code += "        zkPC=" + zkPC +";\n";
             code += "        evalCommand(ctx, *rom.line[" + zkPC + "].cmdBefore[j], cr);\n";
             code += "\n";
             code += "        // In case of an external error, return it\n";
@@ -1109,7 +1110,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "    // Call evalCommand()\n";
                 code += "    cr.reset();\n";
                 code += "    zkPC=" + zkPC +";\n";
-                code += "    evalCommand(ctx, rom.line[zkPC].freeInTag, cr);\n\n";
+                code += "    evalCommand(ctx, rom.line[" + zkPC + "].freeInTag, cr);\n\n";
 
                 code += "    // In case of an external error, return it\n";
                 code += "    if (cr.zkResult != ZKR_SUCCESS)\n";
@@ -2751,8 +2752,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         {
             if (bIncHashPos)
                 code += "    pols.HASHPOS[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.HASHPOS[" + (bFastMode?"0":"i") + "], fr.fromU64(incHashPos));\n";
-            else
-                code += "    pols.HASHPOS[" + (bFastMode?"0":"nexti") + "] = pols.HASHPOS[" + (bFastMode?"0":"i") + "];\n";
+            else if (!bFastMode)
+                code += "    pols.HASHPOS[nexti] = pols.HASHPOS[i];\n";
         }
 
         if (rom.program[zkPC].cmdAfter &&
@@ -2761,7 +2762,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    // Evaluate the list cmdAfter commands, and any children command, recursively\n";
             code += "    for (uint64_t j=0; j<rom.line[" + zkPC + "].cmdAfter.size(); j++)\n";
             code += "    {\n";
-            code += "        CommandResult cr;\n";
+            code += "        cr.reset();\n";
+            code += "        zkPC=" + zkPC +";\n";
             code += "        evalCommand(ctx, *rom.line[" + zkPC + "].cmdAfter[j], cr);\n";
             code += "\n";
             code += "        // In case of an external error, return it\n";
@@ -2797,7 +2799,9 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         code += "    if (i==mainExecutor.N) goto " + functionName + "_end;\n";
         if (!bFastMode)
             code += "    nexti=(i+1)%mainExecutor.N;\n" // TODO: Avoid nexti usage in bFastMode
-        code += "    if (i%100000==0) cout<<\"Evaluation=\" << i << endl;\n";
+        //code += "    if (i%100000==0) cout<<\"Evaluation=\" << i << endl;\n";
+        //code += "    if (fr.toU64(pols.SR0[" + (bFastMode?"0":"i") + "]) > 0xFFFFFFFF) zkassert(false);\n";
+        //code += "    if (ctx.mem.find(32) != ctx.mem.end()) zkassert(false);\n";
         code += "\n";
 
         // In case we had a pending jump, do it now, after the work has been done
@@ -2980,7 +2984,7 @@ function setter8 (reg, setReg, bFastMode)
     {
         code += "    // " + reg + "' = " + reg + "\n";
         for (let j=0; j<8; j++)
-            code += "    pols." + reg + j + "[" + (bFastMode?"0":"nexti") + "] = pols." + reg + j + "[" + (bFastMode?"0":"i") + "];\n";
+            code += "    pols." + reg + j + "[nexti] = pols." + reg + j + "[i];\n";
         code += "\n";
     }
 
