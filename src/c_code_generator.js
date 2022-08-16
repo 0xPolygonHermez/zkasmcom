@@ -245,7 +245,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     code += "    uint64_t step = 0; // Step, number of polynomial evaluation\n";
     code += "    uint64_t i=0; // Step, as it is used internally, set to 0 in fast mode to reuse the same evaluation all the time\n";
     if (!bFastMode)
-        code += "    uint64_t nexti=0; // Next step, as it is used internally, set to 0 in fast mode to reuse the same evaluation all the time\n";
+        code += "    uint64_t nexti=1; // Next step, as it is used internally, set to 0 in fast mode to reuse the same evaluation all the time\n";
     code += "    ctx.N = mainExecutor.N; // Numer of evaluations\n";
     if (bFastMode)
     {
@@ -260,7 +260,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
     code += "    uint64_t incHashPos = 0;\n";
     code += "    uint64_t incCounter = 0;\n\n";
-    code += "    bool bJump = false;\n";
+    code += "    bool bJump = false;\n\n";
 
     for (let zkPC=0; zkPC<rom.program.length; zkPC++)
     {
@@ -1299,7 +1299,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             if (!bFastMode)
             {
                 code += "    // Copy ROM flags into the polynomials\n";
-                code += "    pols.inFREE[i] = rom.line[zkPC].inFREE;\n\n";
+                code += "    pols.inFREE[i] = rom.line[" + zkPC + "].inFREE;\n\n";
             }
         }
 
@@ -2651,8 +2651,37 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         else if (!bFastMode)
             code += "    pols.RR[nexti] = pols.RR[i];\n";
 
-
         // TODO: When regs are 0, do not copy to nexti.  Set bIsAZero to true at the beginning.
+
+        // If arith, increment pols.cntArith
+        if (rom.program[zkPC].arith) 
+        {
+            code += "    pols.cntArith[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.cntArith[" + (bFastMode?"0":"i") + "], fr.one());\n";
+        }
+        else if (!bFastMode)
+        {
+            code += "    pols.cntArith[nexti] = pols.cntArith[i];\n";
+        }
+
+        // If bin, increment pols.cntBinary
+        if (rom.program[zkPC].bin)
+        {
+            code += "    pols.cntBinary[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.cntBinary[" + (bFastMode?"0":"i") + "], fr.one());\n";
+        }
+        else if (!bFastMode)
+        {
+            code += "    pols.cntBinary[nexti] = pols.cntBinary[i];\n";
+        }
+
+        // If memAlign, increment pols.cntMemAlign
+        if (rom.program[zkPC].memAlign)
+        {
+            code += "    pols.cntMemAlign[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.cntMemAlign[" + (bFastMode?"0":"i") + "], fr.one());\n";
+        }
+        else if (!bFastMode)
+        {
+            code += "    pols.cntMemAlign[nexti] = pols.cntMemAlign[i];\n";
+        }
 
         /*********/
         /* JUMPS */
@@ -2794,6 +2823,39 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "    pols.HASHPOS[nexti] = pols.HASHPOS[i];\n";
         }
 
+
+        if (!bFastMode && (rom.program[zkPC].sRD || rom.program[zkPC].sWR || rom.program[zkPC].hashKDigest || rom.program[zkPC].hashPDigest))
+        {
+            code += "    pols.incCounter[i] = fr.fromU64(incCounter);\n";
+        }
+
+        if (rom.program[zkPC].hashKDigest)
+        {
+            code += "    pols.cntKeccakF[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.cntKeccakF[" + (bFastMode?"0":"i") + "], fr.fromU64(incCounter));\n";
+        }
+        else if (!bFastMode)
+        {
+            code += "    pols.cntKeccakF[nexti] = pols.cntKeccakF[i];\n";
+        }
+
+        if (rom.program[zkPC].hashPDigest)
+        {
+            code += "    pols.cntPaddingPG[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.cntPaddingPG[" + (bFastMode?"0":"i") + "], fr.fromU64(incCounter));\n";
+        }
+        else if (!bFastMode)
+        {
+            code += "    pols.cntPaddingPG[nexti] = pols.cntPaddingPG[i];\n";
+        }
+
+        if (rom.program[zkPC].sRD || rom.program[zkPC].sWR || rom.program[zkPC].hashPDigest)
+        {
+            code += "    pols.cntPoseidonG[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.cntPoseidonG[" + (bFastMode?"0":"i") + "], fr.fromU64(incCounter));\n";
+        }
+        else if (!bFastMode)
+        {
+            code += "    pols.cntPoseidonG[nexti] = pols.cntPoseidonG[i];\n";
+        }
+
         if (rom.program[zkPC].cmdAfter &&
             rom.program[zkPC].cmdAfter.length>0)
         {
@@ -2852,6 +2914,85 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
     code += functionName + "_end:\n\n";
 
+
+    code += "    // Copy the counters\n";
+    code += "    proverRequest.counters.arith = fr.toU64(pols.cntArith[0]);\n";
+    code += "    proverRequest.counters.binary = fr.toU64(pols.cntBinary[0]);\n";
+    code += "    proverRequest.counters.keccakF = fr.toU64(pols.cntKeccakF[0]);\n";
+    code += "    proverRequest.counters.memAlign = fr.toU64(pols.cntMemAlign[0]);\n";
+    code += "    proverRequest.counters.paddingPG = fr.toU64(pols.cntPaddingPG[0]);\n";
+    code += "    proverRequest.counters.poseidonG = fr.toU64(pols.cntPoseidonG[0]);\n";
+    code += "    proverRequest.counters.steps = ctx.lastStep;\n\n";
+
+    if (!bFastMode) // In fast mode, last nexti was not 0 but 1, and pols have only 2 evaluations
+    {
+        code += "    // Check that all registers are set to 0\n";
+        code += "    mainExecutor.checkFinalState(ctx);\n";
+
+        code += "    // Generate Padding KK required data\n";
+        code += "    for (uint64_t i=0; i<ctx.hashK.size(); i++)\n";
+        code += "    {\n";
+        code += "        PaddingKKExecutorInput h;\n";
+        code += "        h.dataBytes = ctx.hashK[i].data;\n";
+        code += "        uint64_t p = 0;\n";
+        code += "        while (p<ctx.hashK[i].data.size())\n";
+        code += "        {\n";
+        code += "            if (ctx.hashK[i].reads[p] != 0)\n";
+        code += "            {\n";
+        code += "                h.reads.push_back(ctx.hashK[i].reads[p]);\n";
+        code += "                p += ctx.hashK[i].reads[p];\n";
+        code += "            }\n";
+        code += "            else\n";
+        code += "            {\n";
+        code += "                h.reads.push_back(1);\n";
+        code += "                p++;\n";
+        code += "            }\n";
+        code += "        }\n";
+        code += "        if (p != ctx.hashK[i].data.size())\n";
+        code += "        {\n";
+        code += "            cerr << \"Error: Main SM Executor: Reading hashK out of limits: i=\" << i << \" p=\" << p << \" ctx.hashK[i].data.size()=\" << ctx.hashK[i].data.size() << endl;\n";
+        code += "            proverRequest.result = ZKR_SM_MAIN_HASHK;\n";
+        code += "            return;\n";
+        code += "        }\n";
+        code += "        required.PaddingKK.push_back(h);\n";
+        code += "    }\n";
+
+        code += "    // Generate Padding PG required data\n";
+        code += "    for (uint64_t i=0; i<ctx.hashP.size(); i++)\n";
+        code += "    {\n";
+        code += "        PaddingPGExecutorInput h;\n";
+        code += "        h.dataBytes = ctx.hashP[i].data;\n";
+        code += "        uint64_t p = 0;\n";
+        code += "        while (p<ctx.hashP[i].data.size())\n";
+        code += "        {\n";
+        code += "            if (ctx.hashP[i].reads[p] != 0)\n";
+        code += "            {\n";
+        code += "                h.reads.push_back(ctx.hashP[i].reads[p]);\n";
+        code += "                p += ctx.hashP[i].reads[p];\n";
+        code += "            }\n";
+        code += "            else\n";
+        code += "            {\n";
+        code += "                h.reads.push_back(1);\n";
+        code += "                p++;\n";
+        code += "            }\n";
+        code += "        }\n";
+        code += "        if (p != ctx.hashP[i].data.size())\n";
+        code += "        {\n";
+        code += "            cerr << \"Error: Main SM Executor: Reading hashP out of limits: i=\" << i << \" p=\" << p << \" ctx.hashK[i].data.size()=\" << ctx.hashK[i].data.size() << endl;\n";
+        code += "            proverRequest.result = ZKR_SM_MAIN_HASHP;\n";
+        code += "            return;\n";
+        code += "        }\n";
+        code += "        required.PaddingPG.push_back(h);\n";
+        code += "    }\n";
+    }
+
+    code += "    #ifdef LOG_TIME\n";
+    code += "    cout << \"TIMER STATISTICS: Poseidon time: \" << double(poseidonTime)/1000 << \" ms, called \" << poseidonTimes << \" times, so \" << poseidonTime/zkmax(poseidonTimes,(uint64_t)1) << \" us/time\" << endl;\n";
+    code += "    cout << \"TIMER STATISTICS: SMT time: \" << double(smtTime)/1000 << \" ms, called \" << smtTimes << \" times, so \" << smtTime/zkmax(smtTimes,(uint64_t)1) << \" us/time\" << endl;\n";
+    code += "    cout << \"TIMER STATISTICS: Keccak time: \" << double(keccakTime)/1000 << \" ms, called \" << keccakTimes << \" times, so \" << keccakTime/zkmax(keccakTimes,(uint64_t)1) << \" us/time\" << endl;\n";
+    code += "    #endif\n\n";
+
+    code += "    proverRequest.result = ZKR_SUCCESS;\n\n";
 
     code += "    return;\n\n";
 
