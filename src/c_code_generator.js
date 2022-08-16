@@ -1157,8 +1157,9 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "    }\n\n";
 
                 code += "    // Copy fi=command result, depending on its type \n";
-                code += "    if (cr.type == crt_fea)\n";
+                code += "    switch (cr.type)\n";
                 code += "    {\n";
+                code += "    case crt_fea:\n";
                 code += "        fi0 = cr.fea0;\n";
                 code += "        fi1 = cr.fea1;\n";
                 code += "        fi2 = cr.fea2;\n";
@@ -1167,9 +1168,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "        fi5 = cr.fea5;\n";
                 code += "        fi6 = cr.fea6;\n";
                 code += "        fi7 = cr.fea7;\n";
-                code += "    }\n";
-                code += "    else if (cr.type == crt_fe)\n";
-                code += "    {\n";
+                code += "        break;\n";
+                code += "    case crt_fe:\n";
                 code += "        fi0 = cr.fe;\n";
                 code += "        fi1 = fr.zero();\n";
                 code += "        fi2 = fr.zero();\n";
@@ -1178,13 +1178,11 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "        fi5 = fr.zero();\n";
                 code += "        fi6 = fr.zero();\n";
                 code += "        fi7 = fr.zero();\n";
-                code += "    }\n";
-                code += "    else if (cr.type == crt_scalar)\n";
-                code += "    {\n";
+                code += "        break;\n";
+                code += "    case crt_scalar:\n";
                 code += "        scalar2fea(fr, cr.scalar, fi0, fi1, fi2, fi3, fi4, fi5, fi6, fi7);\n";
-                code += "    }\n";
-                code += "    else if (cr.type == crt_u16)\n";
-                code += "    {\n";
+                code += "        break;\n";
+                code += "    case crt_u16:\n";
                 code += "        fi0 = fr.fromU64(cr.u16);\n";
                 code += "        fi1 = fr.zero();\n";
                 code += "        fi2 = fr.zero();\n";
@@ -1193,9 +1191,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "        fi5 = fr.zero();\n";
                 code += "        fi6 = fr.zero();\n";
                 code += "        fi7 = fr.zero();\n";
-                code += "    }\n";
-                code += "    else if (cr.type == crt_u32)\n";
-                code += "    {\n";
+                code += "        break;\n";
+                code += "    case crt_u32:\n";
                 code += "        fi0 = fr.fromU64(cr.u32);\n";
                 code += "        fi1 = fr.zero();\n";
                 code += "        fi2 = fr.zero();\n";
@@ -1204,9 +1201,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "        fi5 = fr.zero();\n";
                 code += "        fi6 = fr.zero();\n";
                 code += "        fi7 = fr.zero();\n";
-                code += "    }\n";
-                code += "    else if (cr.type == crt_u64)\n";
-                code += "    {\n";
+                code += "        break;\n";
+                code += "    case crt_u64:\n";
                 code += "        fi0 = fr.fromU64(cr.u64);\n";
                 code += "        fi1 = fr.zero();\n";
                 code += "        fi2 = fr.zero();\n";
@@ -1215,9 +1211,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "        fi5 = fr.zero();\n";
                 code += "        fi6 = fr.zero();\n";
                 code += "        fi7 = fr.zero();\n";
-                code += "    }\n";
-                code += "    else\n";
-                code += "    {\n";
+                code += "        break;\n";
+                code += "    default:\n";
                 code += "        cerr << \"Error: unexpected command result type: \" << cr.type << endl;\n";
                 code += "        exitProcess();\n";
                 code += "    }\n";
@@ -1229,8 +1224,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "            ctx.lastStep = step;\n";
                 code += "        }\n";
                 if (bFastMode)
-                    code += "        goto " + functionName + "_end;\n\n";
-                code += "    }\n";
+                    code += "        goto " + functionName + "_end;\n";
+                code += "    }\n\n";
 
             }
 
