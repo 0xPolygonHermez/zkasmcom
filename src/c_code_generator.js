@@ -236,6 +236,9 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
     if (!bFastMode)
         code += "    MemoryAccess memoryAccess;\n";
+    
+    code += "    std::ofstream outfile;\n";
+    code += "    std::map<uint64_t, Fea>::iterator memIterator;\n";
     code += "\n";
 
     code += "    uint64_t zkPC = 0; // Zero-knowledge program counter\n";
@@ -283,12 +286,9 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         code += "    cout << \"step=\" << i << \" rom.line[" + zkPC + "] =[\" << rom.line[" + zkPC + "].toString(fr) << \"]\" << endl;\n";
         code += "#endif\n";
         code += "#ifdef LOG_START_STEPS_TO_FILE\n";
-        code += "    {\n";
-        code += "        std::ofstream outfile;\n";
-        code += "        outfile.open(\"c.txt\", std::ios_base::app); // append instead of overwrite\n";
-        code += "        outfile << \"--> Starting step=\" << i << \" zkPC=" + zkPC + " instruction= \" << rom.line[" + zkPC + "].toString(fr) << endl;\n";
-        code += "        outfile.close();\n";
-        code += "    }\n";
+        code += "    outfile.open(\"c.txt\", std::ios_base::app); // append instead of overwrite\n";
+        code += "    outfile << \"--> Starting step=\" << i << \" zkPC=" + zkPC + " instruction= \" << rom.line[" + zkPC + "].toString(fr) << endl;\n";
+        code += "    outfile.close();\n";
         code += "#endif\n\n";
 
         // INITIALIZATION
@@ -497,11 +497,11 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "    }\n"
                 }
                 code += "    addrRel += " + rom.program[zkPC].offset + ";\n"
-                code += "    addr = addrRel;\n";
+                code += "    addr = addrRel;\n\n";
             }
             else if (bAddrRel && !bOffset)
             {
-                code += "    addr = addrRel;\n"; // TODO: Check that addrRel>=0 and <0x10000, if this is as designed
+                code += "    addr = addrRel;\n\n"; // TODO: Check that addrRel>=0 and <0x10000, if this is as designed
             }
             else if (!bAddrRel && bOffset)
             {
@@ -510,15 +510,15 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     console.log("Error: invalid offset=" + rom.program[zkPC].offset);
                     program.exit();
                 }
-                code += "    addr = " + rom.program[zkPC].offset + ";\n";
                 if (!bFastMode)
                     code += "    addrRel = " + rom.program[zkPC].offset + ";\n";
+                code += "    addr = " + rom.program[zkPC].offset + ";\n\n";
             }
             else if (!bAddrRel && !bOffset)
             {
-                code += "    addr = 0;\n";
                 if (!bFastMode)
                     code += "    addrRel = 0;\n";
+                code += "    addr = 0;\n\n";
             }
         }
 
@@ -527,7 +527,9 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    // If useCTX, addr = addr + CTX*CTX_OFFSET\n";
             code += "    addr += fr.toU64(pols.CTX[" + (bFastMode?"0":"i") + "])*CTX_OFFSET;\n";
             if (!bFastMode)
-                code += "    pols.useCTX[i] = fr.one();\n";
+                code += "    pols.useCTX[i] = fr.one();\n\n";
+            else
+                code += "\n";
         }
 
         if (rom.program[zkPC].isCode == 1)
@@ -535,7 +537,9 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    // If isCode, addr = addr + CODE_OFFSET\n";
             code += "    addr += CODE_OFFSET;\n";
             if (!bFastMode)
-                code += "    pols.isCode[i] = fr.one();\n";
+                code += "    pols.isCode[i] = fr.one();\n\n";
+            else
+                code += "\n";
         }
 
         if (rom.program[zkPC].isStack == 1)
@@ -543,7 +547,9 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    // If isStack, addr = addr + STACK_OFFSET\n";
             code += "    addr += STACK_OFFSET;\n";
             if (!bFastMode)
-                code += "    pols.isStack[i] = fr.one();\n";
+                code += "    pols.isStack[i] = fr.one();\n\n";
+            else
+                code += "\n";
         }
 
         if (rom.program[zkPC].isMem == 1)
@@ -551,7 +557,9 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    // If isMem, addr = addr + MEM_OFFSET\n";
             code += "    addr += MEM_OFFSET;\n";
             if (!bFastMode)
-                code += "    pols.isMem[i] = fr.one();\n";
+                code += "    pols.isMem[i] = fr.one();\n\n";
+            else
+                code += "\n";
         }
 
         if ((rom.program[zkPC].incCode != undefined) && (rom.program[zkPC].incCode != 0) && !bFastMode)
@@ -599,15 +607,16 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 if ( (rom.program[zkPC].mOp==1) && (rom.program[zkPC].mWR==0) )
                 {
                     code += "    // Memory read free in: get fi=mem[addr], if it exists\n";
-                    code += "    if (ctx.mem.find(addr) != ctx.mem.end()) {\n";
-                    code += "        fi0 = ctx.mem[addr].fe0;\n";
-                    code += "        fi1 = ctx.mem[addr].fe1;\n";
-                    code += "        fi2 = ctx.mem[addr].fe2;\n";
-                    code += "        fi3 = ctx.mem[addr].fe3;\n";
-                    code += "        fi4 = ctx.mem[addr].fe4;\n";
-                    code += "        fi5 = ctx.mem[addr].fe5;\n";
-                    code += "        fi6 = ctx.mem[addr].fe6;\n";
-                    code += "        fi7 = ctx.mem[addr].fe7;\n";
+                    code += "    memIterator = ctx.mem.find(addr);\n";
+                    code += "    if (memIterator != ctx.mem.end()) {\n";
+                    code += "        fi0 = memIterator->second.fe0;\n";
+                    code += "        fi1 = memIterator->second.fe1;\n";
+                    code += "        fi2 = memIterator->second.fe2;\n";
+                    code += "        fi3 = memIterator->second.fe3;\n";
+                    code += "        fi4 = memIterator->second.fe4;\n";
+                    code += "        fi5 = memIterator->second.fe5;\n";
+                    code += "        fi6 = memIterator->second.fe6;\n";
+                    code += "        fi7 = memIterator->second.fe7;\n";
                     code += "    } else {\n";
                     code += "        fi0 = fr.zero();\n";
                     code += "        fi1 = fr.zero();\n";
@@ -1350,14 +1359,21 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 if (!bFastMode)
                     code += "    pols.mWR[i] = fr.one();\n\n";
 
-                code += "    ctx.mem[addr].fe0 = op0;\n";
-                code += "    ctx.mem[addr].fe1 = op1;\n";
-                code += "    ctx.mem[addr].fe2 = op2;\n";
-                code += "    ctx.mem[addr].fe3 = op3;\n";
-                code += "    ctx.mem[addr].fe4 = op4;\n";
-                code += "    ctx.mem[addr].fe5 = op5;\n";
-                code += "    ctx.mem[addr].fe6 = op6;\n";
-                code += "    ctx.mem[addr].fe7 = op7;\n\n";
+                code += "    memIterator = ctx.mem.find(addr);\n";
+                code += "    if (memIterator == ctx.mem.end())\n";
+                code += "    {\n";
+                code += "        ctx.mem[addr].fe0 = op0;\n";
+                code += "        memIterator = ctx.mem.find(addr);\n";
+                code += "    }\n";
+                code += "    else\n";
+                code += "        memIterator->second.fe0 = op0;\n";
+                code += "    memIterator->second.fe1 = op1;\n";
+                code += "    memIterator->second.fe2 = op2;\n";
+                code += "    memIterator->second.fe3 = op3;\n";
+                code += "    memIterator->second.fe4 = op4;\n";
+                code += "    memIterator->second.fe5 = op5;\n";
+                code += "    memIterator->second.fe6 = op6;\n";
+                code += "    memIterator->second.fe7 = op7;\n\n";
 
                 if (!bFastMode)
                 {
@@ -1393,16 +1409,17 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     code += "    required.Memory.push_back(memoryAccess);\n\n";
                 }
 
-                code += "    if (ctx.mem.find(addr) != ctx.mem.end())\n";
+                code += "    memIterator = ctx.mem.find(addr);\n";
+                code += "    if (memIterator != ctx.mem.end()) \n";
                 code += "    {\n";
-                code += "        if ( (!fr.equal(ctx.mem[addr].fe0, op0)) ||\n";
-                code += "             (!fr.equal(ctx.mem[addr].fe1, op1)) ||\n";
-                code += "             (!fr.equal(ctx.mem[addr].fe2, op2)) ||\n";
-                code += "             (!fr.equal(ctx.mem[addr].fe3, op3)) ||\n";
-                code += "             (!fr.equal(ctx.mem[addr].fe4, op4)) ||\n";
-                code += "             (!fr.equal(ctx.mem[addr].fe5, op5)) ||\n";
-                code += "             (!fr.equal(ctx.mem[addr].fe6, op6)) ||\n";
-                code += "             (!fr.equal(ctx.mem[addr].fe7, op7)) )\n";
+                code += "        if ( (!fr.equal(memIterator->second.fe0, op0)) ||\n";
+                code += "             (!fr.equal(memIterator->second.fe1, op1)) ||\n";
+                code += "             (!fr.equal(memIterator->second.fe2, op2)) ||\n";
+                code += "             (!fr.equal(memIterator->second.fe3, op3)) ||\n";
+                code += "             (!fr.equal(memIterator->second.fe4, op4)) ||\n";
+                code += "             (!fr.equal(memIterator->second.fe5, op5)) ||\n";
+                code += "             (!fr.equal(memIterator->second.fe6, op6)) ||\n";
+                code += "             (!fr.equal(memIterator->second.fe7, op7)) )\n";
                 code += "        {\n";
                 code += "            cerr << \"Error: Memory Read does not match\" << endl;\n";
                 code += "            proverRequest.result = ZKR_SM_MAIN_MEMORY;\n";
@@ -2715,7 +2732,6 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         {
             code += "    pols.zkPC[nexti] = fr.add(pols.zkPC[i], fr.one());\n";
         }
-        //code += "\n";
 
         if (!bFastMode)
         {
@@ -2803,17 +2819,13 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "\n";
         }
 
-        code += "\n";
         code += "#ifdef LOG_COMPLETED_STEPS\n";
-        code += "        cout << \"<-- Completed step: \" << i << \" zkPC: " + zkPC + " op0: \" << fr.toString(op0,16) << \" A0: \" << fr.toString(pols.A0[" + (bFastMode?"0":"i") + "],16) << \" FREE0: \" << fr.toString(pols.FREE0[" + (bFastMode?"0":"i") + "],16) << \" FREE7: \" << fr.toString(pols.FREE7[" + (bFastMode?"0":"i") + "],16) << endl;\n";
+        code += "    cout << \"<-- Completed step: \" << i << \" zkPC: " + zkPC + " op0: \" << fr.toString(op0,16) << \" A0: \" << fr.toString(pols.A0[" + (bFastMode?"0":"i") + "],16) << \" FREE0: \" << fr.toString(pols.FREE0[" + (bFastMode?"0":"i") + "],16) << \" FREE7: \" << fr.toString(pols.FREE7[" + (bFastMode?"0":"i") + "],16) << endl;\n";
         code += "#endif\n";
         code += "#ifdef LOG_COMPLETED_STEPS_TO_FILE\n";
-        code += "    {\n";
-        code += "        std::ofstream outfile;\n"; // TODO: make it global
-        code += "        outfile.open(\"c.txt\", std::ios_base::app); // append instead of overwrite\n";
-        code += "        outfile << \"<-- Completed step: \" << i << \" zkPC: " + zkPC + " op0: \" << fr.toString(op0,16) << \" A0: \" << fr.toString(pols.A0[" + (bFastMode?"0":"i") + "],16) << \" FREE0: \" << fr.toString(pols.FREE0[" + (bFastMode?"0":"i") + "],16) << \" FREE7: \" << fr.toString(pols.FREE7[" + (bFastMode?"0":"i") + "],16) << endl;\n";
-        code += "        outfile.close();\n";
-        code += "    }\n";
+        code += "    outfile.open(\"c.txt\", std::ios_base::app); // append instead of overwrite\n";
+        code += "    outfile << \"<-- Completed step: \" << i << \" zkPC: " + zkPC + " op0: \" << fr.toString(op0,16) << \" A0: \" << fr.toString(pols.A0[" + (bFastMode?"0":"i") + "],16) << \" FREE0: \" << fr.toString(pols.FREE0[" + (bFastMode?"0":"i") + "],16) << \" FREE7: \" << fr.toString(pols.FREE7[" + (bFastMode?"0":"i") + "],16) << endl;\n";
+        code += "    outfile.close();\n";
         code += "#endif\n\n";
 
         // Jump to the end label if we are done and we are in fast mode
