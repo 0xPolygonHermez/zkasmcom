@@ -123,13 +123,9 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
     code += "    if (" + functionName + "_labels.size()==0)\n";
     code += "    {\n";
-    code += "        void * aux = &&" + functionName + "_error;\n";
-    code += "        for (uint64_t i=0; i<" + rom.program.length + "; i++)\n";
-    code += "            " + functionName + "_labels.push_back(aux);\n";
     for (let zkPC=0; zkPC<rom.program.length; zkPC++)
     {
-        //if (usedLabels.includes(zkPC))
-            code += "        " + functionName + "_labels[" + zkPC + "] = &&" + functionName + "_rom_line_" + zkPC + ";\n";
+        code += "        " + functionName + "_labels.push_back(&&" + functionName + "_rom_line_" + zkPC + ");\n";
     }
     code += "    }\n\n";
 
@@ -263,16 +259,13 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     code += "    uint64_t incCounter = 0;\n\n";
     code += "    bool bJump = false;\n";
 
-    code += "    goto " + functionName + "_rom_line_0;\n\n";
-    code += functionName + "_error: // This label should never be used\n";
-    code += "    cerr << \"Error: Invalid label used in " + functionName + "\" << endl;\n";
-    code += "    exit(-1);\n\n"; // TODO: replace by exitProcess()
-
-
     for (let zkPC=0; zkPC<rom.program.length; zkPC++)
     {
-        // When bJump=true, the code will go to the proper label after all the work has been done
-        let bJump = false;
+        // When bConditionalJump=true, the code will go to the proper label after all the work has been done based on the content of bJump
+        let bConditionalJump = false;
+
+        // When bForcedJump=true, the code will always jump
+        let bForcedJump = false;
 
         // When bIncHashPos=true, incHashPos will be added to HASHPOS
         let bIncHashPos = false;
@@ -280,7 +273,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         // ROM instruction line, commented if not used to save compilation workload
         //if (!usedLabels.includes(zkPC))
         //    code += "// ";
-        code += functionName + "_rom_line_" + zkPC + ": //" + rom.program[zkPC].lineStr + "\n\n";
+        code += functionName + "_rom_line_" + zkPC + ": //" + rom.program[zkPC].fileName + ":" + rom.program[zkPC].line + "=" + rom.program[zkPC].lineStr.replace(/\s+/g, ' ').trim() + "\n\n";
 
         // START LOGS
         code += "#ifdef LOG_START_STEPS\n";
@@ -459,17 +452,31 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             opInitialized = true;
         }
 
-        code += "    addrRel = 0;\n"; // TODO: Can we skip this initialization?
-        code += "    addr = 0;\n";
-
         if (rom.program[zkPC].mOp || rom.program[zkPC].mWR || rom.program[zkPC].hashK || rom.program[zkPC].hashKLen || rom.program[zkPC].hashKDigest || rom.program[zkPC].hashP || rom.program[zkPC].hashPLen || rom.program[zkPC].hashPDigest || rom.program[zkPC].JMP || rom.program[zkPC].JMPN || rom.program[zkPC].JMPC)
         {
+            let bAddrRel = false;
+            let bOffset = false;
             code += "    // If address is involved, load offset into addr\n";
+            if (rom.program[zkPC].ind && rom.program[zkPC].indRR)
+            {
+                console.log("Error: Both ind and indRR are set to 1");
+                process.exit();
+            }
             if (rom.program[zkPC].ind)
+            {
                 code += "    fr.toS32(addrRel, pols.E0[" + (bFastMode?"0":"i") + "]);\n";
+                bAddrRel = true;
+            }
             if (rom.program[zkPC].indRR)
+            {
                 code += "    fr.toS32(addrRel, pols.RR[" + (bFastMode?"0":"i") + "]);\n";
+                bAddrRel = true;
+            }
             if (rom.program[zkPC].offset && (rom.program[zkPC].offset != 0))
+            {
+                bOffset = true;
+            }
+            if (bAddrRel && bOffset)
             {
                 if (rom.program[zkPC].offset > 0)
                 {
@@ -477,7 +484,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "    if ((uint64_t(addrRel)+uint64_t(" + rom.program[zkPC].offset +  "))>=0x10000)\n"
                 code += "    {\n"
                 code += "        cerr << \"Error: addrRel >= 0x10000 ln: \" << " + zkPC + " << endl;\n"
-                code += "        exit(-1);\n"
+                code += "        exitProcess();\n"
                 code += "    }\n"
                 }
                 else // offset < 0
@@ -486,12 +493,33 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "    if (" + (-rom.program[zkPC].offset) + ">addrRel)\n"
                 code += "    {\n"
                 code += "        cerr << \"Error: addrRel < 0 ln: \" << " + zkPC + " << endl;\n"
-                code += "        exit(-1);\n"
+                code += "        exitProcess();\n"
                 code += "    }\n"
                 }
                 code += "    addrRel += " + rom.program[zkPC].offset + ";\n"
+                code += "    addr = addrRel;\n";
             }
-            code += "    addr = addrRel;\n"; // TODO: Can we use addr directly?
+            else if (bAddrRel && !bOffset)
+            {
+                code += "    addr = addrRel;\n"; // TODO: Check that addrRel>=0 and <0x10000, if this is as designed
+            }
+            else if (!bAddrRel && bOffset)
+            {
+                if ((rom.program[zkPC].offset < 0) || (rom.program[zkPC].offset >= 0x10000))
+                {
+                    console.log("Error: invalid offset=" + rom.program[zkPC].offset);
+                    program.exit();
+                }
+                code += "    addr = " + rom.program[zkPC].offset + ";\n";
+                if (!bFastMode)
+                    code += "    addrRel = " + rom.program[zkPC].offset + ";\n";
+            }
+            else if (!bAddrRel && !bOffset)
+            {
+                code += "    addr = 0;\n";
+                if (!bFastMode)
+                    code += "    addrRel = 0;\n";
+            }
         }
 
         if (rom.program[zkPC].useCTX == 1)
@@ -1196,7 +1224,6 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "    }\n";
 
             }
-            code += "\n";
 
             if (!bFastMode)
             {
@@ -1301,7 +1328,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "            cerr << \"Error: ROM assert failed: AN!=opN ln: \" << " + zkPC + " << endl;\n";
             code += "            cout << \"A: \" << fr.toString(pols.A7[" + (bFastMode?"0":"i") + "], 16) << \":\" << fr.toString(pols.A6[" + (bFastMode?"0":"i") + "], 16) << \":\" << fr.toString(pols.A5[" + (bFastMode?"0":"i") + "], 16) << \":\" << fr.toString(pols.A4[" + (bFastMode?"0":"i") + "], 16) << \":\" << fr.toString(pols.A3[" + (bFastMode?"0":"i") + "], 16) << \":\" << fr.toString(pols.A2[" + (bFastMode?"0":"i") + "], 16) << \":\" << fr.toString(pols.A1[" + (bFastMode?"0":"i") + "], 16) << \":\" << fr.toString(pols.A0[" + (bFastMode?"0":"i") + "], 16) << endl;\n";
             code += "            cout << \"OP:\" << fr.toString(op7, 16) << \":\" << fr.toString(op6, 16) << \":\" << fr.toString(op5, 16) << \":\" << fr.toString(op4,16) << \":\" << fr.toString(op3, 16) << \":\" << fr.toString(op2, 16) << \":\" << fr.toString(op1, 16) << \":\" << fr.toString(op0, 16) << endl;\n";
-            code += "            exit(-1);\n";
+            code += "            exitProcess();\n";
             code += "        }\n";
             code += "    }\n";
             if (!bFastMode)
@@ -2202,7 +2229,6 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         }
 
         // Binary instruction
-        if (bFastMode) code += "    pols.carry[0] = fr.zero();\n"; // TODO: check if this can be optimized in JS, remembering if this is a bin function
         if (rom.program[zkPC].bin == 1)
         {
             if (rom.program[zkPC].binOpcode == 0) // ADD
@@ -2636,7 +2662,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             }
             //code += "        goto *" + functionName + "_labels[addr]; // If op<0, jump to addr: zkPC'=addr\n";
             code += "        bJump = true;\n";
-            bJump = true;
+            bConditionalJump = true;
             code += "    }\n";
             // If op>=0, simply increase zkPC'=zkPC+1
             code += "    else\n";
@@ -2659,9 +2685,10 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    {\n";
             if (!bFastMode)
                 code += "        pols.zkPC[nexti] = fr.fromU64(addr); // If carry, jump to addr: zkPC'=addr\n";
-            //code += "        goto *" + functionName + "_labels[addr]; // If carry, jump to addr: zkPC'=addr\n";
-            bJump = true;
+            bConditionalJump = true;
             code += "        bJump = true;\n";
+            if (bFastMode) // We reset the global variable to prevent jumping in next zkPC
+                code += "        pols.carry[0] = fr.zero();\n";
             code += "    }\n";
             if (!bFastMode)
             {
@@ -2680,15 +2707,15 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "    pols.JMP[i] = fr.one();\n";
             }
             //code += "    goto *" + functionName + "_labels[addr]; // If JMP, directly jump zkPC'=addr\n";
-            bJump = true;
-            code += "    bJump = true;\n";
+            bForcedJump = true;
+            //code += "    bJump = true;\n";
         }
         // Else, simply increase zkPC'=zkPC+1
         else if (!bFastMode)
         {
             code += "    pols.zkPC[nexti] = fr.add(pols.zkPC[i], fr.one());\n";
         }
-        code += "\n";
+        //code += "\n";
 
         if (!bFastMode)
         {
@@ -2796,22 +2823,23 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         // INCREASE EVALUATION INDEX
 
         code += "    i++;\n";
-        code += "    if (i==mainExecutor.N) goto " + functionName + "_end;\n";
+        code += "    if (i==CommitPols::pilDegree()) goto " + functionName + "_end;\n";
         if (!bFastMode)
-            code += "    nexti=(i+1)%mainExecutor.N;\n" // TODO: Avoid nexti usage in bFastMode
-        //code += "    if (i%100000==0) cout<<\"Evaluation=\" << i << endl;\n";
-        //code += "    if (fr.toU64(pols.SR0[" + (bFastMode?"0":"i") + "]) > 0xFFFFFFFF) zkassert(false);\n";
-        //code += "    if (ctx.mem.find(32) != ctx.mem.end()) zkassert(false);\n";
+            code += "    nexti=(i+1)%mainExecutor.N;\n";
         code += "\n";
 
         // In case we had a pending jump, do it now, after the work has been done
-        if (bJump)
+        if (bForcedJump)
+        {
+            code += "    goto *" + functionName + "_labels[addr];\n\n";
+        }
+        if (bConditionalJump)
         {
             code += "    if (bJump)\n";
             code += "    {\n";
             code += "        bJump = false;\n";
-            code += "        goto *" + functionName + "_labels[addr];\n\n";
-            code += "    }\n";
+            code += "        goto *" + functionName + "_labels[addr];\n";
+            code += "    }\n\n";
         }
     }
 
