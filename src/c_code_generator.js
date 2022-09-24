@@ -140,10 +140,11 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     code += "    remove(\"c.txt\");\n";
     code += "#endif\n\n";
 
+    code += "    Database * pDatabase = mainExecutor.pStateDB->getDatabase();\n\n";
+
     code += "    // Copy database key-value content provided with the input\n";
     code += "    if ((proverRequest.input.db.size() > 0) || (proverRequest.input.contractsBytecode.size() > 0))\n";
     code += "    {\n";
-    code += "        Database * pDatabase = mainExecutor.pStateDB->getDatabase();\n";
     code += "        if (pDatabase != NULL)\n";
     code += "        {\n";
     code += "            /* Copy input database content into context database */\n";
@@ -161,6 +162,10 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     code += "            }\n";
     code += "        }\n";
     code += "    }\n\n";
+    code += "    // Reset database.dbReadLog. We use this dbReadLog to get all the database read operations performed\n";
+    code += "    // during the execution to store it later in the input.json file, having in this way a copy of the \"context\" database info\n";
+    
+    code += "    if (pDatabase != NULL) pDatabase->clearDbReadLog();\n\n";
 
     code += "    // opN are local, uncommitted polynomials\n";
     code += "    Goldilocks::Element op0, op1, op2, op3, op4, op5, op6, op7;\n"
@@ -197,6 +202,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     code += "    mpz_class dg;\n";
     code += "    uint64_t lm;\n";
     code += "    uint64_t lh;\n";
+    code += "    mpz_class paddingA;\n";
 
     // Mem allign free in
     code += "    mpz_class m0;\n";
@@ -1751,6 +1757,14 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "        }\n";
             code += "    }\n\n";
 
+            code += "    // Check that the remaining of a (op) is zero, i.e. no more data exists beyond size\n";
+            code += "    paddingA = a >> (size*8);\n";
+            code += "    if (paddingA != 0)\n";
+            code += "    {\n";
+            code += "        cerr << \"Error: HashK 2 incoherent size=\" << size << \" a=\" << a.get_str(16) << \" paddingA=\" << paddingA.get_str(16) << \" step=\" << step << \" zkPC=\" << zkPC << \" instruction=\" << rom.line[zkPC].toString(fr) << endl;\n";
+            code += "        exitProcess();\n";
+            code += "    }\n\n";
+
             code += "    // Record the read operation\n";
             code += "    if ( (ctx.hashK[addr].reads.find(pos) != ctx.hashK[addr].reads.end()) &&\n";
             code += "         (ctx.hashK[addr].reads[pos] != size) )\n";
@@ -1914,6 +1928,14 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "            }\n";
             code += "        }\n";
             code += "    }\n";
+
+            code += "    // Check that the remaining of a (op) is zero, i.e. no more data exists beyond size\n";
+            code += "    paddingA = a >> (size*8);\n";
+            code += "    if (paddingA != 0)\n";
+            code += "    {\n";
+            code += "        cerr << \"Error: HashP 2 incoherent size=\" << size << \" a=\" << a.get_str(16) << \" paddingA=\" << paddingA.get_str(16) << \" step=\" << step << \" zkPC=\" << zkPC << \" instruction=\" << rom.line[zkPC].toString(fr) << endl;\n";
+            code += "        exitProcess();\n";
+            code += "    }\n\n";
 
             code += "    // Record the read operation\n";
             code += "    if ( (ctx.hashP[addr].reads.find(pos) != ctx.hashP[addr].reads.end()) &&\n";
@@ -2991,6 +3013,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     code += "    cout << \"TIMER STATISTICS: SMT time: \" << double(smtTime)/1000 << \" ms, called \" << smtTimes << \" times, so \" << smtTime/zkmax(smtTimes,(uint64_t)1) << \" us/time\" << endl;\n";
     code += "    cout << \"TIMER STATISTICS: Keccak time: \" << double(keccakTime)/1000 << \" ms, called \" << keccakTimes << \" times, so \" << keccakTime/zkmax(keccakTimes,(uint64_t)1) << \" us/time\" << endl;\n";
     code += "    #endif\n\n";
+    
+    code += "    cout << \"" + functionName + "() done lastStep=\" << ctx.lastStep << \" (\" << (double(ctx.lastStep)*100)/mainExecutor.N << \"%)\" << endl;\n\n";
 
     code += "    proverRequest.result = ZKR_SUCCESS;\n\n";
 
@@ -3074,14 +3098,14 @@ function selector1i (regName, inRegValue, opInitialized, bFastMode)
 
     let value = "";
     if (inRegValue == 1)
-        value = "i";
+        value = "fr.fromU64(i)";
     else if (inRegValue == -1)
-        value = "fr.neg(i)";
+        value = "fr.neg(fr.fromU64(i))";
     else
-        value = "fr.mul(fr.fromS32(" + inRegValue + "), i)";
+        value = "fr.mul(fr.fromS32(" + inRegValue + "), fr.fromU64(i))";
     if (opInitialized)
         value = "fr.add(op0, " + value + ")"
-    code += "    op0 = fr.fromU64(" + value + ");\n";
+    code += "    op0 = " + value + ";\n";
     if (!opInitialized)
         for (let j=1; j<8; j++)
         {
