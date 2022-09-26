@@ -165,7 +165,10 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     code += "    // Reset database.dbReadLog. We use this dbReadLog to get all the database read operations performed\n";
     code += "    // during the execution to store it later in the input.json file, having in this way a copy of the \"context\" database info\n";
     
-    code += "    if (pDatabase != NULL) pDatabase->clearDbReadLog();\n\n";
+    code += "    if (mainExecutor.config.saveDbReadsToFile)\n";
+    code += "    {\n";
+    code += "        if (pDatabase != NULL) pDatabase->clearDbReadLog();\n";
+    code += "    }\n\n";
 
     code += "    // opN are local, uncommitted polynomials\n";
     code += "    Goldilocks::Element op0, op1, op2, op3, op4, op5, op6, op7;\n"
