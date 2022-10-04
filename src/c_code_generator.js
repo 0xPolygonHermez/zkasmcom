@@ -285,9 +285,12 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         // ROM instruction line, commented if not used to save compilation workload
         //if (!usedLabels.includes(zkPC))
         //    code += "// ";
-        code += functionName + "_rom_line_" + zkPC + ": //" + rom.program[zkPC].fileName + ":" + rom.program[zkPC].line + "=" + rom.program[zkPC].lineStr.replace(/\s+/g, ' ').trim() + "\n\n";
+        code += functionName + "_rom_line_" + zkPC + ": //" + rom.program[zkPC].fileName + ":" + rom.program[zkPC].line + "=[" + rom.program[zkPC].lineStr.replace(/\s+/g, ' ').trim() + "]\n\n";
 
         // START LOGS
+        code += "#ifdef LOG_COMPLETED_STEPS_TO_FILE\n";
+        code += "    fi0=fi1=fi2=fi3=fi4=fi5=fi6=fi7=fr.zero();\n";
+        code += "#endif\n";
         code += "#ifdef LOG_START_STEPS\n";
         code += "    cout << \"--> Starting step=\" << i << \" zkPC=" + zkPC + " zkasm=\" << rom.line[" + zkPC + "].lineStr << endl;\n";
         code += "#endif\n";
@@ -530,6 +533,10 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "    addr = 0;\n\n";
             }
         }
+        else
+        {
+            code += "    addr = 0;\n\n";
+        }
 
         if (rom.program[zkPC].useCTX == 1)
         {
@@ -555,6 +562,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         {
             code += "    // If isStack, addr = addr + STACK_OFFSET\n";
             code += "    addr += STACK_OFFSET;\n";
+            code += "    addr += fr.toU64(pols.SP[" + (bFastMode?"0":"i") + "]);\n";
             if (!bFastMode)
                 code += "    pols.isStack[i] = fr.one();\n\n";
             else
@@ -912,6 +920,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     code += "    }\n";
 
                     code += "    // Copy data into fi\n";
+                    code += "    s = 0;\n";
                     code += "    for (uint64_t j=0; j<size; j++)\n";
                     code += "    {\n";
                     code += "        uint8_t data = ctx.hashK[addr].data[pos+j];\n";
@@ -1003,6 +1012,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     code += "    }\n";
 
                     code += "    // Copy data into fi\n";
+                    code += "    s = 0;\n";
                     code += "    for (uint64_t j=0; j<size; j++)\n";
                     code += "    {\n";
                     code += "        uint8_t data = ctx.hashP[addr].data[pos+j];\n";
@@ -1282,25 +1292,25 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             {
                 if (opInitialized)
                 {
-                    code += "    op0 = fr.add(op0, fr.mul(rom.line[zkPC].inFREE, fi0));\n";
-                    code += "    op1 = fr.add(op1, fr.mul(rom.line[zkPC].inFREE, fi1));\n";
-                    code += "    op2 = fr.add(op2, fr.mul(rom.line[zkPC].inFREE, fi2));\n";
-                    code += "    op3 = fr.add(op3, fr.mul(rom.line[zkPC].inFREE, fi3));\n";
-                    code += "    op4 = fr.add(op4, fr.mul(rom.line[zkPC].inFREE, fi4));\n";
-                    code += "    op5 = fr.add(op5, fr.mul(rom.line[zkPC].inFREE, fi5));\n";
-                    code += "    op6 = fr.add(op6, fr.mul(rom.line[zkPC].inFREE, fi6));\n";
-                    code += "    op7 = fr.add(op7, fr.mul(rom.line[zkPC].inFREE, fi7));\n\n";
+                    code += "    op0 = fr.add(op0, fr.mul(rom.line["+zkPC+"].inFREE, fi0));\n";
+                    code += "    op1 = fr.add(op1, fr.mul(rom.line["+zkPC+"].inFREE, fi1));\n";
+                    code += "    op2 = fr.add(op2, fr.mul(rom.line["+zkPC+"].inFREE, fi2));\n";
+                    code += "    op3 = fr.add(op3, fr.mul(rom.line["+zkPC+"].inFREE, fi3));\n";
+                    code += "    op4 = fr.add(op4, fr.mul(rom.line["+zkPC+"].inFREE, fi4));\n";
+                    code += "    op5 = fr.add(op5, fr.mul(rom.line["+zkPC+"].inFREE, fi5));\n";
+                    code += "    op6 = fr.add(op6, fr.mul(rom.line["+zkPC+"].inFREE, fi6));\n";
+                    code += "    op7 = fr.add(op7, fr.mul(rom.line["+zkPC+"].inFREE, fi7));\n\n";
                 }
                 else
                 {
-                    code += "    op0 = fr.mul(rom.line[zkPC].inFREE, fi0);\n";
-                    code += "    op1 = fr.mul(rom.line[zkPC].inFREE, fi1);\n";
-                    code += "    op2 = fr.mul(rom.line[zkPC].inFREE, fi2);\n";
-                    code += "    op3 = fr.mul(rom.line[zkPC].inFREE, fi3);\n";
-                    code += "    op4 = fr.mul(rom.line[zkPC].inFREE, fi4);\n";
-                    code += "    op5 = fr.mul(rom.line[zkPC].inFREE, fi5);\n";
-                    code += "    op6 = fr.mul(rom.line[zkPC].inFREE, fi6);\n";
-                    code += "    op7 = fr.mul(rom.line[zkPC].inFREE, fi7);\n\n";
+                    code += "    op0 = fr.mul(rom.line["+zkPC+"].inFREE, fi0);\n";
+                    code += "    op1 = fr.mul(rom.line["+zkPC+"].inFREE, fi1);\n";
+                    code += "    op2 = fr.mul(rom.line["+zkPC+"].inFREE, fi2);\n";
+                    code += "    op3 = fr.mul(rom.line["+zkPC+"].inFREE, fi3);\n";
+                    code += "    op4 = fr.mul(rom.line["+zkPC+"].inFREE, fi4);\n";
+                    code += "    op5 = fr.mul(rom.line["+zkPC+"].inFREE, fi5);\n";
+                    code += "    op6 = fr.mul(rom.line["+zkPC+"].inFREE, fi6);\n";
+                    code += "    op7 = fr.mul(rom.line["+zkPC+"].inFREE, fi7);\n\n";
                     opInitialized = true;
                 }
             }
@@ -1764,7 +1774,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    paddingA = a >> (size*8);\n";
             code += "    if (paddingA != 0)\n";
             code += "    {\n";
-            code += "        cerr << \"Error: HashK 2 incoherent size=\" << size << \" a=\" << a.get_str(16) << \" paddingA=\" << paddingA.get_str(16) << \" step=\" << step << \" zkPC=\" << zkPC << \" instruction=\" << rom.line[zkPC].toString(fr) << endl;\n";
+            code += "        cerr << \"Error: HashK 2 incoherent size=\" << size << \" a=\" << a.get_str(16) << \" paddingA=\" << paddingA.get_str(16) << \" step=\" << step << \" zkPC=" + zkPC + " instruction=\" << rom.line[" + zkPC + "].toString(fr) << endl;\n";
             code += "        exitProcess();\n";
             code += "    }\n\n";
 
@@ -1936,7 +1946,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    paddingA = a >> (size*8);\n";
             code += "    if (paddingA != 0)\n";
             code += "    {\n";
-            code += "        cerr << \"Error: HashP 2 incoherent size=\" << size << \" a=\" << a.get_str(16) << \" paddingA=\" << paddingA.get_str(16) << \" step=\" << step << \" zkPC=\" << zkPC << \" instruction=\" << rom.line[zkPC].toString(fr) << endl;\n";
+            code += "        cerr << \"Error: HashP 2 incoherent size=\" << size << \" a=\" << a.get_str(16) << \" paddingA=\" << paddingA.get_str(16) << \" step=\" << step << \" zkPC=" + zkPC + " instruction=\" << rom.line[" + zkPC + "].toString(fr) << endl;\n";
             code += "        exitProcess();\n";
             code += "    }\n\n";
 
@@ -2244,10 +2254,10 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 if (!bFastMode)
                 {
                     code += "    pols.arith[i] = fr.one();\n";
-                    code += "    pols.arithEq0[i] = fr.fromU64(rom.line[zkPC].arithEq0);\n";
-                    code += "    pols.arithEq1[i] = fr.fromU64(rom.line[zkPC].arithEq1);\n";
-                    code += "    pols.arithEq2[i] = fr.fromU64(rom.line[zkPC].arithEq2);\n";
-                    code += "    pols.arithEq3[i] = fr.fromU64(rom.line[zkPC].arithEq3);\n";
+                    code += "    pols.arithEq0[i] = fr.fromU64(rom.line["+zkPC+"].arithEq0);\n";
+                    code += "    pols.arithEq1[i] = fr.fromU64(rom.line["+zkPC+"].arithEq1);\n";
+                    code += "    pols.arithEq2[i] = fr.fromU64(rom.line["+zkPC+"].arithEq2);\n";
+                    code += "    pols.arithEq3[i] = fr.fromU64(rom.line["+zkPC+"].arithEq3);\n";
 
                     code += "    // Store the arith action to execute it later with the arith SM\n";
                     code += "    arithAction.x1 = x1;\n";
@@ -2647,7 +2657,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         }
         else if (rom.program[zkPC].incStack)
         {
-            code += "   pols.SP[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.SP[" + (bFastMode?"0":"i") + "], fr.fromS32(" + rom.program[zkPC].incStack + ")); // SP' = SP + incStack\n";
+            code += "    pols.SP[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.SP[" + (bFastMode?"0":"i") + "], fr.fromS32(" + rom.program[zkPC].incStack + ")); // SP' = SP + incStack\n";
         }
         else if (!bFastMode)
             code += "    pols.SP[nexti] = pols.SP[i];\n";
@@ -2731,16 +2741,14 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             bConditionalJump = true;
             code += "    }\n";
             // If op>=0, simply increase zkPC'=zkPC+1
-            code += "    else\n";
-            code += "    {\n";
             if (!bFastMode)
             {
+                code += "    else\n";
+                code += "    {\n";
                 code += "        pols.zkPC[nexti] = fr.add(pols.zkPC[i], fr.one()); // If op>=0, simply increase zkPC'=zkPC+1\n";
                 code += "        required.Byte4[o] = true;\n";
+                code += "    }\n";
             }
-            code += "        addr = " + (zkPC+1) + ";\n";
-            //code += "        goto RomLine" + (zkPC+1) + ";\n";
-            code += "    }\n";
         }
         // If JMPC, jump conditionally if carry
         else if (rom.program[zkPC].JMPC)
@@ -2830,7 +2838,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         {
             code += "    if (!fr.toS32(i32Aux, op0))\n";
             code += "    {\n";
-            code += "        cerr << \"Error: failed calling fr.toS32() with op0=\" << fr.toString(op0, 16) << \" step=\" << step << \" zkPC=\" << zkPC << \" instruction=\" << rom.line[zkPC].toString(fr) << endl;\n";
+            code += "        cerr << \"Error: failed calling fr.toS32() with op0=\" << fr.toString(op0, 16) << \" step=\" << step << \" zkPC=" + zkPC + " instruction=\" << rom.line[" + zkPC + "].toString(fr) << endl;\n";
             code += "        exitProcess();\n";
             code += "    }\n";
             if (bIncHashPos)
@@ -2902,11 +2910,11 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         }
 
         code += "#ifdef LOG_COMPLETED_STEPS\n";
-        code += "    cout << \"<-- Completed step: \" << i << \" zkPC: " + zkPC + " op0: \" << fr.toString(op0,16) << \" A0: \" << fr.toString(pols.A0[" + (bFastMode?"0":"i") + "],16) << \" FREE0: \" << fr.toString(pols.FREE0[" + (bFastMode?"0":"i") + "],16) << \" FREE7: \" << fr.toString(pols.FREE7[" + (bFastMode?"0":"i") + "],16) << endl;\n";
+        code += "    cout << \"<-- Completed step=\" << i << \" zkPC=" + zkPC + " op0=\" << fr.toString(op0,16) << \" ABCDE0=\" << fr.toString(pols.A0[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.B0[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.C0[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.D0[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.E0[" + (bFastMode?"0":"i") + "],16) << \" FREE0:7=\" << fr.toString(fi0,16) << \":\" << fr.toString(fi7],16) << \" addr=\" << addr << endl;\n";
         code += "#endif\n";
         code += "#ifdef LOG_COMPLETED_STEPS_TO_FILE\n";
         code += "    outfile.open(\"c.txt\", std::ios_base::app); // append instead of overwrite\n";
-        code += "    outfile << \"<-- Completed step: \" << i << \" zkPC: " + zkPC + " op0: \" << fr.toString(op0,16) << \" A0: \" << fr.toString(pols.A0[" + (bFastMode?"0":"i") + "],16) << \" FREE0: \" << fr.toString(pols.FREE0[" + (bFastMode?"0":"i") + "],16) << \" FREE7: \" << fr.toString(pols.FREE7[" + (bFastMode?"0":"i") + "],16) << endl;\n";
+        code += "    outfile << \"<-- Completed step=\" << i << \" zkPC=" + zkPC + " op0=\" << fr.toString(op0,16) << \" ABCDE0=\" << fr.toString(pols.A0[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.B0[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.C0[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.D0[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.E0[" + (bFastMode?"0":"i") + "],16) << \" FREE0:7=\" << fr.toString(fi0,16) << \":\" << fr.toString(fi7,16) << \" addr=\" << addr << endl;\n";
         code += "    outfile.close();\n";
         code += "#endif\n\n";
 
