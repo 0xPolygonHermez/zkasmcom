@@ -81,6 +81,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         code += "#define CODE_OFFSET 0x10000\n";
         code += "#define CTX_OFFSET 0x40000\n\n";
 
+        code += "#define N_NO_COUNTERS_MULTIPLICATION_FACTOR 8\n\n";
+
         code += "vector<void *> " + functionName + "_labels;\n\n";
 
         code += "#pragma GCC push_options\n";
@@ -134,7 +136,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     code += "    bool bUnsignedTransaction = (proverRequest.input.from != \"\") && (proverRequest.input.from != \"0x\");\n";
     code += "    bool bSkipAsserts = bProcessBatch || bUnsignedTransaction;\n\n";
 
-    code += "    Context ctx(mainExecutor.fr, mainExecutor.fec, mainExecutor.fnec, pols, mainExecutor.rom, proverRequest, mainExecutor.pStateDB);\n\n";
+    code += "    Context ctx(mainExecutor.fr, mainExecutor.config, mainExecutor.fec, mainExecutor.fnec, pols, mainExecutor.rom, proverRequest, mainExecutor.pStateDB);\n\n";
 
     code += "#ifdef LOG_COMPLETED_STEPS_TO_FILE\n";
     code += "    remove(\"c.txt\");\n";
@@ -224,7 +226,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     code += "    mpz_class expectedC;\n";
     code += "    BinaryAction binaryAction;\n";
 
-    code += "    #ifdef LOG_TIME\n";
+    code += "    #ifdef LOG_TIME_STATISTICS\n";
     code += "    uint64_t poseidonTime=0, poseidonTimes=0;\n";
     code += "    uint64_t smtTime=0, smtTimes=0;\n";
     code += "    uint64_t keccakTime=0, keccakTimes=0;\n";
@@ -270,6 +272,21 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     code += "    uint64_t incHashPos = 0;\n";
     code += "    uint64_t incCounter = 0;\n\n";
     code += "    bool bJump = false;\n\n";
+    
+    code += "    uint64_t N_Max;\n";
+    code += "    if (proverRequest.input.bNoCounters)\n";
+    code += "    {\n";
+    code += "        if (!proverRequest.bProcessBatch)\n";
+    code += "        {\n";
+    code += "            cerr << \"Error: MainExecutor::execute() found proverRequest.input.bNoCounters=true and proverRequest.bProcessBatch=true\" << endl;\n";
+    code += "            exitProcess();\n";
+    code += "        }\n";
+    code += "        N_Max = mainExecutor.N_NoCounters;\n";
+    code += "    }\n";
+    code += "    else\n";
+    code += "    {\n";
+    code += "        N_Max = mainExecutor.N;\n";
+    code += "    }\n\n";
 
     for (let zkPC=0; zkPC<rom.program.length; zkPC++)
     {
@@ -400,7 +417,27 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
         if (rom.program[zkPC].inSTEP)
         {
-            code += selector1i("STEP", rom.program[zkPC].inSTEP, opInitialized, bFastMode);
+            code += "    // op0 = op0 + inSTEP*step , where inSTEP=" + rom.program[zkPC].inSTEP + "\n";
+
+            let value = "";
+            if (rom.program[zkPC].inSTEP == 1)
+                value = "fr.fromU64(proverRequest.input.bNoCounters ? 1 : i)";
+            else if (rom.program[zkPC].inSTEP == -1)
+                value = "fr.neg(fr.fromU64(proverRequest.input.bNoCounters ? 1 : i))";
+            else
+                value = "fr.mul(fr.fromS32(" + rom.program[zkPC].inSTEP + "), fr.fromU64(proverRequest.input.bNoCounters ? 1 : i))";
+            if (opInitialized)
+                value = "fr.add(op0, " + value + ")"
+            code += "    op0 = " + value + ";\n";
+            if (!opInitialized)
+                for (let j=1; j<8; j++)
+                {
+                    code += "    op" + j + " = fr.zero();\n";
+                }
+            if (!bFastMode)
+                code += "    pols.inSTEP[i] = fr.fromS32(" + rom.program[zkPC].inSTEP + ");\n";
+            code += "\n";
+
             opInitialized = true;
         }
 
@@ -449,6 +486,67 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         if (rom.program[zkPC].inCntPaddingPG)
         {
             code += selector1("cntPaddingPG", rom.program[zkPC].inCntPaddingPG, opInitialized, bFastMode);
+            opInitialized = true;
+        }
+
+        if (rom.program[zkPC].inROTL_C)
+        {
+            code += "    // If inROTL_C, op = C rotated left\n";
+            if (opInitialized)
+            {
+                if (rom.program[zkPC].inROTL_C == 1)
+                {
+                    code += "    op0 = fr.add(op0, pols.C7[" + (bFastMode?"0":"i") + "]);\n";
+                    code += "    op1 = fr.add(op1, pols.C0[" + (bFastMode?"0":"i") + "]);\n";
+                    code += "    op2 = fr.add(op2, pols.C1[" + (bFastMode?"0":"i") + "]);\n";
+                    code += "    op3 = fr.add(op3, pols.C2[" + (bFastMode?"0":"i") + "]);\n";
+                    code += "    op4 = fr.add(op4, pols.C3[" + (bFastMode?"0":"i") + "]);\n";
+                    code += "    op5 = fr.add(op5, pols.C4[" + (bFastMode?"0":"i") + "]);\n";
+                    code += "    op6 = fr.add(op6, pols.C5[" + (bFastMode?"0":"i") + "]);\n";
+                    code += "    op7 = fr.add(op7, pols.C6[" + (bFastMode?"0":"i") + "]);\n";
+                }
+                else
+                {
+                    code += "    op0 = fr.add(op0, fr.mul(rom.line[zkPC].inROTL_C, pols.C7[" + (bFastMode?"0":"i") + "]));\n";
+                    code += "    op1 = fr.add(op1, fr.mul(rom.line[zkPC].inROTL_C, pols.C0[" + (bFastMode?"0":"i") + "]));\n";
+                    code += "    op2 = fr.add(op2, fr.mul(rom.line[zkPC].inROTL_C, pols.C1[" + (bFastMode?"0":"i") + "]));\n";
+                    code += "    op3 = fr.add(op3, fr.mul(rom.line[zkPC].inROTL_C, pols.C2[" + (bFastMode?"0":"i") + "]));\n";
+                    code += "    op4 = fr.add(op4, fr.mul(rom.line[zkPC].inROTL_C, pols.C3[" + (bFastMode?"0":"i") + "]));\n";
+                    code += "    op5 = fr.add(op5, fr.mul(rom.line[zkPC].inROTL_C, pols.C4[" + (bFastMode?"0":"i") + "]));\n";
+                    code += "    op6 = fr.add(op6, fr.mul(rom.line[zkPC].inROTL_C, pols.C5[" + (bFastMode?"0":"i") + "]));\n";
+                    code += "    op7 = fr.add(op7, fr.mul(rom.line[zkPC].inROTL_C, pols.C6[" + (bFastMode?"0":"i") + "]));\n";
+                }
+            }
+            else
+            {
+                if (rom.program[zkPC].inROTL_C == 1)
+                {
+                    code += "    op0 = pols.C7[" + (bFastMode?"0":"i") + "];\n";
+                    code += "    op1 = pols.C0[" + (bFastMode?"0":"i") + "];\n";
+                    code += "    op2 = pols.C1[" + (bFastMode?"0":"i") + "];\n";
+                    code += "    op3 = pols.C2[" + (bFastMode?"0":"i") + "];\n";
+                    code += "    op4 = pols.C3[" + (bFastMode?"0":"i") + "];\n";
+                    code += "    op5 = pols.C4[" + (bFastMode?"0":"i") + "];\n";
+                    code += "    op6 = pols.C5[" + (bFastMode?"0":"i") + "];\n";
+                    code += "    op7 = pols.C6[" + (bFastMode?"0":"i") + "];\n";
+                }
+                else
+                {
+                    code += "    op0 = fr.mul(rom.line[zkPC].inROTL_C, pols.C7[" + (bFastMode?"0":"i") + "]);\n";
+                    code += "    op1 = fr.mul(rom.line[zkPC].inROTL_C, pols.C0[" + (bFastMode?"0":"i") + "]);\n";
+                    code += "    op2 = fr.mul(rom.line[zkPC].inROTL_C, pols.C1[" + (bFastMode?"0":"i") + "]);\n";
+                    code += "    op3 = fr.mul(rom.line[zkPC].inROTL_C, pols.C2[" + (bFastMode?"0":"i") + "]);\n";
+                    code += "    op4 = fr.mul(rom.line[zkPC].inROTL_C, pols.C3[" + (bFastMode?"0":"i") + "]);\n";
+                    code += "    op5 = fr.mul(rom.line[zkPC].inROTL_C, pols.C4[" + (bFastMode?"0":"i") + "]);\n";
+                    code += "    op6 = fr.mul(rom.line[zkPC].inROTL_C, pols.C5[" + (bFastMode?"0":"i") + "]);\n";
+                    code += "    op7 = fr.mul(rom.line[zkPC].inROTL_C, pols.C6[" + (bFastMode?"0":"i") + "]);\n";
+                }
+            }
+            if (!bFastMode)
+            {
+                code += "    pols.inROTL_C[i] = rom.line[zkPC].inROTL_C;\n";
+            }
+            code += "\n";
             opInitialized = true;
         }
 
@@ -673,7 +771,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     code += "    Kin1[6] = pols.B0[" + (bFastMode?"0":"i") + "];\n";
                     code += "    Kin1[7] = pols.B1[" + (bFastMode?"0":"i") + "];\n";
 
-                    code += "    #ifdef LOG_TIME\n";
+                    code += "    #ifdef LOG_TIME_STATISTICS\n";
                     code += "    gettimeofday(&t, NULL);\n";
                     code += "    #endif\n";
                     if (!bFastMode)
@@ -723,7 +821,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     code += "    key[1] = Kin1Hash[1];\n";
                     code += "    key[2] = Kin1Hash[2];\n";
                     code += "    key[3] = Kin1Hash[3];\n";
-                    code += "    #ifdef LOG_TIME\n";
+                    code += "    #ifdef LOG_TIME_STATISTICS\n";
                     code += "    poseidonTime += TimeDiff(t);\n";
                     code += "    poseidonTimes+=3;\n";
                     code += "    #endif\n";
@@ -779,7 +877,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     code += "    Kin1[6] = pols.B0[" + (bFastMode?"0":"i") + "];\n";
                     code += "    Kin1[7] = pols.B1[" + (bFastMode?"0":"i") + "];\n";
 
-                    code += "    #ifdef LOG_TIME\n";
+                    code += "    #ifdef LOG_TIME_STATISTICS\n";
                     code += "    gettimeofday(&t, NULL);\n";
                     code += "    #endif\n";
 
@@ -835,7 +933,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     code += "    ctx.lastSWrite.key[1] = Kin1Hash[1];\n";
                     code += "    ctx.lastSWrite.key[2] = Kin1Hash[2];\n";
                     code += "    ctx.lastSWrite.key[3] = Kin1Hash[3];\n";
-                    code += "    #ifdef LOG_TIME\n";
+                    code += "    #ifdef LOG_TIME_STATISTICS\n";
                     code += "    poseidonTime += TimeDiff(t);\n";
                     code += "    poseidonTimes++;\n";
                     code += "    #endif\n";
@@ -845,12 +943,12 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     code += "    #endif\n";
                     code += "    // Call SMT to get the new Merkel Tree root hash\n";
                     code += "    fea2scalar(fr, scalarD, pols.D0[" + (bFastMode?"0":"i") + "], pols.D1[" + (bFastMode?"0":"i") + "], pols.D2[" + (bFastMode?"0":"i") + "], pols.D3[" + (bFastMode?"0":"i") + "], pols.D4[" + (bFastMode?"0":"i") + "], pols.D5[" + (bFastMode?"0":"i") + "], pols.D6[" + (bFastMode?"0":"i") + "], pols.D7[" + (bFastMode?"0":"i") + "]);\n";
-                    code += "    #ifdef LOG_TIME\n";
+                    code += "    #ifdef LOG_TIME_STATISTICS\n";
                     code += "    gettimeofday(&t, NULL);\n";
                     code += "    #endif\n";
                     code += "    sr8to4(fr, pols.SR0[" + (bFastMode?"0":"i") + "], pols.SR1[" + (bFastMode?"0":"i") + "], pols.SR2[" + (bFastMode?"0":"i") + "], pols.SR3[" + (bFastMode?"0":"i") + "], pols.SR4[" + (bFastMode?"0":"i") + "], pols.SR5[" + (bFastMode?"0":"i") + "], pols.SR6[" + (bFastMode?"0":"i") + "], pols.SR7[" + (bFastMode?"0":"i") + "], oldRoot[0], oldRoot[1], oldRoot[2], oldRoot[3]);\n";
                     
-                    code += "    zkResult = mainExecutor.pStateDB->set(oldRoot, ctx.lastSWrite.key, scalarD, proverRequest.bUpdateMerkleTree, ctx.lastSWrite.newRoot, &ctx.lastSWrite.res);\n";
+                    code += "    zkResult = mainExecutor.pStateDB->set(oldRoot, ctx.lastSWrite.key, scalarD, proverRequest.input.bUpdateMerkleTree, ctx.lastSWrite.newRoot, &ctx.lastSWrite.res);\n";
                     code += "    if (zkResult != ZKR_SUCCESS)\n";
                     code += "    {\n";
                     code += "        cerr << \"MainExecutor::Execute() failed calling pStateDB->set() result=\" << zkresult2string(zkResult) << endl;\n";
@@ -858,7 +956,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     code += "        return;\n";
                     code += "    }\n";
                     code += "    incCounter = ctx.lastSWrite.res.proofHashCounter + 2;\n";
-                    code += "    #ifdef LOG_TIME\n";
+                    code += "    #ifdef LOG_TIME_STATISTICS\n";
                     code += "    smtTime += TimeDiff(t);\n";
                     code += "    smtTimes++;\n";
                     code += "    #endif\n";
@@ -1490,7 +1588,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    Kin1[6] = pols.B0[" + (bFastMode?"0":"i") + "];\n";
             code += "    Kin1[7] = pols.B1[" + (bFastMode?"0":"i") + "];\n";
 
-            code += "    #ifdef LOG_TIME\n";
+            code += "    #ifdef LOG_TIME_STATISTICS\n";
             code += "    gettimeofday(&t, NULL);\n";
             code += "    #endif\n";
 
@@ -1514,7 +1612,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    key[2] = Kin1Hash[2];\n";
             code += "    key[3] = Kin1Hash[3];\n";
 
-            code += "    #ifdef LOG_TIME\n";
+            code += "    #ifdef LOG_TIME_STATISTICS\n";
             code += "    poseidonTime += TimeDiff(t);\n";
             code += "    poseidonTimes+=3;\n";
             code += "    #endif\n";
@@ -1601,7 +1699,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "        Kin1[6] = pols.B0[" + (bFastMode?"0":"i") + "];\n";
             code += "        Kin1[7] = pols.B1[" + (bFastMode?"0":"i") + "];\n";
 
-            code += "    #ifdef LOG_TIME\n";
+            code += "    #ifdef LOG_TIME_STATISTICS\n";
             code += "        gettimeofday(&t, NULL);\n";
             code += "    #endif\n";
 
@@ -1625,20 +1723,20 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "        ctx.lastSWrite.key[2] = Kin1Hash[2];\n";
             code += "        ctx.lastSWrite.key[3] = Kin1Hash[3];\n";
                 
-            code += "    #ifdef LOG_TIME\n";
+            code += "    #ifdef LOG_TIME_STATISTICS\n";
             code += "        poseidonTime += TimeDiff(t);\n";
             code += "        poseidonTimes++;\n";
             code += "    #endif\n";
 
             code += "        // Call SMT to get the new Merkel Tree root hash\n";
             code += "        fea2scalar(fr, scalarD, pols.D0[" + (bFastMode?"0":"i") + "], pols.D1[" + (bFastMode?"0":"i") + "], pols.D2[" + (bFastMode?"0":"i") + "], pols.D3[" + (bFastMode?"0":"i") + "], pols.D4[" + (bFastMode?"0":"i") + "], pols.D5[" + (bFastMode?"0":"i") + "], pols.D6[" + (bFastMode?"0":"i") + "], pols.D7[" + (bFastMode?"0":"i") + "]);\n";
-            code += "    #ifdef LOG_TIME\n";
+            code += "    #ifdef LOG_TIME_STATISTICS\n";
             code += "        gettimeofday(&t, NULL);\n";
             code += "    #endif\n";
             
             code += "        sr8to4(fr, pols.SR0[" + (bFastMode?"0":"i") + "], pols.SR1[" + (bFastMode?"0":"i") + "], pols.SR2[" + (bFastMode?"0":"i") + "], pols.SR3[" + (bFastMode?"0":"i") + "], pols.SR4[" + (bFastMode?"0":"i") + "], pols.SR5[" + (bFastMode?"0":"i") + "], pols.SR6[" + (bFastMode?"0":"i") + "], pols.SR7[" + (bFastMode?"0":"i") + "], oldRoot[0], oldRoot[1], oldRoot[2], oldRoot[3]);\n";
 
-            code += "        zkResult = mainExecutor.pStateDB->set(oldRoot, ctx.lastSWrite.key, scalarD, proverRequest.bUpdateMerkleTree, ctx.lastSWrite.newRoot, &ctx.lastSWrite.res);\n";
+            code += "        zkResult = mainExecutor.pStateDB->set(oldRoot, ctx.lastSWrite.key, scalarD, proverRequest.input.bUpdateMerkleTree, ctx.lastSWrite.newRoot, &ctx.lastSWrite.res);\n";
             code += "        if (zkResult != ZKR_SUCCESS)\n";
             code += "        {\n";
             code += "            cerr << \"MainExecutor::Execute() failed calling pStateDB->set() result=\" << zkresult2string(zkResult) << endl;\n";
@@ -1646,7 +1744,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "            return;\n";
             code += "        }\n";
             code += "        incCounter = ctx.lastSWrite.res.proofHashCounter + 2;\n";
-            code += "    #ifdef LOG_TIME\n";
+            code += "    #ifdef LOG_TIME_STATISTICS\n";
             code += "        smtTime += TimeDiff(t);\n";
             code += "        smtTimes++;\n";
             code += "    #endif\n";
@@ -1815,13 +1913,13 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    }\n";
             code += "    if (!ctx.hashK[addr].bDigested)\n";
             code += "    {\n";
-            code += "    #ifdef LOG_TIME\n";
+            code += "    #ifdef LOG_TIME_STATISTICS\n";
             code += "        gettimeofday(&t, NULL);\n";
             code += "    #endif\n";
             code += "        string digestString = keccak256(ctx.hashK[addr].data.data(), ctx.hashK[addr].data.size());\n";
             code += "        ctx.hashK[addr].digest.set_str(Remove0xIfPresent(digestString),16);\n";
             code += "        ctx.hashK[addr].bDigested = true;\n";
-            code += "    #ifdef LOG_TIME\n";
+            code += "    #ifdef LOG_TIME_STATISTICS\n";
             code += "        keccakTime += TimeDiff(t);\n";
             code += "        keccakTimes++;\n";
             code += "    #endif\n";
@@ -1983,7 +2081,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    }\n";
             code += "    if (!ctx.hashP[addr].bDigested)\n";
             code += "    {\n";
-            code += "    #ifdef LOG_TIME\n";
+            code += "    #ifdef LOG_TIME_STATISTICS\n";
             code += "        gettimeofday(&t, NULL);\n";
             code += "    #endif\n";
             code += "        if (ctx.hashP[addr].data.size() == 0)\n";
@@ -2025,14 +2123,14 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "        delete[] pBuffer;\n";
             code += "        ctx.hashP[addr].bDigested = true;\n";
 
-            code += "        zkResult = mainExecutor.pStateDB->setProgram(result, ctx.hashP[addr].data, proverRequest.bUpdateMerkleTree);\n";
+            code += "        zkResult = mainExecutor.pStateDB->setProgram(result, ctx.hashP[addr].data, proverRequest.input.bUpdateMerkleTree);\n";
             code += "        if (zkResult != ZKR_SUCCESS)\n";
             code += "        {\n";
             code += "            cerr << \"MainExecutor::Execute() failed calling pStateDB->setProgram() result=\" << zkresult2string(zkResult) << endl;\n";
             code += "            proverRequest.result = zkResult;\n";
             code += "            return;\n";
             code += "        }\n";
-            code += "    #ifdef LOG_TIME\n";
+            code += "    #ifdef LOG_TIME_STATISTICS\n";
             code += "        poseidonTime += TimeDiff(t);\n";
             code += "        poseidonTimes++;\n";
             code += "    #endif\n";
@@ -2631,12 +2729,12 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         /* SETTERS */
         /***********/
 
-        code += setter8("A", rom.program[zkPC].setA, bFastMode);
-        code += setter8("B", rom.program[zkPC].setB, bFastMode);
-        code += setter8("C", rom.program[zkPC].setC, bFastMode);
-        code += setter8("D", rom.program[zkPC].setD, bFastMode);
-        code += setter8("E", rom.program[zkPC].setE, bFastMode);
-        code += setter8("SR", rom.program[zkPC].setSR, bFastMode);
+        code += setter8("A", rom.program[zkPC].setA, bFastMode, zkPC, rom);
+        code += setter8("B", rom.program[zkPC].setB, bFastMode, zkPC, rom);
+        code += setter8("C", rom.program[zkPC].setC, bFastMode, zkPC, rom);
+        code += setter8("D", rom.program[zkPC].setD, bFastMode, zkPC, rom);
+        code += setter8("E", rom.program[zkPC].setE, bFastMode, zkPC, rom);
+        code += setter8("SR", rom.program[zkPC].setSR, bFastMode, zkPC, rom);
 
         // If setCTX, CTX'=op
         if (rom.program[zkPC].setCTX)
@@ -2691,7 +2789,10 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         // If arith, increment pols.cntArith
         if (rom.program[zkPC].arith) 
         {
-            code += "    pols.cntArith[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.cntArith[" + (bFastMode?"0":"i") + "], fr.one());\n";
+            code += "    if (!proverRequest.input.bNoCounters)\n";
+            code += "    {\n";
+            code += "        pols.cntArith[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.cntArith[" + (bFastMode?"0":"i") + "], fr.one());\n";
+            code += "    }\n";
         }
         else if (!bFastMode)
         {
@@ -2701,7 +2802,10 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         // If bin, increment pols.cntBinary
         if (rom.program[zkPC].bin)
         {
-            code += "    pols.cntBinary[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.cntBinary[" + (bFastMode?"0":"i") + "], fr.one());\n";
+            code += "    if (!proverRequest.input.bNoCounters)\n";
+            code += "    {\n";
+            code += "        pols.cntBinary[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.cntBinary[" + (bFastMode?"0":"i") + "], fr.one());\n";
+            code += "    }\n";
         }
         else if (!bFastMode)
         {
@@ -2711,7 +2815,10 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         // If memAlign, increment pols.cntMemAlign
         if (rom.program[zkPC].memAlign)
         {
-            code += "    pols.cntMemAlign[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.cntMemAlign[" + (bFastMode?"0":"i") + "], fr.one());\n";
+            code += "    if (!proverRequest.input.bNoCounters)\n";
+            code += "    {\n";
+            code += "        pols.cntMemAlign[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.cntMemAlign[" + (bFastMode?"0":"i") + "], fr.one());\n";
+            code += "    }\n";
         }
         else if (!bFastMode)
         {
@@ -2864,7 +2971,10 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
         if (rom.program[zkPC].hashKDigest)
         {
-            code += "    pols.cntKeccakF[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.cntKeccakF[" + (bFastMode?"0":"i") + "], fr.fromU64(incCounter));\n";
+            code += "    if (!proverRequest.input.bNoCounters)\n";
+            code += "    {\n";
+            code += "        pols.cntKeccakF[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.cntKeccakF[" + (bFastMode?"0":"i") + "], fr.fromU64(incCounter));\n";
+            code += "    }\n";
         }
         else if (!bFastMode)
         {
@@ -2873,7 +2983,10 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
         if (rom.program[zkPC].hashPDigest)
         {
-            code += "    pols.cntPaddingPG[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.cntPaddingPG[" + (bFastMode?"0":"i") + "], fr.fromU64(incCounter));\n";
+            code += "    if (!proverRequest.input.bNoCounters)\n";
+            code += "    {\n";
+            code += "        pols.cntPaddingPG[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.cntPaddingPG[" + (bFastMode?"0":"i") + "], fr.fromU64(incCounter));\n";
+            code += "    }\n";
         }
         else if (!bFastMode)
         {
@@ -2882,7 +2995,10 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
         if (rom.program[zkPC].sRD || rom.program[zkPC].sWR || rom.program[zkPC].hashPDigest)
         {
-            code += "    pols.cntPoseidonG[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.cntPoseidonG[" + (bFastMode?"0":"i") + "], fr.fromU64(incCounter));\n";
+            code += "    if (!proverRequest.input.bNoCounters)\n";
+            code += "    {\n";
+            code += "        pols.cntPoseidonG[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.cntPoseidonG[" + (bFastMode?"0":"i") + "], fr.fromU64(incCounter));\n";
+            code += "    }\n";
         }
         else if (!bFastMode)
         {
@@ -2910,24 +3026,27 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         }
 
         code += "#ifdef LOG_COMPLETED_STEPS\n";
-        code += "    cout << \"<-- Completed step=\" << i << \" zkPC=" + zkPC + " op0=\" << fr.toString(op0,16) << \" ABCDE0=\" << fr.toString(pols.A0[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.B0[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.C0[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.D0[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.E0[" + (bFastMode?"0":"i") + "],16) << \" FREE0:7=\" << fr.toString(fi0,16) << \":\" << fr.toString(fi7],16) << \" addr=\" << addr << endl;\n";
+        code += "    cout << \"<-- Completed step=\" << i << \" zkPC=" + zkPC + " op=\" << fr.toString(op7,16) << \":\" << fr.toString(op6,16) << \":\" << fr.toString(op5,16) << \":\" << fr.toString(op4,16) << \":\" << fr.toString(op3,16) << \":\" << fr.toString(op2,16) << \":\" << fr.toString(op1,16) << \":\" << fr.toString(op0,16) << \" ABCDE0=\" << fr.toString(pols.A0[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.B0[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.C0[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.D0[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.E0[" + (bFastMode?"0":"i") + "],16) << \" FREE0:7=\" << fr.toString(fi0,16) << \":\" << fr.toString(fi7],16) << \" addr=\" << addr << endl;\n";
         code += "#endif\n";
         code += "#ifdef LOG_COMPLETED_STEPS_TO_FILE\n";
         code += "    outfile.open(\"c.txt\", std::ios_base::app); // append instead of overwrite\n";
-        code += "    outfile << \"<-- Completed step=\" << i << \" zkPC=" + zkPC + " op0=\" << fr.toString(op0,16) << \" ABCDE0=\" << fr.toString(pols.A0[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.B0[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.C0[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.D0[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.E0[" + (bFastMode?"0":"i") + "],16) << \" FREE0:7=\" << fr.toString(fi0,16) << \":\" << fr.toString(fi7,16) << \" addr=\" << addr << endl;\n";
+        code += "    outfile << \"<-- Completed step=\" << i << \" zkPC=" + zkPC + " op=\" << fr.toString(op7,16) << \":\" << fr.toString(op6,16) << \":\" << fr.toString(op5,16) << \":\" << fr.toString(op4,16) << \":\" << fr.toString(op3,16) << \":\" << fr.toString(op2,16) << \":\" << fr.toString(op1,16) << \":\" << fr.toString(op0,16) << \" ABCDE0=\" << fr.toString(pols.A0[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.B0[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.C0[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.D0[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.E0[" + (bFastMode?"0":"i") + "],16) << \" FREE0:7=\" << fr.toString(fi0,16) << \":\" << fr.toString(fi7,16) << \" addr=\" << addr << endl;\n";
         code += "    outfile.close();\n";
         code += "#endif\n\n";
 
         // Jump to the end label if we are done and we are in fast mode
         if (bFastMode && (zkPC == rom.labels.finalizeExecution))
+        {
+            code += "    ctx.lastStep = i;\n";
             code += "    goto " + functionName + "_end;\n\n";
+        }
 
         // INCREASE EVALUATION INDEX
 
         code += "    i++;\n";
-        code += "    if (i==CommitPols::pilDegree()) goto " + functionName + "_end;\n";
+        code += "    if (i==N_Max) goto " + functionName + "_end;\n";
         if (!bFastMode)
-            code += "    nexti=(i+1)%mainExecutor.N;\n";
+            code += "    nexti=(i+1)%N_Max;\n";
         code += "\n";
 
         // In case we had a pending jump, do it now, after the work has been done
@@ -3019,7 +3138,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         code += "    }\n";
     }
 
-    code += "    #ifdef LOG_TIME\n";
+    code += "    #ifdef LOG_TIME_STATISTICS\n";
     code += "    cout << \"TIMER STATISTICS: Poseidon time: \" << double(poseidonTime)/1000 << \" ms, called \" << poseidonTimes << \" times, so \" << poseidonTime/zkmax(poseidonTimes,(uint64_t)1) << \" us/time\" << endl;\n";
     code += "    cout << \"TIMER STATISTICS: SMT time: \" << double(smtTime)/1000 << \" ms, called \" << smtTimes << \" times, so \" << smtTime/zkmax(smtTimes,(uint64_t)1) << \" us/time\" << endl;\n";
     code += "    cout << \"TIMER STATISTICS: Keccak time: \" << double(keccakTime)/1000 << \" ms, called \" << keccakTimes << \" times, so \" << keccakTime/zkmax(keccakTimes,(uint64_t)1) << \" us/time\" << endl;\n";
@@ -3101,33 +3220,6 @@ function selector1 (regName, inRegValue, opInitialized, bFastMode)
     return code;
 }
 
-function selector1i (regName, inRegValue, opInitialized, bFastMode)
-{
-    let inRegName = "in" + regName.substring(0, 1).toUpperCase() + regName.substring(1);
-    let code = "";
-    code += "    // op0 = op0 + " + inRegName + "*" + regName + ", where " + inRegName + "=" + inRegValue + "\n";
-
-    let value = "";
-    if (inRegValue == 1)
-        value = "fr.fromU64(i)";
-    else if (inRegValue == -1)
-        value = "fr.neg(fr.fromU64(i))";
-    else
-        value = "fr.mul(fr.fromS32(" + inRegValue + "), fr.fromU64(i))";
-    if (opInitialized)
-        value = "fr.add(op0, " + value + ")"
-    code += "    op0 = " + value + ";\n";
-    if (!opInitialized)
-        for (let j=1; j<8; j++)
-        {
-            code += "    op" + j + " = fr.zero();\n";
-        }
-    if (!bFastMode)
-        code += "    pols." + inRegName + "[i] = fr.fromS32(" + inRegValue + ");\n";
-    code += "\n";
-    return code;
-}
-
 function selectorConst (CONST, opInitialized, bFastMode)
 {
     let code = "";
@@ -3178,7 +3270,7 @@ function selectorConstL (Fr, CONSTL, opInitialized, bFastMode)
 /* SETTERS */
 /***********/
 
-function setter8 (reg, setReg, bFastMode)
+function setter8 (reg, setReg, bFastMode, zkPC, rom)
 {
     let code = "";
 
@@ -3190,6 +3282,15 @@ function setter8 (reg, setReg, bFastMode)
         if (!bFastMode)
             code += "    pols.set" + reg + "[i] = fr.one();\n";
         code += "\n";
+    }
+    else if ((zkPC == rom.labels.checkAndSaveFrom) && (reg=="A"))
+    {
+        code += "    if (bUnsignedTransaction)\n";
+        code += "    {\n";
+        code += "        mpz_class from(proverRequest.input.from);\n";
+        code += "        scalar2fea(fr, from, pols.A0[" + (bFastMode?"0":"nexti") + "], pols.A1[" + (bFastMode?"0":"nexti") + "], pols.A2[" + (bFastMode?"0":"nexti") + "], pols.A3[" + (bFastMode?"0":"nexti") + "], pols.A4[" + (bFastMode?"0":"nexti") + "], pols.A5[" + (bFastMode?"0":"nexti") + "], pols.A6[" + (bFastMode?"0":"nexti") + "], pols.A7[" + (bFastMode?"0":"nexti") + "] );\n";
+        code += "    }\n\n";
+
     }
     else if (!bFastMode)
     {
