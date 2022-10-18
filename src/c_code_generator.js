@@ -1154,7 +1154,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                         code += "    //Binary free in ADD\n";
                         code += "    fea2scalar(fr, a, pols.A0[" + (bFastMode?"0":"i") + "], pols.A1[" + (bFastMode?"0":"i") + "], pols.A2[" + (bFastMode?"0":"i") + "], pols.A3[" + (bFastMode?"0":"i") + "], pols.A4[" + (bFastMode?"0":"i") + "], pols.A5[" + (bFastMode?"0":"i") + "], pols.A6[" + (bFastMode?"0":"i") + "], pols.A7[" + (bFastMode?"0":"i") + "]);\n";
                         code += "    fea2scalar(fr, b, pols.B0[" + (bFastMode?"0":"i") + "], pols.B1[" + (bFastMode?"0":"i") + "], pols.B2[" + (bFastMode?"0":"i") + "], pols.B3[" + (bFastMode?"0":"i") + "], pols.B4[" + (bFastMode?"0":"i") + "], pols.B5[" + (bFastMode?"0":"i") + "], pols.B6[" + (bFastMode?"0":"i") + "], pols.B7[" + (bFastMode?"0":"i") + "]);\n";
-                        code += "    c = (a + b) & Mask256;\n";
+                        code += "    c = (a + b) & ScalarMask256;\n";
                         code += "    scalar2fea(fr, c, fi0, fi1, fi2, fi3, fi4, fi5, fi6, fi7);\n";
                         nHits++;
                     }
@@ -1163,7 +1163,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                         code += "    //Binary free in SUB\n";
                         code += "    fea2scalar(fr, a, pols.A0[" + (bFastMode?"0":"i") + "], pols.A1[" + (bFastMode?"0":"i") + "], pols.A2[" + (bFastMode?"0":"i") + "], pols.A3[" + (bFastMode?"0":"i") + "], pols.A4[" + (bFastMode?"0":"i") + "], pols.A5[" + (bFastMode?"0":"i") + "], pols.A6[" + (bFastMode?"0":"i") + "], pols.A7[" + (bFastMode?"0":"i") + "]);\n";
                         code += "    fea2scalar(fr, b, pols.B0[" + (bFastMode?"0":"i") + "], pols.B1[" + (bFastMode?"0":"i") + "], pols.B2[" + (bFastMode?"0":"i") + "], pols.B3[" + (bFastMode?"0":"i") + "], pols.B4[" + (bFastMode?"0":"i") + "], pols.B5[" + (bFastMode?"0":"i") + "], pols.B6[" + (bFastMode?"0":"i") + "], pols.B7[" + (bFastMode?"0":"i") + "]);\n";
-                        code += "    c = (a - b + TwoTo256) & Mask256;\n";
+                        code += "    c = (a - b + ScalarTwoTo256) & ScalarMask256;\n";
                         code += "    scalar2fea(fr, c, fi0, fi1, fi2, fi3, fi4, fi5, fi6, fi7);\n";
                         nHits++;
                     }
@@ -1181,8 +1181,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                         code += "    //Binary free in SLT\n";
                         code += "    fea2scalar(fr, a, pols.A0[" + (bFastMode?"0":"i") + "], pols.A1[" + (bFastMode?"0":"i") + "], pols.A2[" + (bFastMode?"0":"i") + "], pols.A3[" + (bFastMode?"0":"i") + "], pols.A4[" + (bFastMode?"0":"i") + "], pols.A5[" + (bFastMode?"0":"i") + "], pols.A6[" + (bFastMode?"0":"i") + "], pols.A7[" + (bFastMode?"0":"i") + "]);\n";
                         code += "    fea2scalar(fr, b, pols.B0[" + (bFastMode?"0":"i") + "], pols.B1[" + (bFastMode?"0":"i") + "], pols.B2[" + (bFastMode?"0":"i") + "], pols.B3[" + (bFastMode?"0":"i") + "], pols.B4[" + (bFastMode?"0":"i") + "], pols.B5[" + (bFastMode?"0":"i") + "], pols.B6[" + (bFastMode?"0":"i") + "], pols.B7[" + (bFastMode?"0":"i") + "]);\n";
-                        code += "    if (a >= TwoTo255) a = a - TwoTo256;\n";
-                        code += "    if (b >= TwoTo255) b = b - TwoTo256;\n";
+                        code += "    if (a >= ScalarTwoTo255) a = a - ScalarTwoTo256;\n";
+                        code += "    if (b >= ScalarTwoTo255) b = b - ScalarTwoTo256;\n";
                         code += "    c = (a < b);\n";
                         code += "    scalar2fea(fr, c, fi0, fi1, fi2, fi3, fi4, fi5, fi6, fi7);\n";
                         nHits++;
@@ -1245,8 +1245,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     code += "        return;\n";
                     code += "    }\n";
                     code += "    offset = offsetScalar.get_ui();\n";
-                    code += "    leftV = (m0 << (offset*8)) & Mask256;\n";
-                    code += "    rightV = (m1 >> (256 - offset*8)) & (Mask256 >> (256 - offset*8));\n";
+                    code += "    leftV = (m0 << (offset*8)) & ScalarMask256;\n";
+                    code += "    rightV = (m1 >> (256 - offset*8)) & (ScalarMask256 >> (256 - offset*8));\n";
                     code += "    _V = leftV | rightV;\n";
                     code += "    scalar2fea(fr, _V, fi0, fi1, fi2, fi3, fi4, fi5, fi6, fi7);\n";
                     nHits++;
@@ -1856,7 +1856,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    // Fill the hash data vector with chunks of the scalar value\n";
             code += "    for (uint64_t j=0; j<size; j++)\n";
             code += "    {\n";
-            code += "        result = (a >> ((size-j-1)*8)) & Mask8;\n";
+            code += "        result = (a >> ((size-j-1)*8)) & ScalarMask8;\n";
             code += "        uint8_t bm = result.get_ui();\n";
             code += "        if (hashIterator->second.data.size() == (pos+j))\n";
             code += "        {\n";
@@ -2055,7 +2055,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
             code += "    // Fill the hash data vector with chunks of the scalar value\n";
             code += "    for (uint64_t j=0; j<size; j++) {\n";
-            code += "        result = (a >> (size-j-1)*8) & Mask8;\n";
+            code += "        result = (a >> (size-j-1)*8) & ScalarMask8;\n";
             code += "        uint8_t bm = result.get_ui();\n";
             code += "        if (hashIterator->second.data.size() == (pos+j))\n";
             code += "        {\n";
@@ -2442,7 +2442,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "    fea2scalar(fr, b, pols.B0[" + (bFastMode?"0":"i") + "], pols.B1[" + (bFastMode?"0":"i") + "], pols.B2[" + (bFastMode?"0":"i") + "], pols.B3[" + (bFastMode?"0":"i") + "], pols.B4[" + (bFastMode?"0":"i") + "], pols.B5[" + (bFastMode?"0":"i") + "], pols.B6[" + (bFastMode?"0":"i") + "], pols.B7[" + (bFastMode?"0":"i") + "]);\n";
                 code += "    fea2scalar(fr, c, op0, op1, op2, op3, op4, op5, op6, op7);\n";
 
-                code += "    expectedC = (a + b) & Mask256;\n";
+                code += "    expectedC = (a + b) & ScalarMask256;\n";
                 code += "    if (c != expectedC)\n";
                 code += "    {\n";
                 code += "        cerr << \"Error: Binary ADD operation does not match zkPC=" + zkPC + " instruction: \" << rom.line[" + zkPC + "].toString(fr) << endl;\n";
@@ -2472,7 +2472,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "    fea2scalar(fr, b, pols.B0[" + (bFastMode?"0":"i") + "], pols.B1[" + (bFastMode?"0":"i") + "], pols.B2[" + (bFastMode?"0":"i") + "], pols.B3[" + (bFastMode?"0":"i") + "], pols.B4[" + (bFastMode?"0":"i") + "], pols.B5[" + (bFastMode?"0":"i") + "], pols.B6[" + (bFastMode?"0":"i") + "], pols.B7[" + (bFastMode?"0":"i") + "]);\n";
                 code += "    fea2scalar(fr, c, op0, op1, op2, op3, op4, op5, op6, op7);\n";
 
-                code += "    expectedC = (a - b + TwoTo256) & Mask256;\n";
+                code += "    expectedC = (a - b + ScalarTwoTo256) & ScalarMask256;\n";
                 code += "    if (c != expectedC)\n";
                 code += "    {\n";
                 code += "        cerr << \"Error: Binary SUB operation does not match zkPC=" + zkPC + " instruction: \" << rom.line[" + zkPC + "].toString(fr) << endl;\n";
@@ -2531,8 +2531,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "    fea2scalar(fr, a, pols.A0[" + (bFastMode?"0":"i") + "], pols.A1[" + (bFastMode?"0":"i") + "], pols.A2[" + (bFastMode?"0":"i") + "], pols.A3[" + (bFastMode?"0":"i") + "], pols.A4[" + (bFastMode?"0":"i") + "], pols.A5[" + (bFastMode?"0":"i") + "], pols.A6[" + (bFastMode?"0":"i") + "], pols.A7[" + (bFastMode?"0":"i") + "]);\n";
                 code += "    fea2scalar(fr, b, pols.B0[" + (bFastMode?"0":"i") + "], pols.B1[" + (bFastMode?"0":"i") + "], pols.B2[" + (bFastMode?"0":"i") + "], pols.B3[" + (bFastMode?"0":"i") + "], pols.B4[" + (bFastMode?"0":"i") + "], pols.B5[" + (bFastMode?"0":"i") + "], pols.B6[" + (bFastMode?"0":"i") + "], pols.B7[" + (bFastMode?"0":"i") + "]);\n";
                 code += "    fea2scalar(fr, c, op0, op1, op2, op3, op4, op5, op6, op7);\n";
-                code += "    if (a >= TwoTo255) a = a - TwoTo256;\n";
-                code += "    if (b >= TwoTo255) b = b - TwoTo256;\n";
+                code += "    if (a >= ScalarTwoTo255) a = a - ScalarTwoTo256;\n";
+                code += "    if (b >= ScalarTwoTo255) b = b - ScalarTwoTo256;\n";
 
                 code += "    expectedC = (a < b);\n";
                 code += "    if (c != expectedC)\n";
@@ -2709,8 +2709,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
                 code += "    fea2scalar(fr, w0, pols.D0[" + (bFastMode?"0":"i") + "], pols.D1[" + (bFastMode?"0":"i") + "], pols.D2[" + (bFastMode?"0":"i") + "], pols.D3[" + (bFastMode?"0":"i") + "], pols.D4[" + (bFastMode?"0":"i") + "], pols.D5[" + (bFastMode?"0":"i") + "], pols.D6[" + (bFastMode?"0":"i") + "], pols.D7[" + (bFastMode?"0":"i") + "]);\n";
                 code += "    fea2scalar(fr, w1, pols.E0[" + (bFastMode?"0":"i") + "], pols.E1[" + (bFastMode?"0":"i") + "], pols.E2[" + (bFastMode?"0":"i") + "], pols.E3[" + (bFastMode?"0":"i") + "], pols.E4[" + (bFastMode?"0":"i") + "], pols.E5[" + (bFastMode?"0":"i") + "], pols.E6[" + (bFastMode?"0":"i") + "], pols.E7[" + (bFastMode?"0":"i") + "]);\n";
-                code += "    _W0 = (m0 & (TwoTo256 - (One << (256-offset*8)))) | (v >> offset*8);\n";
-                code += "    _W1 = (m1 & (Mask256 >> offset*8)) | ((v << (256 - offset*8)) & Mask256);\n";
+                code += "    _W0 = (m0 & (ScalarTwoTo256 - (ScalarOne << (256-offset*8)))) | (v >> offset*8);\n";
+                code += "    _W1 = (m1 & (ScalarMask256 >> offset*8)) | ((v << (256 - offset*8)) & ScalarMask256);\n";
                 code += "    if ( (w0 != _W0) || (w1 != _W1) )\n";
                 code += "    {\n";
                 code += "        cerr << \"Error: MemAlign w0, w1 invalid: w0=\" << w0.get_str(16) << \" w1=\" << w1.get_str(16) << \" _W0=\" << _W0.get_str(16) << \" _W1=\" << _W1.get_str(16) << \" m0=\" << m0.get_str(16) << \" m1=\" << m1.get_str(16) << \" offset=\" << offset << \" v=\" << v.get_str(16) << endl;\n";
@@ -2760,8 +2760,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             }
             else if (rom.program[zkPC].memAlignWR==0 && rom.program[zkPC].memAlignWR8==0)
             {
-                code += "    leftV = (m0 << offset*8) & Mask256;\n";
-                code += "    rightV = (m1 >> (256 - offset*8)) & (Mask256 >> (256 - offset*8));\n";
+                code += "    leftV = (m0 << offset*8) & ScalarMask256;\n";
+                code += "    rightV = (m1 >> (256 - offset*8)) & (ScalarMask256 >> (256 - offset*8));\n";
                 code += "    _V = leftV | rightV;\n";
                 code += "    if (v != _V)\n";
                 code += "    {\n";
