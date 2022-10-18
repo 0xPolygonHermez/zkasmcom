@@ -131,46 +131,32 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     }
     code += "    }\n\n";
 
+    code += "    // Get a StateDBInterface interface, according to the configuration\n";
+    code += "    StateDBInterface *pStateDB = StateDBClientFactory::createStateDBClient(fr, mainExecutor.config);\n";
+    code += "    if (pStateDB == NULL)\n";
+    code += "    {\n";
+    code += "        cerr << \"Error: " + functionName + "() failed calling StateDBClientFactory::createStateDBClient()\" << endl;\n";
+    code += "        exitProcess();\n";
+    code += "    }\n\n";
+
     code += "    // Init execution flags\n";
     code += "    bool bProcessBatch = proverRequest.bProcessBatch;\n";
     code += "    bool bUnsignedTransaction = (proverRequest.input.from != \"\") && (proverRequest.input.from != \"0x\");\n";
     code += "    bool bSkipAsserts = bProcessBatch || bUnsignedTransaction;\n\n";
 
-    code += "    Context ctx(mainExecutor.fr, mainExecutor.config, mainExecutor.fec, mainExecutor.fnec, pols, mainExecutor.rom, proverRequest, mainExecutor.pStateDB);\n\n";
+    code += "    Context ctx(mainExecutor.fr, mainExecutor.config, mainExecutor.fec, mainExecutor.fnec, pols, mainExecutor.rom, proverRequest, pStateDB);\n\n";
 
     code += "#ifdef LOG_COMPLETED_STEPS_TO_FILE\n";
     code += "    remove(\"c.txt\");\n";
     code += "#endif\n\n";
 
-    code += "    Database * pDatabase = mainExecutor.pStateDB->getDatabase();\n\n";
+    code += "    // Copy input database content into context database\n";
+    code += "    if (proverRequest.input.db.size() > 0)\n";
+    code += "        pStateDB->loadDB(proverRequest.input.db, false);\n\n";
 
-    code += "    // Copy database key-value content provided with the input\n";
-    code += "    if ((proverRequest.input.db.size() > 0) || (proverRequest.input.contractsBytecode.size() > 0))\n";
-    code += "    {\n";
-    code += "        if (pDatabase != NULL)\n";
-    code += "        {\n";
-    code += "            /* Copy input database content into context database */\n";
-    code += "            unordered_map< string, vector<Goldilocks::Element> >::const_iterator it;\n";
-    code += "            for (it=proverRequest.input.db.begin(); it!=proverRequest.input.db.end(); it++)\n";
-    code += "            {\n";
-    code += "                pDatabase->write(it->first, it->second, false);\n";
-    code += "            }\n\n";
-
-    code += "            /* Copy input contracts database content into context database (dbProgram)*/\n";
-    code += "            unordered_map< string, vector<uint8_t> >::const_iterator itp;\n";
-    code += "            for (itp=proverRequest.input.contractsBytecode.begin(); itp!=proverRequest.input.contractsBytecode.end(); itp++)\n";
-    code += "            {\n";
-    code += "                pDatabase->setProgram(itp->first, itp->second, false);\n";
-    code += "            }\n";
-    code += "        }\n";
-    code += "    }\n\n";
-    code += "    // Reset database.dbReadLog. We use this dbReadLog to get all the database read operations performed\n";
-    code += "    // during the execution to store it later in the input.json file, having in this way a copy of the \"context\" database info\n";
-    
-    code += "    if (mainExecutor.config.saveDbReadsToFile)\n";
-    code += "    {\n";
-    code += "        if (pDatabase != NULL) pDatabase->clearDbReadLog();\n";
-    code += "    }\n\n";
+    code += "    // Copy input contracts database content into context database (dbProgram)\n";
+    code += "    if (proverRequest.input.contractsBytecode.size() > 0)\n";
+    code += "        pStateDB->loadProgramDB(proverRequest.input.contractsBytecode, false);\n\n";
 
     code += "    // opN are local, uncommitted polynomials\n";
     code += "    Goldilocks::Element op0, op1, op2, op3, op4, op5, op6, op7;\n"
@@ -633,9 +619,15 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "    addr = 0;\n\n";
             }
         }
+        else if (rom.program[zkPC].useCTX || rom.program[zkPC].isCode || rom.program[zkPC].isStack || rom.program[zkPC].isMem)
+        {
+            code += "    addr = 0;\n\n";            
+        }
         else
         {
-            code += "    addr = 0;\n\n";
+            code += "#if (defined LOG_COMPLETED_STEPS) || (defined LOG_COMPLETED_STEPS_TO_FILE)\n";
+            code += "    addr = 0;\n";
+            code += "#endif\n\n";
         }
 
         if (rom.program[zkPC].useCTX == 1)
@@ -833,7 +825,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     code += "#endif \n";
                     code += "    sr8to4(fr, pols.SR0[" + (bFastMode?"0":"i") + "], pols.SR1[" + (bFastMode?"0":"i") + "], pols.SR2[" + (bFastMode?"0":"i") + "], pols.SR3[" + (bFastMode?"0":"i") + "], pols.SR4[" + (bFastMode?"0":"i") + "], pols.SR5[" + (bFastMode?"0":"i") + "], pols.SR6[" + (bFastMode?"0":"i") + "], pols.SR7[" + (bFastMode?"0":"i") + "], oldRoot[0], oldRoot[1], oldRoot[2], oldRoot[3]);\n";
                     
-                    code += "    zkResult = mainExecutor.pStateDB->get(oldRoot, key, value, &smtGetResult);\n";
+                    code += "    zkResult = pStateDB->get(oldRoot, key, value, &smtGetResult, proverRequest.dbReadLog);\n";
                     code += "    if (zkResult != ZKR_SUCCESS)\n";
                     code += "    {\n";
                     code += "        cerr << \"MainExecutor::Execute() failed calling pStateDB->get() result=\" << zkresult2string(zkResult) << endl;\n";
@@ -950,7 +942,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     code += "#endif\n";
                     code += "    sr8to4(fr, pols.SR0[" + (bFastMode?"0":"i") + "], pols.SR1[" + (bFastMode?"0":"i") + "], pols.SR2[" + (bFastMode?"0":"i") + "], pols.SR3[" + (bFastMode?"0":"i") + "], pols.SR4[" + (bFastMode?"0":"i") + "], pols.SR5[" + (bFastMode?"0":"i") + "], pols.SR6[" + (bFastMode?"0":"i") + "], pols.SR7[" + (bFastMode?"0":"i") + "], oldRoot[0], oldRoot[1], oldRoot[2], oldRoot[3]);\n";
                     
-                    code += "    zkResult = mainExecutor.pStateDB->set(oldRoot, ctx.lastSWrite.key, scalarD, proverRequest.input.bUpdateMerkleTree, ctx.lastSWrite.newRoot, &ctx.lastSWrite.res);\n";
+                    code += "    zkResult = pStateDB->set(oldRoot, ctx.lastSWrite.key, scalarD, proverRequest.input.bUpdateMerkleTree, ctx.lastSWrite.newRoot, &ctx.lastSWrite.res, proverRequest.dbReadLog);\n";
                     code += "    if (zkResult != ZKR_SUCCESS)\n";
                     code += "    {\n";
                     code += "        cerr << \"MainExecutor::Execute() failed calling pStateDB->set() result=\" << zkresult2string(zkResult) << endl;\n";
@@ -1641,7 +1633,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
             code += "    sr8to4(fr, pols.SR0[" + (bFastMode?"0":"i") + "], pols.SR1[" + (bFastMode?"0":"i") + "], pols.SR2[" + (bFastMode?"0":"i") + "], pols.SR3[" + (bFastMode?"0":"i") + "], pols.SR4[" + (bFastMode?"0":"i") + "], pols.SR5[" + (bFastMode?"0":"i") + "], pols.SR6[" + (bFastMode?"0":"i") + "], pols.SR7[" + (bFastMode?"0":"i") + "], oldRoot[0], oldRoot[1], oldRoot[2], oldRoot[3]);\n";
             
-            code += "    zkResult = mainExecutor.pStateDB->get(oldRoot, key, value, &smtGetResult);\n";
+            code += "    zkResult = pStateDB->get(oldRoot, key, value, &smtGetResult, proverRequest.dbReadLog);\n";
             code += "    if (zkResult != ZKR_SUCCESS)\n";
             code += "    {\n";
             code += "        cerr << \"MainExecutor::Execute() failed calling pStateDB->get() result=\" << zkresult2string(zkResult) << endl;\n";
@@ -1754,7 +1746,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             
             code += "        sr8to4(fr, pols.SR0[" + (bFastMode?"0":"i") + "], pols.SR1[" + (bFastMode?"0":"i") + "], pols.SR2[" + (bFastMode?"0":"i") + "], pols.SR3[" + (bFastMode?"0":"i") + "], pols.SR4[" + (bFastMode?"0":"i") + "], pols.SR5[" + (bFastMode?"0":"i") + "], pols.SR6[" + (bFastMode?"0":"i") + "], pols.SR7[" + (bFastMode?"0":"i") + "], oldRoot[0], oldRoot[1], oldRoot[2], oldRoot[3]);\n";
 
-            code += "        zkResult = mainExecutor.pStateDB->set(oldRoot, ctx.lastSWrite.key, scalarD, proverRequest.input.bUpdateMerkleTree, ctx.lastSWrite.newRoot, &ctx.lastSWrite.res);\n";
+            code += "        zkResult = pStateDB->set(oldRoot, ctx.lastSWrite.key, scalarD, proverRequest.input.bUpdateMerkleTree, ctx.lastSWrite.newRoot, &ctx.lastSWrite.res, proverRequest.dbReadLog);\n";
             code += "        if (zkResult != ZKR_SUCCESS)\n";
             code += "        {\n";
             code += "            cerr << \"MainExecutor::Execute() failed calling pStateDB->set() result=\" << zkresult2string(zkResult) << endl;\n";
@@ -2186,7 +2178,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "        delete[] pBuffer;\n";
             code += "        hashIterator->second.bDigested = true;\n";
 
-            code += "        zkResult = mainExecutor.pStateDB->setProgram(result, hashIterator->second.data, proverRequest.input.bUpdateMerkleTree);\n";
+            code += "        zkResult = pStateDB->setProgram(result, hashIterator->second.data, proverRequest.input.bUpdateMerkleTree);\n";
             code += "        if (zkResult != ZKR_SUCCESS)\n";
             code += "        {\n";
             code += "            cerr << \"MainExecutor::Execute() failed calling pStateDB->setProgram() result=\" << zkresult2string(zkResult) << endl;\n";
@@ -2225,7 +2217,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "        hashValue.bDigested = true;\n";
             code += "        Goldilocks::Element aux[4];\n";
             code += "        scalar2fea(fr, dg, aux);\n";
-            code += "        zkResult = mainExecutor.pStateDB->getProgram(aux, hashValue.data);\n";
+            code += "        zkResult = pStateDB->getProgram(aux, hashValue.data, proverRequest.dbReadLog);\n";
             code += "        if (zkResult != ZKR_SUCCESS)\n";
             code += "        {\n";
             code += "            cerr << \"MainExecutor::Execute() failed calling pStateDB->getProgram() result=\" << zkresult2string(zkResult) << endl;\n";
@@ -3214,6 +3206,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     code += "    cout << \"TIMER STATISTICS: Keccak time: \" << double(keccakTime)/1000 << \" ms, called \" << keccakTimes << \" times, so \" << keccakTime/zkmax(keccakTimes,(uint64_t)1) << \" us/time\" << endl;\n";
     code += "#endif\n\n";
     
+    code += "    StateDBClientFactory::freeStateDBClient(pStateDB);\n\n";
+
     code += "    cout << \"" + functionName + "() done lastStep=\" << ctx.lastStep << \" (\" << (double(ctx.lastStep)*100)/mainExecutor.N << \"%)\" << endl;\n\n";
 
     code += "    proverRequest.result = ZKR_SUCCESS;\n\n";
