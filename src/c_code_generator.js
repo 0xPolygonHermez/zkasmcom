@@ -81,6 +81,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         code += "#define CODE_OFFSET 0x10000\n";
         code += "#define CTX_OFFSET 0x40000\n\n";
 
+        code += "#define N_NO_COUNTERS_MULTIPLICATION_FACTOR 8\n\n";
+
         code += "vector<void *> " + functionName + "_labels;\n\n";
 
         code += "#pragma GCC push_options\n";
@@ -134,7 +136,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     code += "    bool bUnsignedTransaction = (proverRequest.input.from != \"\") && (proverRequest.input.from != \"0x\");\n";
     code += "    bool bSkipAsserts = bProcessBatch || bUnsignedTransaction;\n\n";
 
-    code += "    Context ctx(mainExecutor.fr, mainExecutor.fec, mainExecutor.fnec, pols, mainExecutor.rom, proverRequest, mainExecutor.pStateDB);\n\n";
+    code += "    Context ctx(mainExecutor.fr, mainExecutor.config, mainExecutor.fec, mainExecutor.fnec, pols, mainExecutor.rom, proverRequest, mainExecutor.pStateDB);\n\n";
 
     code += "#ifdef LOG_COMPLETED_STEPS_TO_FILE\n";
     code += "    remove(\"c.txt\");\n";
@@ -148,14 +150,14 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     code += "        if (pDatabase != NULL)\n";
     code += "        {\n";
     code += "            /* Copy input database content into context database */\n";
-    code += "            map< string, vector<Goldilocks::Element> >::const_iterator it;\n";
+    code += "            unordered_map< string, vector<Goldilocks::Element> >::const_iterator it;\n";
     code += "            for (it=proverRequest.input.db.begin(); it!=proverRequest.input.db.end(); it++)\n";
     code += "            {\n";
     code += "                pDatabase->write(it->first, it->second, false);\n";
     code += "            }\n\n";
 
     code += "            /* Copy input contracts database content into context database (dbProgram)*/\n";
-    code += "            map< string, vector<uint8_t> >::const_iterator itp;\n";
+    code += "            unordered_map< string, vector<uint8_t> >::const_iterator itp;\n";
     code += "            for (itp=proverRequest.input.contractsBytecode.begin(); itp!=proverRequest.input.contractsBytecode.end(); itp++)\n";
     code += "            {\n";
     code += "                pDatabase->setProgram(itp->first, itp->second, false);\n";
@@ -206,6 +208,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     code += "    uint64_t lm;\n";
     code += "    uint64_t lh;\n";
     code += "    mpz_class paddingA;\n";
+    code += "    unordered_map< uint64_t, HashValue >::iterator hashIterator;\n";
+    code += "    unordered_map<uint64_t, uint64_t>::iterator readsIterator;\n";
 
     // Mem allign free in
     code += "    mpz_class m0;\n";
@@ -224,12 +228,12 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     code += "    mpz_class expectedC;\n";
     code += "    BinaryAction binaryAction;\n";
 
-    code += "    #ifdef LOG_TIME\n";
+    code += "#ifdef LOG_TIME_STATISTICS\n";
     code += "    uint64_t poseidonTime=0, poseidonTimes=0;\n";
     code += "    uint64_t smtTime=0, smtTimes=0;\n";
     code += "    uint64_t keccakTime=0, keccakTimes=0;\n";
     code += "    struct timeval t;\n";
-    code += "    #endif\n";
+    code += "#endif\n";
 
     // Arith
     code += "    mpz_class A, B, C, D, op;\n";
@@ -247,7 +251,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         code += "    MemoryAccess memoryAccess;\n";
     
     code += "    std::ofstream outfile;\n";
-    code += "    std::map<uint64_t, Fea>::iterator memIterator;\n";
+    code += "    std::unordered_map<uint64_t, Fea>::iterator memIterator;\n";
     code += "\n";
 
     code += "    uint64_t zkPC = 0; // Zero-knowledge program counter\n";
@@ -270,6 +274,21 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     code += "    uint64_t incHashPos = 0;\n";
     code += "    uint64_t incCounter = 0;\n\n";
     code += "    bool bJump = false;\n\n";
+    
+    code += "    uint64_t N_Max;\n";
+    code += "    if (proverRequest.input.bNoCounters)\n";
+    code += "    {\n";
+    code += "        if (!proverRequest.bProcessBatch)\n";
+    code += "        {\n";
+    code += "            cerr << \"Error: MainExecutor::execute() found proverRequest.input.bNoCounters=true and proverRequest.bProcessBatch=true\" << endl;\n";
+    code += "            exitProcess();\n";
+    code += "        }\n";
+    code += "        N_Max = mainExecutor.N_NoCounters;\n";
+    code += "    }\n";
+    code += "    else\n";
+    code += "    {\n";
+    code += "        N_Max = mainExecutor.N;\n";
+    code += "    }\n\n";
 
     for (let zkPC=0; zkPC<rom.program.length; zkPC++)
     {
@@ -285,9 +304,12 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         // ROM instruction line, commented if not used to save compilation workload
         //if (!usedLabels.includes(zkPC))
         //    code += "// ";
-        code += functionName + "_rom_line_" + zkPC + ": //" + rom.program[zkPC].fileName + ":" + rom.program[zkPC].line + "=" + rom.program[zkPC].lineStr.replace(/\s+/g, ' ').trim() + "\n\n";
+        code += functionName + "_rom_line_" + zkPC + ": //" + rom.program[zkPC].fileName + ":" + rom.program[zkPC].line + "=[" + rom.program[zkPC].lineStr.replace(/\s+/g, ' ').trim() + "]\n\n";
 
         // START LOGS
+        code += "#ifdef LOG_COMPLETED_STEPS_TO_FILE\n";
+        code += "    fi0=fi1=fi2=fi3=fi4=fi5=fi6=fi7=fr.zero();\n";
+        code += "#endif\n";
         code += "#ifdef LOG_START_STEPS\n";
         code += "    cout << \"--> Starting step=\" << i << \" zkPC=" + zkPC + " zkasm=\" << rom.line[" + zkPC + "].lineStr << endl;\n";
         code += "#endif\n";
@@ -397,7 +419,27 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
         if (rom.program[zkPC].inSTEP)
         {
-            code += selector1i("STEP", rom.program[zkPC].inSTEP, opInitialized, bFastMode);
+            code += "    // op0 = op0 + inSTEP*step , where inSTEP=" + rom.program[zkPC].inSTEP + "\n";
+
+            let value = "";
+            if (rom.program[zkPC].inSTEP == 1)
+                value = "fr.fromU64(proverRequest.input.bNoCounters ? 1 : i)";
+            else if (rom.program[zkPC].inSTEP == -1)
+                value = "fr.neg(fr.fromU64(proverRequest.input.bNoCounters ? 1 : i))";
+            else
+                value = "fr.mul(fr.fromS32(" + rom.program[zkPC].inSTEP + "), fr.fromU64(proverRequest.input.bNoCounters ? 1 : i))";
+            if (opInitialized)
+                value = "fr.add(op0, " + value + ")"
+            code += "    op0 = " + value + ";\n";
+            if (!opInitialized)
+                for (let j=1; j<8; j++)
+                {
+                    code += "    op" + j + " = fr.zero();\n";
+                }
+            if (!bFastMode)
+                code += "    pols.inSTEP[i] = fr.fromS32(" + rom.program[zkPC].inSTEP + ");\n";
+            code += "\n";
+
             opInitialized = true;
         }
 
@@ -446,6 +488,67 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         if (rom.program[zkPC].inCntPaddingPG)
         {
             code += selector1("cntPaddingPG", rom.program[zkPC].inCntPaddingPG, opInitialized, bFastMode);
+            opInitialized = true;
+        }
+
+        if (rom.program[zkPC].inROTL_C)
+        {
+            code += "    // If inROTL_C, op = C rotated left\n";
+            if (opInitialized)
+            {
+                if (rom.program[zkPC].inROTL_C == 1)
+                {
+                    code += "    op0 = fr.add(op0, pols.C7[" + (bFastMode?"0":"i") + "]);\n";
+                    code += "    op1 = fr.add(op1, pols.C0[" + (bFastMode?"0":"i") + "]);\n";
+                    code += "    op2 = fr.add(op2, pols.C1[" + (bFastMode?"0":"i") + "]);\n";
+                    code += "    op3 = fr.add(op3, pols.C2[" + (bFastMode?"0":"i") + "]);\n";
+                    code += "    op4 = fr.add(op4, pols.C3[" + (bFastMode?"0":"i") + "]);\n";
+                    code += "    op5 = fr.add(op5, pols.C4[" + (bFastMode?"0":"i") + "]);\n";
+                    code += "    op6 = fr.add(op6, pols.C5[" + (bFastMode?"0":"i") + "]);\n";
+                    code += "    op7 = fr.add(op7, pols.C6[" + (bFastMode?"0":"i") + "]);\n";
+                }
+                else
+                {
+                    code += "    op0 = fr.add(op0, fr.mul(rom.line[zkPC].inROTL_C, pols.C7[" + (bFastMode?"0":"i") + "]));\n";
+                    code += "    op1 = fr.add(op1, fr.mul(rom.line[zkPC].inROTL_C, pols.C0[" + (bFastMode?"0":"i") + "]));\n";
+                    code += "    op2 = fr.add(op2, fr.mul(rom.line[zkPC].inROTL_C, pols.C1[" + (bFastMode?"0":"i") + "]));\n";
+                    code += "    op3 = fr.add(op3, fr.mul(rom.line[zkPC].inROTL_C, pols.C2[" + (bFastMode?"0":"i") + "]));\n";
+                    code += "    op4 = fr.add(op4, fr.mul(rom.line[zkPC].inROTL_C, pols.C3[" + (bFastMode?"0":"i") + "]));\n";
+                    code += "    op5 = fr.add(op5, fr.mul(rom.line[zkPC].inROTL_C, pols.C4[" + (bFastMode?"0":"i") + "]));\n";
+                    code += "    op6 = fr.add(op6, fr.mul(rom.line[zkPC].inROTL_C, pols.C5[" + (bFastMode?"0":"i") + "]));\n";
+                    code += "    op7 = fr.add(op7, fr.mul(rom.line[zkPC].inROTL_C, pols.C6[" + (bFastMode?"0":"i") + "]));\n";
+                }
+            }
+            else
+            {
+                if (rom.program[zkPC].inROTL_C == 1)
+                {
+                    code += "    op0 = pols.C7[" + (bFastMode?"0":"i") + "];\n";
+                    code += "    op1 = pols.C0[" + (bFastMode?"0":"i") + "];\n";
+                    code += "    op2 = pols.C1[" + (bFastMode?"0":"i") + "];\n";
+                    code += "    op3 = pols.C2[" + (bFastMode?"0":"i") + "];\n";
+                    code += "    op4 = pols.C3[" + (bFastMode?"0":"i") + "];\n";
+                    code += "    op5 = pols.C4[" + (bFastMode?"0":"i") + "];\n";
+                    code += "    op6 = pols.C5[" + (bFastMode?"0":"i") + "];\n";
+                    code += "    op7 = pols.C6[" + (bFastMode?"0":"i") + "];\n";
+                }
+                else
+                {
+                    code += "    op0 = fr.mul(rom.line[zkPC].inROTL_C, pols.C7[" + (bFastMode?"0":"i") + "]);\n";
+                    code += "    op1 = fr.mul(rom.line[zkPC].inROTL_C, pols.C0[" + (bFastMode?"0":"i") + "]);\n";
+                    code += "    op2 = fr.mul(rom.line[zkPC].inROTL_C, pols.C1[" + (bFastMode?"0":"i") + "]);\n";
+                    code += "    op3 = fr.mul(rom.line[zkPC].inROTL_C, pols.C2[" + (bFastMode?"0":"i") + "]);\n";
+                    code += "    op4 = fr.mul(rom.line[zkPC].inROTL_C, pols.C3[" + (bFastMode?"0":"i") + "]);\n";
+                    code += "    op5 = fr.mul(rom.line[zkPC].inROTL_C, pols.C4[" + (bFastMode?"0":"i") + "]);\n";
+                    code += "    op6 = fr.mul(rom.line[zkPC].inROTL_C, pols.C5[" + (bFastMode?"0":"i") + "]);\n";
+                    code += "    op7 = fr.mul(rom.line[zkPC].inROTL_C, pols.C6[" + (bFastMode?"0":"i") + "]);\n";
+                }
+            }
+            if (!bFastMode)
+            {
+                code += "    pols.inROTL_C[i] = rom.line[zkPC].inROTL_C;\n";
+            }
+            code += "\n";
             opInitialized = true;
         }
 
@@ -530,6 +633,10 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "    addr = 0;\n\n";
             }
         }
+        else
+        {
+            code += "    addr = 0;\n\n";
+        }
 
         if (rom.program[zkPC].useCTX == 1)
         {
@@ -555,6 +662,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         {
             code += "    // If isStack, addr = addr + STACK_OFFSET\n";
             code += "    addr += STACK_OFFSET;\n";
+            code += "    addr += fr.toU64(pols.SP[" + (bFastMode?"0":"i") + "]);\n";
             if (!bFastMode)
                 code += "    pols.isStack[i] = fr.one();\n\n";
             else
@@ -665,9 +773,9 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     code += "    Kin1[6] = pols.B0[" + (bFastMode?"0":"i") + "];\n";
                     code += "    Kin1[7] = pols.B1[" + (bFastMode?"0":"i") + "];\n";
 
-                    code += "    #ifdef LOG_TIME\n";
+                    code += "#ifdef LOG_TIME_STATISTICS\n";
                     code += "    gettimeofday(&t, NULL);\n";
-                    code += "    #endif\n";
+                    code += "#endif\n";
                     if (!bFastMode)
                     {
                         code += "    // Prepare PoseidonG required data\n";
@@ -715,14 +823,14 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     code += "    key[1] = Kin1Hash[1];\n";
                     code += "    key[2] = Kin1Hash[2];\n";
                     code += "    key[3] = Kin1Hash[3];\n";
-                    code += "    #ifdef LOG_TIME\n";
+                    code += "#ifdef LOG_TIME_STATISTICS\n";
                     code += "    poseidonTime += TimeDiff(t);\n";
                     code += "    poseidonTimes+=3;\n";
-                    code += "    #endif\n";
+                    code += "#endif\n";
 
-                    code += "    #ifdef LOG_STORAGE\n";
+                    code += "#ifdef LOG_STORAGE\n";
                     code += "    cout << \"Storage read sRD got poseidon key: \" << ctx.fr.toString(ctx.lastSWrite.key, 16) << endl;\n";
-                    code += "    #endif \n";
+                    code += "#endif \n";
                     code += "    sr8to4(fr, pols.SR0[" + (bFastMode?"0":"i") + "], pols.SR1[" + (bFastMode?"0":"i") + "], pols.SR2[" + (bFastMode?"0":"i") + "], pols.SR3[" + (bFastMode?"0":"i") + "], pols.SR4[" + (bFastMode?"0":"i") + "], pols.SR5[" + (bFastMode?"0":"i") + "], pols.SR6[" + (bFastMode?"0":"i") + "], pols.SR7[" + (bFastMode?"0":"i") + "], oldRoot[0], oldRoot[1], oldRoot[2], oldRoot[3]);\n";
                     
                     code += "    zkResult = mainExecutor.pStateDB->get(oldRoot, key, value, &smtGetResult);\n";
@@ -736,9 +844,9 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     
                     code += "    scalar2fea(fr, smtGetResult.value, fi0, fi1, fi2, fi3, fi4, fi5, fi6, fi7);\n";
 
-                    code += "    #ifdef LOG_STORAGE\n";
+                    code += "#ifdef LOG_STORAGE\n";
                     code += "    cout << \"Storage read sRD read from key: \" << ctx.fr.toString(ctx.lastSWrite.key, 16) << \" value:\" << fr.toString(fi3, 16) << \":\" << fr.toString(fi2, 16) << \":\" << fr.toString(fi1, 16) << \":\" << fr.toString(fi0, 16) << endl;\n";
-                    code += "    #endif\n";
+                    code += "#endif\n";
 
                     nHits++;
                 }
@@ -771,9 +879,9 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     code += "    Kin1[6] = pols.B0[" + (bFastMode?"0":"i") + "];\n";
                     code += "    Kin1[7] = pols.B1[" + (bFastMode?"0":"i") + "];\n";
 
-                    code += "    #ifdef LOG_TIME\n";
+                    code += "#ifdef LOG_TIME_STATISTICS\n";
                     code += "    gettimeofday(&t, NULL);\n";
-                    code += "    #endif\n";
+                    code += "#endif\n";
 
                     if (!bFastMode)
                     {
@@ -827,22 +935,22 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     code += "    ctx.lastSWrite.key[1] = Kin1Hash[1];\n";
                     code += "    ctx.lastSWrite.key[2] = Kin1Hash[2];\n";
                     code += "    ctx.lastSWrite.key[3] = Kin1Hash[3];\n";
-                    code += "    #ifdef LOG_TIME\n";
+                    code += "#ifdef LOG_TIME_STATISTICS\n";
                     code += "    poseidonTime += TimeDiff(t);\n";
                     code += "    poseidonTimes++;\n";
-                    code += "    #endif\n";
+                    code += "#endif\n";
 
-                    code += "    #ifdef LOG_STORAGE\n";
+                    code += "#ifdef LOG_STORAGE\n";
                     code += "    cout << \"Storage write sWR got poseidon key: \" << ctx.fr.toString(ctx.lastSWrite.key, 16) << endl;\n";
-                    code += "    #endif\n";
+                    code += "#endif\n";
                     code += "    // Call SMT to get the new Merkel Tree root hash\n";
                     code += "    fea2scalar(fr, scalarD, pols.D0[" + (bFastMode?"0":"i") + "], pols.D1[" + (bFastMode?"0":"i") + "], pols.D2[" + (bFastMode?"0":"i") + "], pols.D3[" + (bFastMode?"0":"i") + "], pols.D4[" + (bFastMode?"0":"i") + "], pols.D5[" + (bFastMode?"0":"i") + "], pols.D6[" + (bFastMode?"0":"i") + "], pols.D7[" + (bFastMode?"0":"i") + "]);\n";
-                    code += "    #ifdef LOG_TIME\n";
+                    code += "#ifdef LOG_TIME_STATISTICS\n";
                     code += "    gettimeofday(&t, NULL);\n";
-                    code += "    #endif\n";
+                    code += "#endif\n";
                     code += "    sr8to4(fr, pols.SR0[" + (bFastMode?"0":"i") + "], pols.SR1[" + (bFastMode?"0":"i") + "], pols.SR2[" + (bFastMode?"0":"i") + "], pols.SR3[" + (bFastMode?"0":"i") + "], pols.SR4[" + (bFastMode?"0":"i") + "], pols.SR5[" + (bFastMode?"0":"i") + "], pols.SR6[" + (bFastMode?"0":"i") + "], pols.SR7[" + (bFastMode?"0":"i") + "], oldRoot[0], oldRoot[1], oldRoot[2], oldRoot[3]);\n";
                     
-                    code += "    zkResult = mainExecutor.pStateDB->set(oldRoot, ctx.lastSWrite.key, scalarD, proverRequest.bUpdateMerkleTree, ctx.lastSWrite.newRoot, &ctx.lastSWrite.res);\n";
+                    code += "    zkResult = mainExecutor.pStateDB->set(oldRoot, ctx.lastSWrite.key, scalarD, proverRequest.input.bUpdateMerkleTree, ctx.lastSWrite.newRoot, &ctx.lastSWrite.res);\n";
                     code += "    if (zkResult != ZKR_SUCCESS)\n";
                     code += "    {\n";
                     code += "        cerr << \"MainExecutor::Execute() failed calling pStateDB->set() result=\" << zkresult2string(zkResult) << endl;\n";
@@ -850,17 +958,17 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     code += "        return;\n";
                     code += "    }\n";
                     code += "    incCounter = ctx.lastSWrite.res.proofHashCounter + 2;\n";
-                    code += "    #ifdef LOG_TIME\n";
+                    code += "#ifdef LOG_TIME_STATISTICS\n";
                     code += "    smtTime += TimeDiff(t);\n";
                     code += "    smtTimes++;\n";
-                    code += "    #endif\n";
+                    code += "#endif\n";
                     code += "    ctx.lastSWrite.step = i;\n";
 
                     code += "    sr4to8(fr, ctx.lastSWrite.newRoot[0], ctx.lastSWrite.newRoot[1], ctx.lastSWrite.newRoot[2], ctx.lastSWrite.newRoot[3], fi0, fi1, fi2, fi3, fi4, fi5, fi6, fi7);\n";
 
-                    code += "    #ifdef LOG_STORAGE\n";
+                    code += "#ifdef LOG_STORAGE\n";
                     code += "    cout << \"Storage write sWR stored at key: \" << ctx.fr.toString(ctx.lastSWrite.key, 16) << \" newRoot: \" << fr.toString(res.newRoot, 16) << endl;\n";
-                    code += "    #endif\n";
+                    code += "#endif\n";
 
                     nHits++;
                 }
@@ -870,10 +978,13 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 {
                     code += "    // HashK free in\n";
                     code += "    // If there is no entry in the hash database for this address, then create a new one\n";
-                    code += "    if (ctx.hashK.find(addr) == ctx.hashK.end())\n";
+                    code += "    hashIterator = ctx.hashK.find(addr);\n";
+                    code += "    if (hashIterator == ctx.hashK.end())\n";
                     code += "    {\n";
                     code += "        HashValue hashValue;\n";
                     code += "        ctx.hashK[addr] = hashValue;\n";
+                    code += "        hashIterator = ctx.hashK.find(addr);\n";
+                    code += "        zkassert(hashIterator != ctx.hashK.end());\n";
                     code += "    }\n";
                     
                     code += "    // Get the size of the hash from D0\n";
@@ -904,7 +1015,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     code += "    pos = iPos;\n";
 
                     code += "    // Check that pos+size do not exceed data size\n";
-                    code += "    if ( (pos+size) > ctx.hashK[addr].data.size())\n";
+                    code += "    if ( (pos+size) > hashIterator->second.data.size())\n";
                     code += "    {\n";
                     code += "        cerr << \"Error: hashK 1 invalid size of hash: pos=\" << pos << \" size=\" << size << \" data.size=\" << ctx.hashK[addr].data.size() << endl;\n";
                     code += "        proverRequest.result = ZKR_SM_MAIN_HASHK;\n";
@@ -912,16 +1023,17 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     code += "    }\n";
 
                     code += "    // Copy data into fi\n";
+                    code += "    s = 0;\n";
                     code += "    for (uint64_t j=0; j<size; j++)\n";
                     code += "    {\n";
-                    code += "        uint8_t data = ctx.hashK[addr].data[pos+j];\n";
+                    code += "        uint8_t data = hashIterator->second.data[pos+j];\n";
                     code += "        s = (s<<uint64_t(8)) + mpz_class(data);\n";
                     code += "    }\n";
                     code += "    scalar2fea(fr, s, fi0, fi1, fi2, fi3, fi4 ,fi5 ,fi6 ,fi7);\n";
 
-                    code += "    #ifdef LOG_HASHK\n";
+                    code += "#ifdef LOG_HASHK\n";
                     code += "    cout << \"hashK 1 i=\" << i << \" zkPC=" + zkPC + " addr=\" << addr << \" pos=\" << pos << \" size=\" << size << \" data=\" << s.get_str(16) << endl;\n";
-                    code += "    #endif\n";
+                    code += "#endif\n";
 
                     nHits++;
                 }
@@ -931,7 +1043,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 {
                     code += "    // HashKDigest free in\n";
                     code += "    // If there is no entry in the hash database for this address, this is an error\n";
-                    code += "    if (ctx.hashK.find(addr) == ctx.hashK.end())\n";
+                    code += "    hashIterator = ctx.hashK.find(addr);\n";
+                    code += "    if (hashIterator == ctx.hashK.end())\n";
                     code += "    {\n";
                     code += "        cerr << \"Error: hashKDigest 1: digest not defined for addr=\" << addr << endl;\n";
                     code += "        proverRequest.result = ZKR_SM_MAIN_HASHK;\n";
@@ -939,7 +1052,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     code += "    }\n";
 
                     code += "    // If digest was not calculated, this is an error\n";
-                    code += "    if (!ctx.hashK[addr].bDigested)\n";
+                    code += "    if (!hashIterator->second.bDigested)\n";
                     code += "    {\n";
                     code += "        cerr << \"Error: hashKDigest 1: digest not calculated for addr=\" << addr << \".  Call hashKLen to finish digest.\" << endl;\n";
                     code += "        proverRequest.result = ZKR_SM_MAIN_HASHK;\n";
@@ -947,11 +1060,11 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     code += "    }\n";
 
                     code += "    // Copy digest into fi\n";
-                    code += "    scalar2fea(fr, ctx.hashK[addr].digest, fi0, fi1, fi2, fi3, fi4 ,fi5 ,fi6 ,fi7);\n";
+                    code += "    scalar2fea(fr, hashIterator->second.digest, fi0, fi1, fi2, fi3, fi4 ,fi5 ,fi6 ,fi7);\n";
 
-                    code += "    #ifdef LOG_HASHK\n";
+                    code += "#ifdef LOG_HASHK\n";
                     code += "    cout << \"hashKDigest 1 i=\" << i << \" zkPC=" + zkPC + " addr=\" << addr << \" digest=\" << ctx.hashK[addr].digest.get_str(16) << endl;\n";
-                    code += "    #endif\n";
+                    code += "#endif\n";
 
                     nHits++;
                 }
@@ -961,10 +1074,13 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 {
                     code += "    // HashP free in\n";
                     code += "    // If there is no entry in the hash database for this address, then create a new one\n";
-                    code += "    if (ctx.hashP.find(addr) == ctx.hashP.end())\n";
+                    code += "    hashIterator = ctx.hashP.find(addr);\n";
+                    code += "    if (hashIterator == ctx.hashP.end())\n";
                     code += "    {\n";
                     code += "        HashValue hashValue;\n";
                     code += "        ctx.hashP[addr] = hashValue;\n";
+                    code += "        hashIterator = ctx.hashP.find(addr);\n";
+                    code += "        zkassert(hashIterator != ctx.hashP.end());\n";
                     code += "    }\n";
                     
                     code += "    // Get the size of the hash from D0\n";
@@ -995,7 +1111,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     code += "    pos = iPos;\n";
 
                     code += "    // Check that pos+size do not exceed data size\n";
-                    code += "    if ( (pos+size) > ctx.hashP[addr].data.size())\n";
+                    code += "    if ( (pos+size) > hashIterator->second.data.size())\n";
                     code += "    {\n";
                     code += "        cerr << \"Error: hashP 1 invalid size of hash: pos=\" << pos << \" size=\" << size << \" data.size=\" << ctx.hashP[addr].data.size() << endl;\n";
                     code += "        proverRequest.result = ZKR_SM_MAIN_HASHP;\n";
@@ -1003,9 +1119,10 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     code += "    }\n";
 
                     code += "    // Copy data into fi\n";
+                    code += "    s = 0;\n";
                     code += "    for (uint64_t j=0; j<size; j++)\n";
                     code += "    {\n";
-                    code += "        uint8_t data = ctx.hashP[addr].data[pos+j];\n";
+                    code += "        uint8_t data = hashIterator->second.data[pos+j];\n";
                     code += "        s = (s<<uint64_t(8)) + mpz_class(data);\n";
                     code += "    }\n";
                     code += "    scalar2fea(fr, s, fi0, fi1, fi2, fi3, fi4 ,fi5 ,fi6 ,fi7);\n";
@@ -1018,21 +1135,22 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 {
                     code += "    // HashPDigest free in\n";
                     code += "    // If there is no entry in the hash database for this address, this is an error\n";
-                    code += "    if (ctx.hashP.find(addr) == ctx.hashP.end())\n";
+                    code += "    hashIterator = ctx.hashP.find(addr);\n";
+                    code += "    if (hashIterator == ctx.hashP.end())\n";
                     code += "    {\n";
                     code += "        cerr << \"Error: hashPDigest 1: digest not defined\" << endl;\n";
                     code += "        proverRequest.result = ZKR_SM_MAIN_HASHP;\n";
                     code += "        return;\n";
                     code += "    }\n";
                     code += "    // If digest was not calculated, this is an error\n";
-                    code += "    if (!ctx.hashP[addr].bDigested)\n";
+                    code += "    if (!hashIterator->second.bDigested)\n";
                     code += "    {\n";
                     code += "        cerr << \"Error: hashPDigest 1: digest not calculated.  Call hashPLen to finish digest.\" << endl;\n";
                     code += "        proverRequest.result = ZKR_SM_MAIN_HASHP;\n";
                     code += "        return;\n";
                     code += "    }\n";
                     code += "    // Copy digest into fi\n";
-                    code += "    scalar2fea(fr, ctx.hashP[addr].digest, fi0, fi1, fi2, fi3, fi4 ,fi5 ,fi6 ,fi7);\n";
+                    code += "    scalar2fea(fr, hashIterator->second.digest, fi0, fi1, fi2, fi3, fi4 ,fi5 ,fi6 ,fi7);\n";
                     nHits++;
                 }
 
@@ -1225,6 +1343,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "        cerr << \"Error: unexpected command result type: \" << cr.type << endl;\n";
                 code += "        exitProcess();\n";
                 code += "    }\n";
+                /*
                 code += "    // If we are in fast mode and we are consuming the last evaluations, exit the loop\n";
                 code += "    if (cr.beforeLast)\n";
                 code += "    {\n";
@@ -1235,6 +1354,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 if (bFastMode)
                     code += "        goto " + functionName + "_end;\n";
                 code += "    }\n\n";
+                */
 
             }
 
@@ -1282,25 +1402,25 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             {
                 if (opInitialized)
                 {
-                    code += "    op0 = fr.add(op0, fr.mul(rom.line[zkPC].inFREE, fi0));\n";
-                    code += "    op1 = fr.add(op1, fr.mul(rom.line[zkPC].inFREE, fi1));\n";
-                    code += "    op2 = fr.add(op2, fr.mul(rom.line[zkPC].inFREE, fi2));\n";
-                    code += "    op3 = fr.add(op3, fr.mul(rom.line[zkPC].inFREE, fi3));\n";
-                    code += "    op4 = fr.add(op4, fr.mul(rom.line[zkPC].inFREE, fi4));\n";
-                    code += "    op5 = fr.add(op5, fr.mul(rom.line[zkPC].inFREE, fi5));\n";
-                    code += "    op6 = fr.add(op6, fr.mul(rom.line[zkPC].inFREE, fi6));\n";
-                    code += "    op7 = fr.add(op7, fr.mul(rom.line[zkPC].inFREE, fi7));\n\n";
+                    code += "    op0 = fr.add(op0, fr.mul(rom.line["+zkPC+"].inFREE, fi0));\n";
+                    code += "    op1 = fr.add(op1, fr.mul(rom.line["+zkPC+"].inFREE, fi1));\n";
+                    code += "    op2 = fr.add(op2, fr.mul(rom.line["+zkPC+"].inFREE, fi2));\n";
+                    code += "    op3 = fr.add(op3, fr.mul(rom.line["+zkPC+"].inFREE, fi3));\n";
+                    code += "    op4 = fr.add(op4, fr.mul(rom.line["+zkPC+"].inFREE, fi4));\n";
+                    code += "    op5 = fr.add(op5, fr.mul(rom.line["+zkPC+"].inFREE, fi5));\n";
+                    code += "    op6 = fr.add(op6, fr.mul(rom.line["+zkPC+"].inFREE, fi6));\n";
+                    code += "    op7 = fr.add(op7, fr.mul(rom.line["+zkPC+"].inFREE, fi7));\n\n";
                 }
                 else
                 {
-                    code += "    op0 = fr.mul(rom.line[zkPC].inFREE, fi0);\n";
-                    code += "    op1 = fr.mul(rom.line[zkPC].inFREE, fi1);\n";
-                    code += "    op2 = fr.mul(rom.line[zkPC].inFREE, fi2);\n";
-                    code += "    op3 = fr.mul(rom.line[zkPC].inFREE, fi3);\n";
-                    code += "    op4 = fr.mul(rom.line[zkPC].inFREE, fi4);\n";
-                    code += "    op5 = fr.mul(rom.line[zkPC].inFREE, fi5);\n";
-                    code += "    op6 = fr.mul(rom.line[zkPC].inFREE, fi6);\n";
-                    code += "    op7 = fr.mul(rom.line[zkPC].inFREE, fi7);\n\n";
+                    code += "    op0 = fr.mul(rom.line["+zkPC+"].inFREE, fi0);\n";
+                    code += "    op1 = fr.mul(rom.line["+zkPC+"].inFREE, fi1);\n";
+                    code += "    op2 = fr.mul(rom.line["+zkPC+"].inFREE, fi2);\n";
+                    code += "    op3 = fr.mul(rom.line["+zkPC+"].inFREE, fi3);\n";
+                    code += "    op4 = fr.mul(rom.line["+zkPC+"].inFREE, fi4);\n";
+                    code += "    op5 = fr.mul(rom.line["+zkPC+"].inFREE, fi5);\n";
+                    code += "    op6 = fr.mul(rom.line["+zkPC+"].inFREE, fi6);\n";
+                    code += "    op7 = fr.mul(rom.line["+zkPC+"].inFREE, fi7);\n\n";
                     opInitialized = true;
                 }
             }
@@ -1333,9 +1453,13 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "         (!fr.equal(pols.A7[" + (bFastMode?"0":"i") + "], op7)) )\n";
             code += "    {\n";
             code += "        if (bSkipAsserts && (" + zkPC + " == mainExecutor.assertNewStateRootLabel))\n";
-            code += "            cout << \"Skipping assert of new state root\" << endl;\n";
+            code += "        {\n";
+            code += "            //cout << \"Skipping assert of new state root\" << endl;\n";
+            code += "        }\n";
             code += "        else if (bSkipAsserts && (" + zkPC + " == mainExecutor.assertNewLocalExitRootLabel))\n";
-            code += "            cout << \"Skipping assert of new local exit root\" << endl;\n";
+            code += "        {\n";
+            code += "            //cout << \"Skipping assert of new local exit root\" << endl;\n";
+            code += "        }\n";
             code += "        else\n";
             code += "        {\n";
             code += "            cerr << \"Error: ROM assert failed: AN!=opN ln: \" << " + zkPC + " << endl;\n";
@@ -1370,7 +1494,9 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "        memIterator = ctx.mem.find(addr);\n";
                 code += "    }\n";
                 code += "    else\n";
+                code += "    {\n";
                 code += "        memIterator->second.fe0 = op0;\n";
+                code += "    }\n";
                 code += "    memIterator->second.fe1 = op1;\n";
                 code += "    memIterator->second.fe2 = op2;\n";
                 code += "    memIterator->second.fe3 = op3;\n";
@@ -1480,9 +1606,9 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    Kin1[6] = pols.B0[" + (bFastMode?"0":"i") + "];\n";
             code += "    Kin1[7] = pols.B1[" + (bFastMode?"0":"i") + "];\n";
 
-            code += "    #ifdef LOG_TIME\n";
+            code += "#ifdef LOG_TIME_STATISTICS\n";
             code += "    gettimeofday(&t, NULL);\n";
-            code += "    #endif\n";
+            code += "#endif\n";
 
             code += "    // Call poseidon and get the hash key\n";
             code += "    mainExecutor.poseidon.hash(Kin0Hash, Kin0);\n";
@@ -1504,14 +1630,14 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    key[2] = Kin1Hash[2];\n";
             code += "    key[3] = Kin1Hash[3];\n";
 
-            code += "    #ifdef LOG_TIME\n";
+            code += "#ifdef LOG_TIME_STATISTICS\n";
             code += "    poseidonTime += TimeDiff(t);\n";
             code += "    poseidonTimes+=3;\n";
-            code += "    #endif\n";
+            code += "#endif\n";
 
-            code += "    #ifdef LOG_STORAGE\n";
+            code += "#ifdef LOG_STORAGE\n";
             code += "    cout << \"Storage read sRD got poseidon key: \" << ctx.fr.toString(ctx.lastSWrite.key, 16) << endl;\n";
-            code += "    #endif\n";
+            code += "#endif\n";
 
             code += "    sr8to4(fr, pols.SR0[" + (bFastMode?"0":"i") + "], pols.SR1[" + (bFastMode?"0":"i") + "], pols.SR2[" + (bFastMode?"0":"i") + "], pols.SR3[" + (bFastMode?"0":"i") + "], pols.SR4[" + (bFastMode?"0":"i") + "], pols.SR5[" + (bFastMode?"0":"i") + "], pols.SR6[" + (bFastMode?"0":"i") + "], pols.SR7[" + (bFastMode?"0":"i") + "], oldRoot[0], oldRoot[1], oldRoot[2], oldRoot[3]);\n";
             
@@ -1531,9 +1657,9 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "    required.Storage.push_back(smtAction);\n";
             }
 
-            code += "    #ifdef LOG_STORAGE\n";
+            code += "#ifdef LOG_STORAGE\n";
             code += "    cout << \"Storage read sRD read from key: \" << ctx.fr.toString(ctx.lastSWrite.key, 16) << \" value:\" << fr.toString(fi3, 16) << \":\" << fr.toString(fi2, 16) << \":\" << fr.toString(fi1, 16) << \":\" << fr.toString(fi0, 16) << endl;\n";
-            code += "    #endif\n";
+            code += "#endif\n";
             
             code += "    fea2scalar(fr, opScalar, op0, op1, op2, op3, op4, op5, op6, op7);\n";
             code += "    if (smtGetResult.value != opScalar)\n";
@@ -1591,9 +1717,9 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "        Kin1[6] = pols.B0[" + (bFastMode?"0":"i") + "];\n";
             code += "        Kin1[7] = pols.B1[" + (bFastMode?"0":"i") + "];\n";
 
-            code += "    #ifdef LOG_TIME\n";
+            code += "#ifdef LOG_TIME_STATISTICS\n";
             code += "        gettimeofday(&t, NULL);\n";
-            code += "    #endif\n";
+            code += "#endif\n";
 
             code += "        // Call poseidon and get the hash key\n";
             code += "        mainExecutor.poseidon.hash(Kin0Hash, Kin0);\n";
@@ -1615,20 +1741,20 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "        ctx.lastSWrite.key[2] = Kin1Hash[2];\n";
             code += "        ctx.lastSWrite.key[3] = Kin1Hash[3];\n";
                 
-            code += "    #ifdef LOG_TIME\n";
+            code += "#ifdef LOG_TIME_STATISTICS\n";
             code += "        poseidonTime += TimeDiff(t);\n";
             code += "        poseidonTimes++;\n";
-            code += "    #endif\n";
+            code += "#endif\n";
 
             code += "        // Call SMT to get the new Merkel Tree root hash\n";
             code += "        fea2scalar(fr, scalarD, pols.D0[" + (bFastMode?"0":"i") + "], pols.D1[" + (bFastMode?"0":"i") + "], pols.D2[" + (bFastMode?"0":"i") + "], pols.D3[" + (bFastMode?"0":"i") + "], pols.D4[" + (bFastMode?"0":"i") + "], pols.D5[" + (bFastMode?"0":"i") + "], pols.D6[" + (bFastMode?"0":"i") + "], pols.D7[" + (bFastMode?"0":"i") + "]);\n";
-            code += "    #ifdef LOG_TIME\n";
+            code += "#ifdef LOG_TIME_STATISTICS\n";
             code += "        gettimeofday(&t, NULL);\n";
-            code += "    #endif\n";
+            code += "#endif\n";
             
             code += "        sr8to4(fr, pols.SR0[" + (bFastMode?"0":"i") + "], pols.SR1[" + (bFastMode?"0":"i") + "], pols.SR2[" + (bFastMode?"0":"i") + "], pols.SR3[" + (bFastMode?"0":"i") + "], pols.SR4[" + (bFastMode?"0":"i") + "], pols.SR5[" + (bFastMode?"0":"i") + "], pols.SR6[" + (bFastMode?"0":"i") + "], pols.SR7[" + (bFastMode?"0":"i") + "], oldRoot[0], oldRoot[1], oldRoot[2], oldRoot[3]);\n";
 
-            code += "        zkResult = mainExecutor.pStateDB->set(oldRoot, ctx.lastSWrite.key, scalarD, proverRequest.bUpdateMerkleTree, ctx.lastSWrite.newRoot, &ctx.lastSWrite.res);\n";
+            code += "        zkResult = mainExecutor.pStateDB->set(oldRoot, ctx.lastSWrite.key, scalarD, proverRequest.input.bUpdateMerkleTree, ctx.lastSWrite.newRoot, &ctx.lastSWrite.res);\n";
             code += "        if (zkResult != ZKR_SUCCESS)\n";
             code += "        {\n";
             code += "            cerr << \"MainExecutor::Execute() failed calling pStateDB->set() result=\" << zkresult2string(zkResult) << endl;\n";
@@ -1636,10 +1762,10 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "            return;\n";
             code += "        }\n";
             code += "        incCounter = ctx.lastSWrite.res.proofHashCounter + 2;\n";
-            code += "    #ifdef LOG_TIME\n";
+            code += "#ifdef LOG_TIME_STATISTICS\n";
             code += "        smtTime += TimeDiff(t);\n";
             code += "        smtTimes++;\n";
-            code += "    #endif\n";
+            code += "#endif\n";
 
             code += "        ctx.lastSWrite.step = i;\n";
             code += "    }\n";
@@ -1696,10 +1822,13 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "    pols.hashK[i] = fr.one();\n\n";
 
             code += "    // If there is no entry in the hash database for this address, then create a new one\n";
-            code += "    if (ctx.hashK.find(addr) == ctx.hashK.end())\n";
+            code += "    hashIterator = ctx.hashK.find(addr);\n";
+            code += "    if (hashIterator == ctx.hashK.end())\n";
             code += "    {\n";
             code += "        HashValue hashValue;\n";
             code += "        ctx.hashK[addr] = hashValue;\n";
+            code += "        hashIterator = ctx.hashK.find(addr);\n";
+            code += "        zkassert(hashIterator != ctx.hashK.end());\n";
             code += "    }\n\n";
             
             code += "    // Get the size of the hash from D0\n";
@@ -1737,11 +1866,11 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    {\n";
             code += "        result = (a >> ((size-j-1)*8)) & Mask8;\n";
             code += "        uint8_t bm = result.get_ui();\n";
-            code += "        if (ctx.hashK[addr].data.size() == (pos+j))\n";
+            code += "        if (hashIterator->second.data.size() == (pos+j))\n";
             code += "        {\n";
-            code += "            ctx.hashK[addr].data.push_back(bm);\n";
+            code += "            hashIterator->second.data.push_back(bm);\n";
             code += "        }\n";
-            code += "        else if (ctx.hashK[addr].data.size() < (pos+j))\n";
+            code += "        else if (hashIterator->second.data.size() < (pos+j))\n";
             code += "        {\n";
             code += "            cerr << \"Error: hashK 2: trying to insert data in a position:\" << (pos+j) << \" higher than current data size:\" << ctx.hashK[addr].data.size() << endl;\n";
             code += "            proverRequest.result = ZKR_SM_MAIN_HASHK;\n";
@@ -1750,7 +1879,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "        else\n";
             code += "        {\n";
             code += "            uint8_t bh;\n";
-            code += "            bh = ctx.hashK[addr].data[pos+j];\n";
+            code += "            bh = hashIterator->second.data[pos+j];\n";
             code += "            if (bm != bh)\n";
             code += "            {\n";
             code += "                cerr << \"Error: HashK 2 bytes do not match: addr=\" << addr << \" pos+j=\" << pos+j << \" is bm=\" << bm << \" and it should be bh=\" << bh << endl;\n";
@@ -1764,27 +1893,33 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    paddingA = a >> (size*8);\n";
             code += "    if (paddingA != 0)\n";
             code += "    {\n";
-            code += "        cerr << \"Error: HashK 2 incoherent size=\" << size << \" a=\" << a.get_str(16) << \" paddingA=\" << paddingA.get_str(16) << \" step=\" << step << \" zkPC=\" << zkPC << \" instruction=\" << rom.line[zkPC].toString(fr) << endl;\n";
+            code += "        cerr << \"Error: HashK 2 incoherent size=\" << size << \" a=\" << a.get_str(16) << \" paddingA=\" << paddingA.get_str(16) << \" step=\" << step << \" zkPC=" + zkPC + " instruction=\" << rom.line[" + zkPC + "].toString(fr) << endl;\n";
             code += "        exitProcess();\n";
             code += "    }\n\n";
 
             code += "    // Record the read operation\n";
-            code += "    if ( (ctx.hashK[addr].reads.find(pos) != ctx.hashK[addr].reads.end()) &&\n";
-            code += "         (ctx.hashK[addr].reads[pos] != size) )\n";
-            code += "    {\n";
-            code += "        cerr << \"Error: HashK 2 different read sizes in the same position addr=\" << addr << \" pos=\" << pos << \" ctx.hashK[addr].reads[pos]=\" << ctx.hashK[addr].reads[pos] << \" size=\" << size << endl;\n";
-            code += "        proverRequest.result = ZKR_SM_MAIN_HASHK;\n";
-            code += "        return;\n";
+            code += "    readsIterator = hashIterator->second.reads.find(pos);\n";
+            code += "    if ( readsIterator != hashIterator->second.reads.end() )\n";
+            code += "    {\n";            
+            code += "         if ( readsIterator->second != size )\n";
+            code += "        {\n";
+            code += "            cerr << \"Error: HashK 2 different read sizes in the same position addr=\" << addr << \" pos=\" << pos << \" ctx.hashK[addr].reads[pos]=\" << ctx.hashK[addr].reads[pos] << \" size=\" << size << endl;\n";
+            code += "            proverRequest.result = ZKR_SM_MAIN_HASHK;\n";
+            code += "            return;\n";
+            code += "        }\n";
             code += "    }\n";
-            code += "    ctx.hashK[addr].reads[pos] = size;\n\n";
+            code += "    else\n";
+            code += "    {\n";
+            code += "        ctx.hashK[addr].reads[pos] = size;\n";
+            code += "    }\n\n";
 
             code += "    // Store the size\n";
             code += "    incHashPos = size;\n\n";
             bIncHashPos = true;
 
-            code += "    #ifdef LOG_HASHK\n";
+            code += "#ifdef LOG_HASHK\n";
             code += "    cout << \"hashK 2 i=\" << i << \" zkPC=" + zkPC + " addr=\" << addr << \" pos=\" << pos << \" size=\" << size << \" data=\" << a.get_str(16) << endl;\n";
-            code += "    #endif\n\n";
+            code += "#endif\n\n";
         }
 
         // HashKLen instruction
@@ -1794,38 +1929,47 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
             if (!bFastMode)
                 code += "    pols.hashKLen[i] = fr.one();\n";
-
-            code += "    lm = fr.toU64(op0);\n";
-            code += "    lh = ctx.hashK[addr].data.size();\n";
-            code += "    if (lm != lh)\n";
+    
+            code += "    // Find the entry in the hash database for this address\n";
+            code += "    hashIterator = ctx.hashK.find(addr);\n";
+            code += "    if (hashIterator == ctx.hashK.end())\n";
             code += "    {\n";
-            code += "        cerr << \"Error: hashKLen 2 length does not match match addr=\" << addr << \" is lm=\" << lm << \" and it should be lh=\" << lh << endl;\n";
+            code += "        cerr << \"Error: hashKLen 2 could not find entry for addr=\" << addr << endl;\n";
             code += "        proverRequest.result = ZKR_SM_MAIN_HASHK;\n";
             code += "        return;\n";
             code += "    }\n";
-            code += "    if (!ctx.hashK[addr].bDigested)\n";
+
+            code += "    lm = fr.toU64(op0);\n";
+            code += "    lh = hashIterator->second.data.size();\n";
+            code += "    if (lm != lh)\n";
             code += "    {\n";
-            code += "    #ifdef LOG_TIME\n";
+            code += "        cerr << \"Error: hashKLen 2 length does not match addr=\" << addr << \" is lm=\" << lm << \" and it should be lh=\" << lh << endl;\n";
+            code += "        proverRequest.result = ZKR_SM_MAIN_HASHK;\n";
+            code += "        return;\n";
+            code += "    }\n";
+            code += "    if (!hashIterator->second.bDigested)\n";
+            code += "    {\n";
+            code += "#ifdef LOG_TIME_STATISTICS\n";
             code += "        gettimeofday(&t, NULL);\n";
-            code += "    #endif\n";
-            code += "        string digestString = keccak256(ctx.hashK[addr].data.data(), ctx.hashK[addr].data.size());\n";
-            code += "        ctx.hashK[addr].digest.set_str(Remove0xIfPresent(digestString),16);\n";
-            code += "        ctx.hashK[addr].bDigested = true;\n";
-            code += "    #ifdef LOG_TIME\n";
+            code += "#endif\n";
+            code += "        string digestString = keccak256(hashIterator->second.data.data(), hashIterator->second.data.size());\n";
+            code += "        hashIterator->second.digest.set_str(Remove0xIfPresent(digestString),16);\n";
+            code += "        hashIterator->second.bDigested = true;\n";
+            code += "#ifdef LOG_TIME_STATISTICS\n";
             code += "        keccakTime += TimeDiff(t);\n";
             code += "        keccakTimes++;\n";
-            code += "    #endif\n";
+            code += "#endif\n";
 
-            code += "    #ifdef LOG_HASHK\n";
+            code += "#ifdef LOG_HASHK\n";
             code += "        cout << \"hashKLen 2 calculate hashKLen: addr:\" << addr << \" hash:\" << ctx.hashK[addr].digest.get_str(16) << \" size:\" << ctx.hashK[addr].data.size() << \" data:\";\n";
             code += "        for (uint64_t k=0; k<ctx.hashK[addr].data.size(); k++) cout << byte2string(ctx.hashK[addr].data[k]) << \":\";\n";
             code += "        cout << endl;\n";
-            code += "    #endif\n";
+            code += "#endif\n";
             code += "    }\n";
 
-            code += "    #ifdef LOG_HASHK\n";
+            code += "#ifdef LOG_HASHK\n";
             code += "    cout << \"hashKLen 2 i=\" << i << \" zkPC=" + zkPC + " addr=\" << addr << endl;\n";
-            code += "    #endif\n";
+            code += "#endif\n";
         }
 
         // HashKDigest instruction
@@ -1835,29 +1979,38 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
             if (!bFastMode)
                 code += "    pols.hashKDigest[i] = fr.one();\n";
+    
+            code += "    // Find the entry in the hash database for this address\n";
+            code += "    hashIterator = ctx.hashK.find(addr);\n";
+            code += "    if (hashIterator == ctx.hashK.end())\n";
+            code += "    {\n";
+            code += "        cerr << \"Error: hashKDigest 2 could not find entry for addr=\" << addr << endl;\n";
+            code += "        proverRequest.result = ZKR_SM_MAIN_HASHK;\n";
+            code += "        return;\n";
+            code += "    }\n";
 
             code += "    // Get contents of op into dg\n";
             code += "    fea2scalar(fr, dg, op0, op1, op2, op3, op4, op5, op6, op7);\n";
 
             code += "    // Check the digest has been calculated\n";
-            code += "    if (!ctx.hashK[addr].bDigested)\n";
+            code += "    if (!hashIterator->second.bDigested)\n";
             code += "    {\n";
             code += "        cerr << \"Error: hashKDigest 2: Cannot load keccak from DB\" << endl;\n";
             code += "        proverRequest.result = ZKR_SM_MAIN_HASHK;\n";
             code += "        return;\n";
             code += "    }\n";
             
-            code += "    if (dg != ctx.hashK[addr].digest)\n";
+            code += "    if (dg != hashIterator->second.digest)\n";
             code += "    {\n";
             code += "        cerr << \"Error: hashKDigest 2: Digest does not match op\" << endl;\n";
             code += "        proverRequest.result = ZKR_SM_MAIN_HASHK;\n";
             code += "        return;\n";
             code += "    }\n";
-            code += "    incCounter = ceil((double(ctx.hashK[addr].data.size()) + double(1)) / double(136));\n";
+            code += "    incCounter = ceil((double(hashIterator->second.data.size()) + double(1)) / double(136));\n";
 
-            code += "    #ifdef LOG_HASHK\n";
+            code += "#ifdef LOG_HASHK\n";
             code += "    cout << \"hashKDigest 2 i=\" << i << \" zkPC=" + zkPC + " addr=\" << addr << \" digest=\" << ctx.hashK[addr].digest.get_str(16) << endl;\n";
-            code += "    #endif\n";
+            code += "#endif\n";
         }
         
         // HashP instruction
@@ -1869,10 +2022,13 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "    pols.hashP[i] = fr.one();\n";
 
             code += "    // If there is no entry in the hash database for this address, then create a new one\n";
-            code += "    if (ctx.hashP.find(addr) == ctx.hashP.end())\n";
+            code += "    hashIterator = ctx.hashP.find(addr);\n";
+            code += "    if (hashIterator == ctx.hashP.end())\n";
             code += "    {\n";
             code += "        HashValue hashValue;\n";
             code += "        ctx.hashP[addr] = hashValue;\n";
+            code += "        hashIterator = ctx.hashP.find(addr);\n";
+            code += "        zkassert(hashIterator != ctx.hashP.end());\n";
             code += "    }\n";
             
             code += "    // Get the size of the hash from D0\n";
@@ -1909,11 +2065,11 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    for (uint64_t j=0; j<size; j++) {\n";
             code += "        result = (a >> (size-j-1)*8) & Mask8;\n";
             code += "        uint8_t bm = result.get_ui();\n";
-            code += "        if (ctx.hashP[addr].data.size() == (pos+j))\n";
+            code += "        if (hashIterator->second.data.size() == (pos+j))\n";
             code += "        {\n";
-            code += "            ctx.hashP[addr].data.push_back(bm);\n";
+            code += "            hashIterator->second.data.push_back(bm);\n";
             code += "        }\n";
-            code += "        else if (ctx.hashP[addr].data.size() < (pos+j))\n";
+            code += "        else if (hashIterator->second.data.size() < (pos+j))\n";
             code += "        {\n";
             code += "            cerr << \"Error: hashP 2: trying to insert data in a position:\" << (pos+j) << \" higher than current data size:\" << ctx.hashP[addr].data.size() << endl;\n";
             code += "            proverRequest.result = ZKR_SM_MAIN_HASHP;\n";
@@ -1922,7 +2078,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "        else\n";
             code += "        {\n";
             code += "            uint8_t bh;\n";
-            code += "            bh = ctx.hashP[addr].data[pos+j];\n";
+            code += "            bh = hashIterator->second.data[pos+j];\n";
             code += "            if (bm != bh)\n";
             code += "            {\n";
             code += "                cerr << \"Error: HashP 2 bytes do not match: addr=\" << addr << \" pos+j=\" << pos+j << \" is bm=\" << bm << \" and it should be bh=\" << bh << endl;\n";
@@ -1936,19 +2092,25 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    paddingA = a >> (size*8);\n";
             code += "    if (paddingA != 0)\n";
             code += "    {\n";
-            code += "        cerr << \"Error: HashP 2 incoherent size=\" << size << \" a=\" << a.get_str(16) << \" paddingA=\" << paddingA.get_str(16) << \" step=\" << step << \" zkPC=\" << zkPC << \" instruction=\" << rom.line[zkPC].toString(fr) << endl;\n";
+            code += "        cerr << \"Error: HashP 2 incoherent size=\" << size << \" a=\" << a.get_str(16) << \" paddingA=\" << paddingA.get_str(16) << \" step=\" << step << \" zkPC=" + zkPC + " instruction=\" << rom.line[" + zkPC + "].toString(fr) << endl;\n";
             code += "        exitProcess();\n";
             code += "    }\n\n";
 
             code += "    // Record the read operation\n";
-            code += "    if ( (ctx.hashP[addr].reads.find(pos) != ctx.hashP[addr].reads.end()) &&\n";
-            code += "         (ctx.hashP[addr].reads[pos] != size) )\n";
+            code += "    readsIterator = hashIterator->second.reads.find(pos);\n";
+            code += "    if ( readsIterator != hashIterator->second.reads.end() )\n";
             code += "    {\n";
-            code += "        cerr << \"Error: HashP 2 diferent read sizes in the same position addr=\" << addr << \" pos=\" << pos << endl;\n";
-            code += "        proverRequest.result = ZKR_SM_MAIN_HASHP;\n";
-            code += "        return;\n";
+            code += "        if ( readsIterator->second != size )\n";
+            code += "        {\n";
+            code += "            cerr << \"Error: HashP 2 diferent read sizes in the same position addr=\" << addr << \" pos=\" << pos << endl;\n";
+            code += "            proverRequest.result = ZKR_SM_MAIN_HASHP;\n";
+            code += "            return;\n";
+            code += "        }\n";
             code += "    }\n";
-            code += "    ctx.hashP[addr].reads[pos] = size;\n";
+            code += "    else\n";
+            code += "    {\n";
+            code += "        ctx.hashP[addr].reads[pos] = size;\n";
+            code += "    }\n\n";
 
             code += "    // Store the size\n";
             code += "    incHashPos = size;\n";
@@ -1963,20 +2125,29 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             if (!bFastMode)
                 code += "    pols.hashPLen[i] = fr.one();\n";
 
+            code += "    // Find the entry in the hash database for this address\n";
+            code += "    hashIterator = ctx.hashP.find(addr);\n";
+            code += "    if (hashIterator == ctx.hashP.end())\n";
+            code += "    {\n";
+            code += "        cerr << \"Error: hashPLen 2 could not find entry for addr=\" << addr << endl;\n";
+            code += "        proverRequest.result = ZKR_SM_MAIN_HASHK;\n";
+            code += "        return;\n";
+            code += "    }\n";
+
             code += "    lm = fr.toU64(op0);\n";
-            code += "    lh = ctx.hashP[addr].data.size();\n";
+            code += "    lh = hashIterator->second.data.size();\n";
             code += "    if (lm != lh)\n";
             code += "    {\n";
-            code += "        cerr << \"Error: hashPLen 2 does not match match addr=\" << addr << \" is lm=\" << lm << \" and it should be lh=\" << lh << endl;\n";
+            code += "        cerr << \"Error: hashPLen 2 does not match addr=\" << addr << \" is lm=\" << lm << \" and it should be lh=\" << lh << endl;\n";
             code += "        proverRequest.result = ZKR_SM_MAIN_HASHP;\n";
             code += "        return;\n";
             code += "    }\n";
-            code += "    if (!ctx.hashP[addr].bDigested)\n";
+            code += "    if (!hashIterator->second.bDigested)\n";
             code += "    {\n";
-            code += "    #ifdef LOG_TIME\n";
+            code += "#ifdef LOG_TIME_STATISTICS\n";
             code += "        gettimeofday(&t, NULL);\n";
-            code += "    #endif\n";
-            code += "        if (ctx.hashP[addr].data.size() == 0)\n";
+            code += "#endif\n";
+            code += "        if (hashIterator->second.data.size() == 0)\n";
             code += "        {\n";
             code += "            cerr << \"Error: hashPLen 2 found data empty\" << endl;\n";
             code += "            proverRequest.result = ZKR_SM_MAIN_HASHP;\n";
@@ -1984,7 +2155,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "        }\n";
 
             code += "        // Get a local copy of the bytes vector\n";
-            code += "        vector<uint8_t> data = ctx.hashP[addr].data;\n";
+            code += "        vector<uint8_t> data = hashIterator->second.data;\n";
 
             code += "        // Add padding = 0b1000...00001  up to a length of 56xN (7x8xN)\n";
             code += "        data.push_back(0x01);\n";
@@ -2011,27 +2182,27 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
             code += "        Goldilocks::Element result[4];\n";
             code += "        mainExecutor.poseidon.linear_hash(result, pBuffer, bufferSize);\n";
-            code += "        fea2scalar(fr, ctx.hashP[addr].digest, result);\n";
+            code += "        fea2scalar(fr, hashIterator->second.digest, result);\n";
             code += "        delete[] pBuffer;\n";
-            code += "        ctx.hashP[addr].bDigested = true;\n";
+            code += "        hashIterator->second.bDigested = true;\n";
 
-            code += "        zkResult = mainExecutor.pStateDB->setProgram(result, ctx.hashP[addr].data, proverRequest.bUpdateMerkleTree);\n";
+            code += "        zkResult = mainExecutor.pStateDB->setProgram(result, hashIterator->second.data, proverRequest.input.bUpdateMerkleTree);\n";
             code += "        if (zkResult != ZKR_SUCCESS)\n";
             code += "        {\n";
             code += "            cerr << \"MainExecutor::Execute() failed calling pStateDB->setProgram() result=\" << zkresult2string(zkResult) << endl;\n";
             code += "            proverRequest.result = zkResult;\n";
             code += "            return;\n";
             code += "        }\n";
-            code += "    #ifdef LOG_TIME\n";
+            code += "#ifdef LOG_TIME_STATISTICS\n";
             code += "        poseidonTime += TimeDiff(t);\n";
             code += "        poseidonTimes++;\n";
-            code += "    #endif\n";
+            code += "#endif\n";
 
-            code += "    #ifdef LOG_HASH\n";
+            code += "#ifdef LOG_HASH\n";
             code += "        cout << \"Hash calculate hashPLen 2: addr:\" << addr << \" hash:\" << ctx.hashP[addr].digest.get_str(16) << \" size:\" << ctx.hashP[addr].data.size() << \" data:\";\n";
             code += "        for (uint64_t k=0; k<ctx.hashP[addr].data.size(); k++) cout << byte2string(ctx.hashP[addr].data[k]) << \":\";\n";
             code += "        cout << endl;\n";
-            code += "    #endif\n";
+            code += "#endif\n";
             code += "    }\n";
         }
 
@@ -2046,7 +2217,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    // Get contents of op into dg\n";
             code += "    fea2scalar(fr, dg, op0, op1, op2, op3, op4, op5, op6, op7);\n";
 
-            code += "    if (ctx.hashP.find(addr) == ctx.hashP.end())\n";
+            code += "    hashIterator = ctx.hashP.find(addr);\n";
+            code += "    if (hashIterator == ctx.hashP.end())\n";
             code += "    {\n";
             code += "        HashValue hashValue;\n";
             code += "        hashValue.digest = dg;\n";
@@ -2061,12 +2233,14 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "            return;\n";
             code += "        }\n";
             code += "        ctx.hashP[addr] = hashValue;\n";
+            code += "        hashIterator = ctx.hashP.find(addr);\n";
+            code += "        zkassert(hashIterator != ctx.hashP.end());\n";
             code += "    }\n";
 
-            code += "    incCounter = ceil((double(ctx.hashP[addr].data.size()) + double(1)) / double(56));\n";
+            code += "    incCounter = ceil((double(hashIterator->second.data.size()) + double(1)) / double(56));\n";
 
             code += "    // Check that digest equals op\n";
-            code += "    if (dg != ctx.hashP[addr].digest)\n";
+            code += "    if (dg != hashIterator->second.digest)\n";
             code += "    {\n";
             code += "        cerr << \"Error: hashPDigest 2: ctx.hashP[addr].digest=\" << ctx.hashP[addr].digest.get_str(16) << \" does not match op=\" << dg.get_str(16) << endl;\n";
             code += "        proverRequest.result = ZKR_SM_MAIN_HASHP;\n";
@@ -2244,10 +2418,10 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 if (!bFastMode)
                 {
                     code += "    pols.arith[i] = fr.one();\n";
-                    code += "    pols.arithEq0[i] = fr.fromU64(rom.line[zkPC].arithEq0);\n";
-                    code += "    pols.arithEq1[i] = fr.fromU64(rom.line[zkPC].arithEq1);\n";
-                    code += "    pols.arithEq2[i] = fr.fromU64(rom.line[zkPC].arithEq2);\n";
-                    code += "    pols.arithEq3[i] = fr.fromU64(rom.line[zkPC].arithEq3);\n";
+                    code += "    pols.arithEq0[i] = fr.fromU64(rom.line["+zkPC+"].arithEq0);\n";
+                    code += "    pols.arithEq1[i] = fr.fromU64(rom.line["+zkPC+"].arithEq1);\n";
+                    code += "    pols.arithEq2[i] = fr.fromU64(rom.line["+zkPC+"].arithEq2);\n";
+                    code += "    pols.arithEq3[i] = fr.fromU64(rom.line["+zkPC+"].arithEq3);\n";
 
                     code += "    // Store the arith action to execute it later with the arith SM\n";
                     code += "    arithAction.x1 = x1;\n";
@@ -2300,7 +2474,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             }
             else if (rom.program[zkPC].binOpcode == 1) // SUB
             {
-                code += "   // Binary instruction: SUB\n";
+                code += "    // Binary instruction: SUB\n";
 
                 code += "    fea2scalar(fr, a, pols.A0[" + (bFastMode?"0":"i") + "], pols.A1[" + (bFastMode?"0":"i") + "], pols.A2[" + (bFastMode?"0":"i") + "], pols.A3[" + (bFastMode?"0":"i") + "], pols.A4[" + (bFastMode?"0":"i") + "], pols.A5[" + (bFastMode?"0":"i") + "], pols.A6[" + (bFastMode?"0":"i") + "], pols.A7[" + (bFastMode?"0":"i") + "]);\n";
                 code += "    fea2scalar(fr, b, pols.B0[" + (bFastMode?"0":"i") + "], pols.B1[" + (bFastMode?"0":"i") + "], pols.B2[" + (bFastMode?"0":"i") + "], pols.B3[" + (bFastMode?"0":"i") + "], pols.B4[" + (bFastMode?"0":"i") + "], pols.B5[" + (bFastMode?"0":"i") + "], pols.B6[" + (bFastMode?"0":"i") + "], pols.B7[" + (bFastMode?"0":"i") + "]);\n";
@@ -2392,7 +2566,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             }
             else if (rom.program[zkPC].binOpcode == 4) // EQ
             {
-                code += "  // Binary instruction: EQ\n";
+                code += "    // Binary instruction: EQ\n";
 
                 code += "    fea2scalar(fr, a, pols.A0[" + (bFastMode?"0":"i") + "], pols.A1[" + (bFastMode?"0":"i") + "], pols.A2[" + (bFastMode?"0":"i") + "], pols.A3[" + (bFastMode?"0":"i") + "], pols.A4[" + (bFastMode?"0":"i") + "], pols.A5[" + (bFastMode?"0":"i") + "], pols.A6[" + (bFastMode?"0":"i") + "], pols.A7[" + (bFastMode?"0":"i") + "]);\n";
                 code += "    fea2scalar(fr, b, pols.B0[" + (bFastMode?"0":"i") + "], pols.B1[" + (bFastMode?"0":"i") + "], pols.B2[" + (bFastMode?"0":"i") + "], pols.B3[" + (bFastMode?"0":"i") + "], pols.B4[" + (bFastMode?"0":"i") + "], pols.B5[" + (bFastMode?"0":"i") + "], pols.B6[" + (bFastMode?"0":"i") + "], pols.B7[" + (bFastMode?"0":"i") + "]);\n";
@@ -2512,6 +2686,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
             if (!bFastMode)
                 code += "    pols.bin[i] = fr.one();\n";
+
+            code += "\n";
         }
 
         // MemAlign instruction
@@ -2615,18 +2791,20 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     code += "    required.MemAlign.push_back(memAlignAction);\n";
                 }         
             }
+
+            code += "\n";
         }
 
         /***********/
         /* SETTERS */
         /***********/
 
-        code += setter8("A", rom.program[zkPC].setA, bFastMode);
-        code += setter8("B", rom.program[zkPC].setB, bFastMode);
-        code += setter8("C", rom.program[zkPC].setC, bFastMode);
-        code += setter8("D", rom.program[zkPC].setD, bFastMode);
-        code += setter8("E", rom.program[zkPC].setE, bFastMode);
-        code += setter8("SR", rom.program[zkPC].setSR, bFastMode);
+        code += setter8("A", rom.program[zkPC].setA, bFastMode, zkPC, rom);
+        code += setter8("B", rom.program[zkPC].setB, bFastMode, zkPC, rom);
+        code += setter8("C", rom.program[zkPC].setC, bFastMode, zkPC, rom);
+        code += setter8("D", rom.program[zkPC].setD, bFastMode, zkPC, rom);
+        code += setter8("E", rom.program[zkPC].setE, bFastMode, zkPC, rom);
+        code += setter8("SR", rom.program[zkPC].setSR, bFastMode, zkPC, rom);
 
         // If setCTX, CTX'=op
         if (rom.program[zkPC].setCTX)
@@ -2647,7 +2825,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         }
         else if (rom.program[zkPC].incStack)
         {
-            code += "   pols.SP[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.SP[" + (bFastMode?"0":"i") + "], fr.fromS32(" + rom.program[zkPC].incStack + ")); // SP' = SP + incStack\n";
+            code += "    pols.SP[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.SP[" + (bFastMode?"0":"i") + "], fr.fromS32(" + rom.program[zkPC].incStack + ")); // SP' = SP + incStack\n";
         }
         else if (!bFastMode)
             code += "    pols.SP[nexti] = pols.SP[i];\n";
@@ -2681,7 +2859,10 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         // If arith, increment pols.cntArith
         if (rom.program[zkPC].arith) 
         {
-            code += "    pols.cntArith[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.cntArith[" + (bFastMode?"0":"i") + "], fr.one());\n";
+            code += "    if (!proverRequest.input.bNoCounters)\n";
+            code += "    {\n";
+            code += "        pols.cntArith[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.cntArith[" + (bFastMode?"0":"i") + "], fr.one());\n";
+            code += "    }\n\n";
         }
         else if (!bFastMode)
         {
@@ -2691,7 +2872,10 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         // If bin, increment pols.cntBinary
         if (rom.program[zkPC].bin)
         {
-            code += "    pols.cntBinary[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.cntBinary[" + (bFastMode?"0":"i") + "], fr.one());\n";
+            code += "    if (!proverRequest.input.bNoCounters)\n";
+            code += "    {\n";
+            code += "        pols.cntBinary[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.cntBinary[" + (bFastMode?"0":"i") + "], fr.one());\n";
+            code += "    }\n\n";
         }
         else if (!bFastMode)
         {
@@ -2701,7 +2885,10 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         // If memAlign, increment pols.cntMemAlign
         if (rom.program[zkPC].memAlign)
         {
-            code += "    pols.cntMemAlign[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.cntMemAlign[" + (bFastMode?"0":"i") + "], fr.one());\n";
+            code += "    if (!proverRequest.input.bNoCounters)\n";
+            code += "    {\n";
+            code += "        pols.cntMemAlign[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.cntMemAlign[" + (bFastMode?"0":"i") + "], fr.one());\n";
+            code += "    }\n\n";
         }
         else if (!bFastMode)
         {
@@ -2731,16 +2918,14 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             bConditionalJump = true;
             code += "    }\n";
             // If op>=0, simply increase zkPC'=zkPC+1
-            code += "    else\n";
-            code += "    {\n";
             if (!bFastMode)
             {
+                code += "    else\n";
+                code += "    {\n";
                 code += "        pols.zkPC[nexti] = fr.add(pols.zkPC[i], fr.one()); // If op>=0, simply increase zkPC'=zkPC+1\n";
                 code += "        required.Byte4[o] = true;\n";
+                code += "    }\n";
             }
-            code += "        addr = " + (zkPC+1) + ";\n";
-            //code += "        goto RomLine" + (zkPC+1) + ";\n";
-            code += "    }\n";
         }
         // If JMPC, jump conditionally if carry
         else if (rom.program[zkPC].JMPC)
@@ -2830,7 +3015,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         {
             code += "    if (!fr.toS32(i32Aux, op0))\n";
             code += "    {\n";
-            code += "        cerr << \"Error: failed calling fr.toS32() with op0=\" << fr.toString(op0, 16) << \" step=\" << step << \" zkPC=\" << zkPC << \" instruction=\" << rom.line[zkPC].toString(fr) << endl;\n";
+            code += "        cerr << \"Error: failed calling fr.toS32() with op0=\" << fr.toString(op0, 16) << \" step=\" << step << \" zkPC=" + zkPC + " instruction=\" << rom.line[" + zkPC + "].toString(fr) << endl;\n";
             code += "        exitProcess();\n";
             code += "    }\n";
             if (bIncHashPos)
@@ -2856,7 +3041,10 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
         if (rom.program[zkPC].hashKDigest)
         {
-            code += "    pols.cntKeccakF[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.cntKeccakF[" + (bFastMode?"0":"i") + "], fr.fromU64(incCounter));\n";
+            code += "    if (!proverRequest.input.bNoCounters)\n";
+            code += "    {\n";
+            code += "        pols.cntKeccakF[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.cntKeccakF[" + (bFastMode?"0":"i") + "], fr.fromU64(incCounter));\n";
+            code += "    }\n\n";
         }
         else if (!bFastMode)
         {
@@ -2865,7 +3053,10 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
         if (rom.program[zkPC].hashPDigest)
         {
-            code += "    pols.cntPaddingPG[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.cntPaddingPG[" + (bFastMode?"0":"i") + "], fr.fromU64(incCounter));\n";
+            code += "    if (!proverRequest.input.bNoCounters)\n";
+            code += "    {\n";
+            code += "        pols.cntPaddingPG[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.cntPaddingPG[" + (bFastMode?"0":"i") + "], fr.fromU64(incCounter));\n";
+            code += "    }\n\n";
         }
         else if (!bFastMode)
         {
@@ -2874,7 +3065,10 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
         if (rom.program[zkPC].sRD || rom.program[zkPC].sWR || rom.program[zkPC].hashPDigest)
         {
-            code += "    pols.cntPoseidonG[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.cntPoseidonG[" + (bFastMode?"0":"i") + "], fr.fromU64(incCounter));\n";
+            code += "    if (!proverRequest.input.bNoCounters)\n";
+            code += "    {\n";
+            code += "        pols.cntPoseidonG[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.cntPoseidonG[" + (bFastMode?"0":"i") + "], fr.fromU64(incCounter));\n";
+            code += "    }\n\n";
         }
         else if (!bFastMode)
         {
@@ -2902,24 +3096,27 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         }
 
         code += "#ifdef LOG_COMPLETED_STEPS\n";
-        code += "    cout << \"<-- Completed step: \" << i << \" zkPC: " + zkPC + " op0: \" << fr.toString(op0,16) << \" A0: \" << fr.toString(pols.A0[" + (bFastMode?"0":"i") + "],16) << \" FREE0: \" << fr.toString(pols.FREE0[" + (bFastMode?"0":"i") + "],16) << \" FREE7: \" << fr.toString(pols.FREE7[" + (bFastMode?"0":"i") + "],16) << endl;\n";
+        code += "    cout << \"<-- Completed step=\" << i << \" zkPC=" + zkPC + " op=\" << fr.toString(op7,16) << \":\" << fr.toString(op6,16) << \":\" << fr.toString(op5,16) << \":\" << fr.toString(op4,16) << \":\" << fr.toString(op3,16) << \":\" << fr.toString(op2,16) << \":\" << fr.toString(op1,16) << \":\" << fr.toString(op0,16) << \" ABCDE0=\" << fr.toString(pols.A0[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.B0[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.C0[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.D0[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.E0[" + (bFastMode?"0":"i") + "],16) << \" FREE0:7=\" << fr.toString(fi0,16) << \":\" << fr.toString(fi7],16) << \" addr=\" << addr << endl;\n";
         code += "#endif\n";
         code += "#ifdef LOG_COMPLETED_STEPS_TO_FILE\n";
         code += "    outfile.open(\"c.txt\", std::ios_base::app); // append instead of overwrite\n";
-        code += "    outfile << \"<-- Completed step: \" << i << \" zkPC: " + zkPC + " op0: \" << fr.toString(op0,16) << \" A0: \" << fr.toString(pols.A0[" + (bFastMode?"0":"i") + "],16) << \" FREE0: \" << fr.toString(pols.FREE0[" + (bFastMode?"0":"i") + "],16) << \" FREE7: \" << fr.toString(pols.FREE7[" + (bFastMode?"0":"i") + "],16) << endl;\n";
+        code += "    outfile << \"<-- Completed step=\" << i << \" zkPC=" + zkPC + " op=\" << fr.toString(op7,16) << \":\" << fr.toString(op6,16) << \":\" << fr.toString(op5,16) << \":\" << fr.toString(op4,16) << \":\" << fr.toString(op3,16) << \":\" << fr.toString(op2,16) << \":\" << fr.toString(op1,16) << \":\" << fr.toString(op0,16) << \" ABCDE0=\" << fr.toString(pols.A0[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.B0[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.C0[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.D0[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.E0[" + (bFastMode?"0":"i") + "],16) << \" FREE0:7=\" << fr.toString(fi0,16) << \":\" << fr.toString(fi7,16) << \" addr=\" << addr << endl;\n";
         code += "    outfile.close();\n";
         code += "#endif\n\n";
 
         // Jump to the end label if we are done and we are in fast mode
         if (bFastMode && (zkPC == rom.labels.finalizeExecution))
+        {
+            code += "    ctx.lastStep = i;\n";
             code += "    goto " + functionName + "_end;\n\n";
+        }
 
         // INCREASE EVALUATION INDEX
 
         code += "    i++;\n";
-        code += "    if (i==CommitPols::pilDegree()) goto " + functionName + "_end;\n";
+        code += "    if (i==N_Max) goto " + functionName + "_end;\n";
         if (!bFastMode)
-            code += "    nexti=(i+1)%mainExecutor.N;\n";
+            code += "    nexti=(i+1)%N_Max;\n";
         code += "\n";
 
         // In case we had a pending jump, do it now, after the work has been done
@@ -3011,11 +3208,11 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         code += "    }\n";
     }
 
-    code += "    #ifdef LOG_TIME\n";
+    code += "#ifdef LOG_TIME_STATISTICS\n";
     code += "    cout << \"TIMER STATISTICS: Poseidon time: \" << double(poseidonTime)/1000 << \" ms, called \" << poseidonTimes << \" times, so \" << poseidonTime/zkmax(poseidonTimes,(uint64_t)1) << \" us/time\" << endl;\n";
     code += "    cout << \"TIMER STATISTICS: SMT time: \" << double(smtTime)/1000 << \" ms, called \" << smtTimes << \" times, so \" << smtTime/zkmax(smtTimes,(uint64_t)1) << \" us/time\" << endl;\n";
     code += "    cout << \"TIMER STATISTICS: Keccak time: \" << double(keccakTime)/1000 << \" ms, called \" << keccakTimes << \" times, so \" << keccakTime/zkmax(keccakTimes,(uint64_t)1) << \" us/time\" << endl;\n";
-    code += "    #endif\n\n";
+    code += "#endif\n\n";
     
     code += "    cout << \"" + functionName + "() done lastStep=\" << ctx.lastStep << \" (\" << (double(ctx.lastStep)*100)/mainExecutor.N << \"%)\" << endl;\n\n";
 
@@ -3093,33 +3290,6 @@ function selector1 (regName, inRegValue, opInitialized, bFastMode)
     return code;
 }
 
-function selector1i (regName, inRegValue, opInitialized, bFastMode)
-{
-    let inRegName = "in" + regName.substring(0, 1).toUpperCase() + regName.substring(1);
-    let code = "";
-    code += "    // op0 = op0 + " + inRegName + "*" + regName + ", where " + inRegName + "=" + inRegValue + "\n";
-
-    let value = "";
-    if (inRegValue == 1)
-        value = "fr.fromU64(i)";
-    else if (inRegValue == -1)
-        value = "fr.neg(fr.fromU64(i))";
-    else
-        value = "fr.mul(fr.fromS32(" + inRegValue + "), fr.fromU64(i))";
-    if (opInitialized)
-        value = "fr.add(op0, " + value + ")"
-    code += "    op0 = " + value + ";\n";
-    if (!opInitialized)
-        for (let j=1; j<8; j++)
-        {
-            code += "    op" + j + " = fr.zero();\n";
-        }
-    if (!bFastMode)
-        code += "    pols." + inRegName + "[i] = fr.fromS32(" + inRegValue + ");\n";
-    code += "\n";
-    return code;
-}
-
 function selectorConst (CONST, opInitialized, bFastMode)
 {
     let code = "";
@@ -3170,7 +3340,7 @@ function selectorConstL (Fr, CONSTL, opInitialized, bFastMode)
 /* SETTERS */
 /***********/
 
-function setter8 (reg, setReg, bFastMode)
+function setter8 (reg, setReg, bFastMode, zkPC, rom)
 {
     let code = "";
 
@@ -3182,6 +3352,15 @@ function setter8 (reg, setReg, bFastMode)
         if (!bFastMode)
             code += "    pols.set" + reg + "[i] = fr.one();\n";
         code += "\n";
+    }
+    else if ((zkPC == rom.labels.checkAndSaveFrom) && (reg=="A"))
+    {
+        code += "    if (bUnsignedTransaction)\n";
+        code += "    {\n";
+        code += "        mpz_class from(proverRequest.input.from);\n";
+        code += "        scalar2fea(fr, from, pols.A0[" + (bFastMode?"0":"nexti") + "], pols.A1[" + (bFastMode?"0":"nexti") + "], pols.A2[" + (bFastMode?"0":"nexti") + "], pols.A3[" + (bFastMode?"0":"nexti") + "], pols.A4[" + (bFastMode?"0":"nexti") + "], pols.A5[" + (bFastMode?"0":"nexti") + "], pols.A6[" + (bFastMode?"0":"nexti") + "], pols.A7[" + (bFastMode?"0":"nexti") + "] );\n";
+        code += "    }\n\n";
+
     }
     else if (!bFastMode)
     {
