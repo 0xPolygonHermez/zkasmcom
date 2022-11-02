@@ -197,6 +197,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     code += "    mpz_class paddingA;\n";
     code += "    unordered_map< uint64_t, HashValue >::iterator hashIterator;\n";
     code += "    unordered_map<uint64_t, uint64_t>::iterator readsIterator;\n";
+    code += "    HashValue emptyHashValue;\n";
 
     // Mem allign free in
     code += "    mpz_class m0;\n";
@@ -983,8 +984,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     code += "    hashIterator = ctx.hashK.find(addr);\n";
                     code += "    if (hashIterator == ctx.hashK.end())\n";
                     code += "    {\n";
-                    code += "        HashValue hashValue;\n";
-                    code += "        ctx.hashK[addr] = hashValue;\n";
+                    code += "        ctx.hashK[addr] = emptyHashValue;\n";
                     code += "        hashIterator = ctx.hashK.find(addr);\n";
                     code += "        zkassert(hashIterator != ctx.hashK.end());\n";
                     code += "    }\n";
@@ -1079,8 +1079,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     code += "    hashIterator = ctx.hashP.find(addr);\n";
                     code += "    if (hashIterator == ctx.hashP.end())\n";
                     code += "    {\n";
-                    code += "        HashValue hashValue;\n";
-                    code += "        ctx.hashP[addr] = hashValue;\n";
+                    code += "        ctx.hashP[addr] = emptyHashValue;\n";
                     code += "        hashIterator = ctx.hashP.find(addr);\n";
                     code += "        zkassert(hashIterator != ctx.hashP.end());\n";
                     code += "    }\n";
@@ -1816,8 +1815,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    hashIterator = ctx.hashK.find(addr);\n";
             code += "    if (hashIterator == ctx.hashK.end())\n";
             code += "    {\n";
-            code += "        HashValue hashValue;\n";
-            code += "        ctx.hashK[addr] = hashValue;\n";
+            code += "        ctx.hashK[addr] = emptyHashValue;\n";
             code += "        hashIterator = ctx.hashK.find(addr);\n";
             code += "        zkassert(hashIterator != ctx.hashK.end());\n";
             code += "    }\n\n";
@@ -1939,8 +1937,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "        }\n\n";
 
             code += "        // Create an empty entry in this address slot\n";
-            code += "        HashValue hashValue;\n";
-            code += "        ctx.hashK[addr] = hashValue;\n";
+            code += "        ctx.hashK[addr] = emptyHashValue;\n";
             code += "        hashIterator = ctx.hashK.find(addr);\n";
             code += "        zkassert(hashIterator != ctx.hashK.end());\n\n";
             
@@ -2035,8 +2032,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    hashIterator = ctx.hashP.find(addr);\n";
             code += "    if (hashIterator == ctx.hashP.end())\n";
             code += "    {\n";
-            code += "        HashValue hashValue;\n";
-            code += "        ctx.hashP[addr] = hashValue;\n";
+            code += "        ctx.hashP[addr] = emptyHashValue;\n";
             code += "        hashIterator = ctx.hashP.find(addr);\n";
             code += "        zkassert(hashIterator != ctx.hashP.end());\n";
             code += "    }\n";
@@ -2153,8 +2149,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "        }\n\n";
 
             code += "        // Create an empty entry in this address slot\n";
-            code += "        HashValue hashValue;\n";
-            code += "        ctx.hashP[addr] = hashValue;\n";
+            code += "        ctx.hashP[addr] = emptyHashValue;\n";
             code += "        hashIterator = ctx.hashP.find(addr);\n";
             code += "        zkassert(hashIterator != ctx.hashP.end());\n\n";
 
