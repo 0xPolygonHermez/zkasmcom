@@ -524,17 +524,17 @@ case 113:
 break;
 case 114:
 
-            this.$ = { memAlign: 1, memAlignWR: 0, memAlignWR8: 0}
+            this.$ = { memAlignRD: 1, memAlignWR: 0, memAlignWR8: 0}
         
 break;
 case 115:
 
-            this.$ = { memAlign: 1, memAlignWR: 1, memAlignWR8: 0}
+            this.$ = { memAlignRD: 0, memAlignWR: 1, memAlignWR8: 0}
         
 break;
 case 116:
 
-            this.$ = { memAlign: 1, memAlignWR: 0, memAlignWR8: 1}
+            this.$ = { memAlignRD: 0, memAlignWR: 0, memAlignWR8: 1}
         
 break;
 case 117:
