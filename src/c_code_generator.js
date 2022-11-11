@@ -413,11 +413,11 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
             let value = "";
             if (rom.program[zkPC].inSTEP == 1)
-                value = "fr.fromU64(proverRequest.input.bNoCounters ? 1 : i)";
+                value = "fr.fromU64(proverRequest.input.bNoCounters ? 0 : i)";
             else if (rom.program[zkPC].inSTEP == -1)
-                value = "fr.neg(fr.fromU64(proverRequest.input.bNoCounters ? 1 : i))";
+                value = "fr.neg(fr.fromU64(proverRequest.input.bNoCounters ? 0 : i))";
             else
-                value = "fr.mul(fr.fromS32(" + rom.program[zkPC].inSTEP + "), fr.fromU64(proverRequest.input.bNoCounters ? 1 : i))";
+                value = "fr.mul(fr.fromS32(" + rom.program[zkPC].inSTEP + "), fr.fromU64(proverRequest.input.bNoCounters ? 0 : i))";
             if (opInitialized)
                 value = "fr.add(op0, " + value + ")"
             code += "    op0 = " + value + ";\n";
