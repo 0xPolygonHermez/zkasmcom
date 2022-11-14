@@ -614,15 +614,15 @@ op
         }
     | ARITH
         {
-            $$ = { arith: 1, arithEq0: 1}
+            $$ = { arithEq0: 1, arithEq1: 0, arithEq2: 0}
         }
     | ARITH_ECADD_DIFFERENT
         {
-            $$ = { arith: 1, arithEq1: 1, arithEq3: 1}
+            $$ = { arithEq0: 0, arithEq1: 1, arithEq2: 0}
         }
     | ARITH_ECADD_SAME
         {
-            $$ = { arith: 1, arithEq2: 1, arithEq3: 1}
+            $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 1}
         }
     | SHL
         {
