@@ -76,10 +76,9 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
     if (!bHeader)
     {
-        code += "#define MEM_OFFSET 0x30000\n";
-        code += "#define STACK_OFFSET 0x20000\n";
-        code += "#define CODE_OFFSET 0x10000\n";
-        code += "#define CTX_OFFSET 0x40000\n\n";
+        code += "#define STACK_OFFSET 0x10000\n";
+        code += "#define MEM_OFFSET   0x20000\n";
+        code += "#define CTX_OFFSET   0x40000\n\n";
 
         code += "#define N_NO_COUNTERS_MULTIPLICATION_FACTOR 8\n\n";
 
@@ -260,6 +259,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         code += "    ctx.pStep = &i; // ctx.pStep is used inside evaluateCommand() to find the current value of the registers, e.g. pols(A0)[ctx.step]\n";
     }
     code += "    ctx.pZKPC = &zkPC; // Pointer to the zkPC\n\n";
+    
+    code += "    uint64_t pendingAfterCmdsZkPC = 0;\n\n";
 
     code += "    uint64_t incHashPos = 0;\n";
     code += "    uint64_t incCounter = 0;\n\n";
@@ -315,6 +316,26 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         // INITIALIZATION
 
         let opInitialized = false;
+
+        // COMAND AFTER (of previous instruction)
+        code += "    // Evaluate the list cmdAfter commands of the previous ROM line,\n";
+        code += "    // and any children command, recursively\n";
+        code += "    if (pendingAfterCmdsZkPC > 0)\n";
+        code += "    {\n";
+        code += "        for (uint64_t j=0; j<rom.line[pendingAfterCmdsZkPC].cmdAfter.size(); j++)\n";
+        code += "        {\n";
+        code += "            CommandResult cr;\n";
+        code += "            evalCommand(ctx, *rom.line[pendingAfterCmdsZkPC].cmdAfter[j], cr);\n";
+        code += "    \n";
+        code += "            // In case of an external error, return it\n";
+        code += "            if (cr.zkResult != ZKR_SUCCESS)\n";
+        code += "            {\n";
+        code += "                proverRequest.result = cr.zkResult;\n";
+        code += "                return;\n";
+        code += "            }\n";
+        code += "        }\n";
+        code += "        pendingAfterCmdsZkPC = 0;\n";
+        code += "    }\n\n";
 
         // COMMAND BEFORE
         if (rom.program[zkPC].cmdBefore &&
@@ -585,10 +606,13 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 if (rom.program[zkPC].offset > 0)
                 {
                 code += "    // If offset is possitive, and the sum is too big, fail\n"
-                code += "    if ((uint64_t(addrRel)+uint64_t(" + rom.program[zkPC].offset +  "))>=0x10000)\n"
+                code += "    if (rom.line[" + zkPC + "].offset>0 &&\n";
+                code += "        ( ( (uint64_t(addrRel)+uint64_t(rom.line[" + zkPC + "].offset)) >= 0x20000 ) ||\n";
+                code += "          ( rom.line[" + zkPC + "].isMem && ((uint64_t(addrRel)+uint64_t(rom.line[" + zkPC + "].offset)) >= 0x10000) ) ) )"
                 code += "    {\n"
-                code += "        cerr << \"Error: addrRel >= 0x10000 ln: \" << " + zkPC + " << endl;\n"
-                code += "        exitProcess();\n"
+                code += "        cerr << \"Error: addrRel >= \" << (rom.line[" + zkPC + "].isMem ? 0x10000 : 0x20000) << \" ln: \" << " + zkPC + " << endl;\n"
+                code += "        proverRequest.result = ZKR_SM_MAIN_ADDRESS;\n"
+                code += "        return;\n"
                 code += "    }\n"
                 }
                 else // offset < 0
@@ -597,7 +621,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "    if (" + (-rom.program[zkPC].offset) + ">addrRel)\n"
                 code += "    {\n"
                 code += "        cerr << \"Error: addrRel < 0 ln: \" << " + zkPC + " << endl;\n"
-                code += "        exitProcess();\n"
+                code += "        proverRequest.result = ZKR_SM_MAIN_ADDRESS;\n"
+                code += "        return;\n"
                 code += "    }\n"
                 }
                 code += "    addrRel += " + rom.program[zkPC].offset + ";\n"
@@ -626,7 +651,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "    addr = 0;\n\n";
             }
         }
-        else if (rom.program[zkPC].useCTX || rom.program[zkPC].isCode || rom.program[zkPC].isStack || rom.program[zkPC].isMem)
+        else if (rom.program[zkPC].useCTX || rom.program[zkPC].isStack || rom.program[zkPC].isMem)
         {
             code += "    addr = 0;\n\n";
         }
@@ -643,17 +668,6 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    addr += fr.toU64(pols.CTX[" + (bFastMode?"0":"i") + "])*CTX_OFFSET;\n";
             if (!bFastMode)
                 code += "    pols.useCTX[i] = fr.one();\n\n";
-            else
-                code += "\n";
-            bOnlyOffset = false;
-        }
-
-        if (rom.program[zkPC].isCode == 1)
-        {
-            code += "    // If isCode, addr = addr + CODE_OFFSET\n";
-            code += "    addr += CODE_OFFSET;\n";
-            if (!bFastMode)
-                code += "    pols.isCode[i] = fr.one();\n\n";
             else
                 code += "\n";
             bOnlyOffset = false;
@@ -680,11 +694,6 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             else
                 code += "\n";
             bOnlyOffset = false;
-        }
-
-        if ((rom.program[zkPC].incCode != undefined) && (rom.program[zkPC].incCode != 0) && !bFastMode)
-        {
-            code += "    pols.incCode[i] = fr.fromS32(" + rom.program[zkPC].incCode + "); // Copy ROM flags into pols\n\n";
         }
 
         if (rom.program[zkPC].incStack && (rom.program[zkPC].incStack != 0) && !bFastMode)
@@ -2861,10 +2870,6 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             if (!bFastMode)
                 code += "    pols.setPC[i] = fr.one();\n";
         }
-        else if (rom.program[zkPC].incCode)
-        {
-            code += "    pols.PC[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.PC[" + (bFastMode?"0":"i") + "], fr.fromS32(" + rom.program[zkPC].incCode + ")); // PC' = PC + incCode\n";
-        }
         else if (!bFastMode)
             code += "    pols.PC[nexti] = pols.PC[i];\n";
 
@@ -3102,21 +3107,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         if (rom.program[zkPC].cmdAfter &&
             rom.program[zkPC].cmdAfter.length>0)
         {
-            code += "    // Evaluate the list cmdAfter commands, and any children command, recursively\n";
-            code += "    for (uint64_t j=0; j<rom.line[" + zkPC + "].cmdAfter.size(); j++)\n";
-            code += "    {\n";
-            code += "        cr.reset();\n";
-            code += "        zkPC=" + zkPC +";\n";
-            code += "        evalCommand(ctx, *rom.line[" + zkPC + "].cmdAfter[j], cr);\n";
-            code += "\n";
-            code += "        // In case of an external error, return it\n";
-            code += "        if (cr.zkResult != ZKR_SUCCESS)\n";
-            code += "        {\n";
-            code += "            proverRequest.result = cr.zkResult;\n";
-            code += "            return;\n";
-            code += "        }\n";
-            code += "    }\n";
-            code += "\n";
+            code += "    pendingAfterCmdsZkPC = " + zkPC + ";\n";
         }
 
         code += "#ifdef LOG_COMPLETED_STEPS\n";
