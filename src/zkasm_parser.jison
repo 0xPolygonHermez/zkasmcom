@@ -665,15 +665,15 @@ op
         }
     | MEM_ALIGN_RD
         {
-            $$ = { memAlign: 1, memAlignWR: 0, memAlignWR8: 0}
+            $$ = { memAlignRD: 1, memAlignWR: 0, memAlignWR8: 0}
         }
     | MEM_ALIGN_WR
         {
-            $$ = { memAlign: 1, memAlignWR: 1, memAlignWR8: 0}
+            $$ = { memAlignRD: 0, memAlignWR: 1, memAlignWR8: 0}
         }
     | MEM_ALIGN_WR8
         {
-            $$ = { memAlign: 1, memAlignWR: 0, memAlignWR8: 1}
+            $$ = { memAlignRD: 0, memAlignWR: 0, memAlignWR8: 1}
         }
     | INST_MAP_ROM
         {
