@@ -76,10 +76,9 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
     if (!bHeader)
     {
-        code += "#define MEM_OFFSET 0x30000\n";
-        code += "#define STACK_OFFSET 0x20000\n";
-        code += "#define CODE_OFFSET 0x10000\n";
-        code += "#define CTX_OFFSET 0x40000\n\n";
+        code += "#define STACK_OFFSET 0x10000\n";
+        code += "#define MEM_OFFSET   0x20000\n";
+        code += "#define CTX_OFFSET   0x40000\n\n";
 
         code += "#define N_NO_COUNTERS_MULTIPLICATION_FACTOR 8\n\n";
 
@@ -131,46 +130,33 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     }
     code += "    }\n\n";
 
-    code += "    // Init execution flags\n";
-    code += "    bool bProcessBatch = proverRequest.bProcessBatch;\n";
-    code += "    bool bUnsignedTransaction = (proverRequest.input.from != \"\") && (proverRequest.input.from != \"0x\");\n";
-    code += "    bool bSkipAsserts = bProcessBatch || bUnsignedTransaction;\n\n";
+    code += "    // Get a StateDBInterface interface, according to the configuration\n";
+    code += "    StateDBInterface *pStateDB = StateDBClientFactory::createStateDBClient(fr, mainExecutor.config);\n";
+    code += "    if (pStateDB == NULL)\n";
+    code += "    {\n";
+    code += "        cerr << \"Error: " + functionName + "() failed calling StateDBClientFactory::createStateDBClient()\" << endl;\n";
+    code += "        exitProcess();\n";
+    code += "    }\n\n";
 
-    code += "    Context ctx(mainExecutor.fr, mainExecutor.config, mainExecutor.fec, mainExecutor.fnec, pols, mainExecutor.rom, proverRequest, mainExecutor.pStateDB);\n\n";
+    code += "    // Init execution flags\n";
+    code += "    bool bProcessBatch = (proverRequest.type == prt_processBatch);\n";
+    code += "    bool bUnsignedTransaction = (proverRequest.input.from != \"\") && (proverRequest.input.from != \"0x\");\n\n";
+
+    code += "    Context ctx(mainExecutor.fr, mainExecutor.config, mainExecutor.fec, mainExecutor.fnec, pols, mainExecutor.rom, proverRequest, pStateDB);\n\n";
+    
+    code += "    mainExecutor.initState(ctx);\n\n";
 
     code += "#ifdef LOG_COMPLETED_STEPS_TO_FILE\n";
     code += "    remove(\"c.txt\");\n";
     code += "#endif\n\n";
 
-    code += "    Database * pDatabase = mainExecutor.pStateDB->getDatabase();\n\n";
+    code += "    // Copy input database content into context database\n";
+    code += "    if (proverRequest.input.db.size() > 0)\n";
+    code += "        pStateDB->loadDB(proverRequest.input.db, false);\n\n";
 
-    code += "    // Copy database key-value content provided with the input\n";
-    code += "    if ((proverRequest.input.db.size() > 0) || (proverRequest.input.contractsBytecode.size() > 0))\n";
-    code += "    {\n";
-    code += "        if (pDatabase != NULL)\n";
-    code += "        {\n";
-    code += "            /* Copy input database content into context database */\n";
-    code += "            unordered_map< string, vector<Goldilocks::Element> >::const_iterator it;\n";
-    code += "            for (it=proverRequest.input.db.begin(); it!=proverRequest.input.db.end(); it++)\n";
-    code += "            {\n";
-    code += "                pDatabase->write(it->first, it->second, false);\n";
-    code += "            }\n\n";
-
-    code += "            /* Copy input contracts database content into context database (dbProgram)*/\n";
-    code += "            unordered_map< string, vector<uint8_t> >::const_iterator itp;\n";
-    code += "            for (itp=proverRequest.input.contractsBytecode.begin(); itp!=proverRequest.input.contractsBytecode.end(); itp++)\n";
-    code += "            {\n";
-    code += "                pDatabase->setProgram(itp->first, itp->second, false);\n";
-    code += "            }\n";
-    code += "        }\n";
-    code += "    }\n\n";
-    code += "    // Reset database.dbReadLog. We use this dbReadLog to get all the database read operations performed\n";
-    code += "    // during the execution to store it later in the input.json file, having in this way a copy of the \"context\" database info\n";
-    
-    code += "    if (mainExecutor.config.saveDbReadsToFile)\n";
-    code += "    {\n";
-    code += "        if (pDatabase != NULL) pDatabase->clearDbReadLog();\n";
-    code += "    }\n\n";
+    code += "    // Copy input contracts database content into context database (dbProgram)\n";
+    code += "    if (proverRequest.input.contractsBytecode.size() > 0)\n";
+    code += "        pStateDB->loadProgramDB(proverRequest.input.contractsBytecode, false);\n\n";
 
     code += "    // opN are local, uncommitted polynomials\n";
     code += "    Goldilocks::Element op0, op1, op2, op3, op4, op5, op6, op7;\n"
@@ -210,6 +196,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     code += "    mpz_class paddingA;\n";
     code += "    unordered_map< uint64_t, HashValue >::iterator hashIterator;\n";
     code += "    unordered_map<uint64_t, uint64_t>::iterator readsIterator;\n";
+    code += "    HashValue emptyHashValue;\n";
 
     // Mem allign free in
     code += "    mpz_class m0;\n";
@@ -241,6 +228,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     code += "    ArithAction arithAction;\n";
     code += "    RawFec::Element fecS, minuend, subtrahend;\n";
     code += "    mpz_class _x3, _y3;\n";
+    code += "    mpz_class left;\n";
+    code += "    mpz_class right;\n";
     code += "    bool x3eq;\n";
     code += "    bool y3eq;\n";
     code += "    RawFec::Element numerator, denominator;\n";
@@ -270,6 +259,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         code += "    ctx.pStep = &i; // ctx.pStep is used inside evaluateCommand() to find the current value of the registers, e.g. pols(A0)[ctx.step]\n";
     }
     code += "    ctx.pZKPC = &zkPC; // Pointer to the zkPC\n\n";
+    
+    code += "    uint64_t pendingAfterCmdsZkPC = 0;\n\n";
 
     code += "    uint64_t incHashPos = 0;\n";
     code += "    uint64_t incCounter = 0;\n\n";
@@ -278,9 +269,9 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     code += "    uint64_t N_Max;\n";
     code += "    if (proverRequest.input.bNoCounters)\n";
     code += "    {\n";
-    code += "        if (!proverRequest.bProcessBatch)\n";
+    code += "        if (!bProcessBatch)\n";
     code += "        {\n";
-    code += "            cerr << \"Error: MainExecutor::execute() found proverRequest.input.bNoCounters=true and proverRequest.bProcessBatch=true\" << endl;\n";
+    code += "            cerr << \"Error: MainExecutor::execute() found proverRequest.input.bNoCounters=true and bProcessBatch=false\" << endl;\n";
     code += "            exitProcess();\n";
     code += "        }\n";
     code += "        N_Max = mainExecutor.N_NoCounters;\n";
@@ -325,6 +316,26 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         // INITIALIZATION
 
         let opInitialized = false;
+
+        // COMAND AFTER (of previous instruction)
+        code += "    // Evaluate the list cmdAfter commands of the previous ROM line,\n";
+        code += "    // and any children command, recursively\n";
+        code += "    if (pendingAfterCmdsZkPC > 0)\n";
+        code += "    {\n";
+        code += "        for (uint64_t j=0; j<rom.line[pendingAfterCmdsZkPC].cmdAfter.size(); j++)\n";
+        code += "        {\n";
+        code += "            CommandResult cr;\n";
+        code += "            evalCommand(ctx, *rom.line[pendingAfterCmdsZkPC].cmdAfter[j], cr);\n";
+        code += "    \n";
+        code += "            // In case of an external error, return it\n";
+        code += "            if (cr.zkResult != ZKR_SUCCESS)\n";
+        code += "            {\n";
+        code += "                proverRequest.result = cr.zkResult;\n";
+        code += "                return;\n";
+        code += "            }\n";
+        code += "        }\n";
+        code += "        pendingAfterCmdsZkPC = 0;\n";
+        code += "    }\n\n";
 
         // COMMAND BEFORE
         if (rom.program[zkPC].cmdBefore &&
@@ -423,11 +434,11 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
             let value = "";
             if (rom.program[zkPC].inSTEP == 1)
-                value = "fr.fromU64(proverRequest.input.bNoCounters ? 1 : i)";
+                value = "fr.fromU64(proverRequest.input.bNoCounters ? 0 : i)";
             else if (rom.program[zkPC].inSTEP == -1)
-                value = "fr.neg(fr.fromU64(proverRequest.input.bNoCounters ? 1 : i))";
+                value = "fr.neg(fr.fromU64(proverRequest.input.bNoCounters ? 0 : i))";
             else
-                value = "fr.mul(fr.fromS32(" + rom.program[zkPC].inSTEP + "), fr.fromU64(proverRequest.input.bNoCounters ? 1 : i))";
+                value = "fr.mul(fr.fromS32(" + rom.program[zkPC].inSTEP + "), fr.fromU64(proverRequest.input.bNoCounters ? 0 : i))";
             if (opInitialized)
                 value = "fr.add(op0, " + value + ")"
             code += "    op0 = " + value + ";\n";
@@ -564,6 +575,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             opInitialized = true;
         }
 
+        let bOnlyOffset = false;
+
         if (rom.program[zkPC].mOp || rom.program[zkPC].mWR || rom.program[zkPC].hashK || rom.program[zkPC].hashKLen || rom.program[zkPC].hashKDigest || rom.program[zkPC].hashP || rom.program[zkPC].hashPLen || rom.program[zkPC].hashPDigest || rom.program[zkPC].JMP || rom.program[zkPC].JMPN || rom.program[zkPC].JMPC)
         {
             let bAddrRel = false;
@@ -593,10 +606,13 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 if (rom.program[zkPC].offset > 0)
                 {
                 code += "    // If offset is possitive, and the sum is too big, fail\n"
-                code += "    if ((uint64_t(addrRel)+uint64_t(" + rom.program[zkPC].offset +  "))>=0x10000)\n"
+                code += "    if (rom.line[" + zkPC + "].offset>0 &&\n";
+                code += "        ( ( (uint64_t(addrRel)+uint64_t(rom.line[" + zkPC + "].offset)) >= 0x20000 ) ||\n";
+                code += "          ( rom.line[" + zkPC + "].isMem && ((uint64_t(addrRel)+uint64_t(rom.line[" + zkPC + "].offset)) >= 0x10000) ) ) )"
                 code += "    {\n"
-                code += "        cerr << \"Error: addrRel >= 0x10000 ln: \" << " + zkPC + " << endl;\n"
-                code += "        exitProcess();\n"
+                code += "        cerr << \"Error: addrRel >= \" << (rom.line[" + zkPC + "].isMem ? 0x10000 : 0x20000) << \" ln: \" << " + zkPC + " << endl;\n"
+                code += "        proverRequest.result = ZKR_SM_MAIN_ADDRESS;\n"
+                code += "        return;\n"
                 code += "    }\n"
                 }
                 else // offset < 0
@@ -605,7 +621,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "    if (" + (-rom.program[zkPC].offset) + ">addrRel)\n"
                 code += "    {\n"
                 code += "        cerr << \"Error: addrRel < 0 ln: \" << " + zkPC + " << endl;\n"
-                code += "        exitProcess();\n"
+                code += "        proverRequest.result = ZKR_SM_MAIN_ADDRESS;\n"
+                code += "        return;\n"
                 code += "    }\n"
                 }
                 code += "    addrRel += " + rom.program[zkPC].offset + ";\n"
@@ -625,6 +642,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 if (!bFastMode)
                     code += "    addrRel = " + rom.program[zkPC].offset + ";\n";
                 code += "    addr = " + rom.program[zkPC].offset + ";\n\n";
+                bOnlyOffset = true;
             }
             else if (!bAddrRel && !bOffset)
             {
@@ -633,9 +651,15 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "    addr = 0;\n\n";
             }
         }
-        else
+        else if (rom.program[zkPC].useCTX || rom.program[zkPC].isStack || rom.program[zkPC].isMem)
         {
             code += "    addr = 0;\n\n";
+        }
+        else
+        {
+            code += "#if (defined LOG_COMPLETED_STEPS) || (defined LOG_COMPLETED_STEPS_TO_FILE)\n";
+            code += "    addr = 0;\n";
+            code += "#endif\n\n";
         }
 
         if (rom.program[zkPC].useCTX == 1)
@@ -646,16 +670,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "    pols.useCTX[i] = fr.one();\n\n";
             else
                 code += "\n";
-        }
-
-        if (rom.program[zkPC].isCode == 1)
-        {
-            code += "    // If isCode, addr = addr + CODE_OFFSET\n";
-            code += "    addr += CODE_OFFSET;\n";
-            if (!bFastMode)
-                code += "    pols.isCode[i] = fr.one();\n\n";
-            else
-                code += "\n";
+            bOnlyOffset = false;
         }
 
         if (rom.program[zkPC].isStack == 1)
@@ -667,6 +682,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "    pols.isStack[i] = fr.one();\n\n";
             else
                 code += "\n";
+            bOnlyOffset = false;
         }
 
         if (rom.program[zkPC].isMem == 1)
@@ -677,11 +693,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "    pols.isMem[i] = fr.one();\n\n";
             else
                 code += "\n";
-        }
-
-        if ((rom.program[zkPC].incCode != undefined) && (rom.program[zkPC].incCode != 0) && !bFastMode)
-        {
-            code += "    pols.incCode[i] = fr.fromS32(" + rom.program[zkPC].incCode + "); // Copy ROM flags into pols\n\n";
+            bOnlyOffset = false;
         }
 
         if (rom.program[zkPC].incStack && (rom.program[zkPC].incStack != 0) && !bFastMode)
@@ -833,7 +845,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     code += "#endif \n";
                     code += "    sr8to4(fr, pols.SR0[" + (bFastMode?"0":"i") + "], pols.SR1[" + (bFastMode?"0":"i") + "], pols.SR2[" + (bFastMode?"0":"i") + "], pols.SR3[" + (bFastMode?"0":"i") + "], pols.SR4[" + (bFastMode?"0":"i") + "], pols.SR5[" + (bFastMode?"0":"i") + "], pols.SR6[" + (bFastMode?"0":"i") + "], pols.SR7[" + (bFastMode?"0":"i") + "], oldRoot[0], oldRoot[1], oldRoot[2], oldRoot[3]);\n";
                     
-                    code += "    zkResult = mainExecutor.pStateDB->get(oldRoot, key, value, &smtGetResult);\n";
+                    code += "    zkResult = pStateDB->get(oldRoot, key, value, &smtGetResult, proverRequest.dbReadLog);\n";
                     code += "    if (zkResult != ZKR_SUCCESS)\n";
                     code += "    {\n";
                     code += "        cerr << \"MainExecutor::Execute() failed calling pStateDB->get() result=\" << zkresult2string(zkResult) << endl;\n";
@@ -950,7 +962,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     code += "#endif\n";
                     code += "    sr8to4(fr, pols.SR0[" + (bFastMode?"0":"i") + "], pols.SR1[" + (bFastMode?"0":"i") + "], pols.SR2[" + (bFastMode?"0":"i") + "], pols.SR3[" + (bFastMode?"0":"i") + "], pols.SR4[" + (bFastMode?"0":"i") + "], pols.SR5[" + (bFastMode?"0":"i") + "], pols.SR6[" + (bFastMode?"0":"i") + "], pols.SR7[" + (bFastMode?"0":"i") + "], oldRoot[0], oldRoot[1], oldRoot[2], oldRoot[3]);\n";
                     
-                    code += "    zkResult = mainExecutor.pStateDB->set(oldRoot, ctx.lastSWrite.key, scalarD, proverRequest.input.bUpdateMerkleTree, ctx.lastSWrite.newRoot, &ctx.lastSWrite.res);\n";
+                    code += "    zkResult = pStateDB->set(oldRoot, ctx.lastSWrite.key, scalarD, proverRequest.input.bUpdateMerkleTree, ctx.lastSWrite.newRoot, &ctx.lastSWrite.res, proverRequest.dbReadLog);\n";
                     code += "    if (zkResult != ZKR_SUCCESS)\n";
                     code += "    {\n";
                     code += "        cerr << \"MainExecutor::Execute() failed calling pStateDB->set() result=\" << zkresult2string(zkResult) << endl;\n";
@@ -981,8 +993,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     code += "    hashIterator = ctx.hashK.find(addr);\n";
                     code += "    if (hashIterator == ctx.hashK.end())\n";
                     code += "    {\n";
-                    code += "        HashValue hashValue;\n";
-                    code += "        ctx.hashK[addr] = hashValue;\n";
+                    code += "        ctx.hashK[addr] = emptyHashValue;\n";
                     code += "        hashIterator = ctx.hashK.find(addr);\n";
                     code += "        zkassert(hashIterator != ctx.hashK.end());\n";
                     code += "    }\n";
@@ -1077,8 +1088,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     code += "    hashIterator = ctx.hashP.find(addr);\n";
                     code += "    if (hashIterator == ctx.hashP.end())\n";
                     code += "    {\n";
-                    code += "        HashValue hashValue;\n";
-                    code += "        ctx.hashP[addr] = hashValue;\n";
+                    code += "        ctx.hashP[addr] = emptyHashValue;\n";
                     code += "        hashIterator = ctx.hashP.find(addr);\n";
                     code += "        zkassert(hashIterator != ctx.hashP.end());\n";
                     code += "    }\n";
@@ -1123,7 +1133,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     code += "    for (uint64_t j=0; j<size; j++)\n";
                     code += "    {\n";
                     code += "        uint8_t data = hashIterator->second.data[pos+j];\n";
-                    code += "        s = (s<<uint64_t(8)) + mpz_class(data);\n";
+                    code += "        s = (s<<uint64_t(8)) + data;\n";
                     code += "    }\n";
                     code += "    scalar2fea(fr, s, fi0, fi1, fi2, fi3, fi4 ,fi5 ,fi6 ,fi7);\n";
 
@@ -1162,7 +1172,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                         code += "    //Binary free in ADD\n";
                         code += "    fea2scalar(fr, a, pols.A0[" + (bFastMode?"0":"i") + "], pols.A1[" + (bFastMode?"0":"i") + "], pols.A2[" + (bFastMode?"0":"i") + "], pols.A3[" + (bFastMode?"0":"i") + "], pols.A4[" + (bFastMode?"0":"i") + "], pols.A5[" + (bFastMode?"0":"i") + "], pols.A6[" + (bFastMode?"0":"i") + "], pols.A7[" + (bFastMode?"0":"i") + "]);\n";
                         code += "    fea2scalar(fr, b, pols.B0[" + (bFastMode?"0":"i") + "], pols.B1[" + (bFastMode?"0":"i") + "], pols.B2[" + (bFastMode?"0":"i") + "], pols.B3[" + (bFastMode?"0":"i") + "], pols.B4[" + (bFastMode?"0":"i") + "], pols.B5[" + (bFastMode?"0":"i") + "], pols.B6[" + (bFastMode?"0":"i") + "], pols.B7[" + (bFastMode?"0":"i") + "]);\n";
-                        code += "    c = (a + b) & Mask256;\n";
+                        code += "    c = (a + b) & ScalarMask256;\n";
                         code += "    scalar2fea(fr, c, fi0, fi1, fi2, fi3, fi4, fi5, fi6, fi7);\n";
                         nHits++;
                     }
@@ -1171,7 +1181,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                         code += "    //Binary free in SUB\n";
                         code += "    fea2scalar(fr, a, pols.A0[" + (bFastMode?"0":"i") + "], pols.A1[" + (bFastMode?"0":"i") + "], pols.A2[" + (bFastMode?"0":"i") + "], pols.A3[" + (bFastMode?"0":"i") + "], pols.A4[" + (bFastMode?"0":"i") + "], pols.A5[" + (bFastMode?"0":"i") + "], pols.A6[" + (bFastMode?"0":"i") + "], pols.A7[" + (bFastMode?"0":"i") + "]);\n";
                         code += "    fea2scalar(fr, b, pols.B0[" + (bFastMode?"0":"i") + "], pols.B1[" + (bFastMode?"0":"i") + "], pols.B2[" + (bFastMode?"0":"i") + "], pols.B3[" + (bFastMode?"0":"i") + "], pols.B4[" + (bFastMode?"0":"i") + "], pols.B5[" + (bFastMode?"0":"i") + "], pols.B6[" + (bFastMode?"0":"i") + "], pols.B7[" + (bFastMode?"0":"i") + "]);\n";
-                        code += "    c = (a - b + TwoTo256) & Mask256;\n";
+                        code += "    c = (a - b + ScalarTwoTo256) & ScalarMask256;\n";
                         code += "    scalar2fea(fr, c, fi0, fi1, fi2, fi3, fi4, fi5, fi6, fi7);\n";
                         nHits++;
                     }
@@ -1189,8 +1199,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                         code += "    //Binary free in SLT\n";
                         code += "    fea2scalar(fr, a, pols.A0[" + (bFastMode?"0":"i") + "], pols.A1[" + (bFastMode?"0":"i") + "], pols.A2[" + (bFastMode?"0":"i") + "], pols.A3[" + (bFastMode?"0":"i") + "], pols.A4[" + (bFastMode?"0":"i") + "], pols.A5[" + (bFastMode?"0":"i") + "], pols.A6[" + (bFastMode?"0":"i") + "], pols.A7[" + (bFastMode?"0":"i") + "]);\n";
                         code += "    fea2scalar(fr, b, pols.B0[" + (bFastMode?"0":"i") + "], pols.B1[" + (bFastMode?"0":"i") + "], pols.B2[" + (bFastMode?"0":"i") + "], pols.B3[" + (bFastMode?"0":"i") + "], pols.B4[" + (bFastMode?"0":"i") + "], pols.B5[" + (bFastMode?"0":"i") + "], pols.B6[" + (bFastMode?"0":"i") + "], pols.B7[" + (bFastMode?"0":"i") + "]);\n";
-                        code += "    if (a >= TwoTo255) a = a - TwoTo256;\n";
-                        code += "    if (b >= TwoTo255) b = b - TwoTo256;\n";
+                        code += "    if (a >= ScalarTwoTo255) a = a - ScalarTwoTo256;\n";
+                        code += "    if (b >= ScalarTwoTo255) b = b - ScalarTwoTo256;\n";
                         code += "    c = (a < b);\n";
                         code += "    scalar2fea(fr, c, fi0, fi1, fi2, fi3, fi4, fi5, fi6, fi7);\n";
                         nHits++;
@@ -1253,8 +1263,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     code += "        return;\n";
                     code += "    }\n";
                     code += "    offset = offsetScalar.get_ui();\n";
-                    code += "    leftV = (m0 << (offset*8)) & Mask256;\n";
-                    code += "    rightV = (m1 >> (256 - offset*8)) & (Mask256 >> (256 - offset*8));\n";
+                    code += "    leftV = (m0 << (offset*8)) & ScalarMask256;\n";
+                    code += "    rightV = (m1 >> (256 - offset*8)) & (ScalarMask256 >> (256 - offset*8));\n";
                     code += "    _V = leftV | rightV;\n";
                     code += "    scalar2fea(fr, _V, fi0, fi1, fi2, fi3, fi4, fi5, fi6, fi7);\n";
                     nHits++;
@@ -1452,21 +1462,10 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "         (!fr.equal(pols.A6[" + (bFastMode?"0":"i") + "], op6)) ||\n";
             code += "         (!fr.equal(pols.A7[" + (bFastMode?"0":"i") + "], op7)) )\n";
             code += "    {\n";
-            code += "        if (bSkipAsserts && (" + zkPC + " == mainExecutor.assertNewStateRootLabel))\n";
-            code += "        {\n";
-            code += "            //cout << \"Skipping assert of new state root\" << endl;\n";
-            code += "        }\n";
-            code += "        else if (bSkipAsserts && (" + zkPC + " == mainExecutor.assertNewLocalExitRootLabel))\n";
-            code += "        {\n";
-            code += "            //cout << \"Skipping assert of new local exit root\" << endl;\n";
-            code += "        }\n";
-            code += "        else\n";
-            code += "        {\n";
-            code += "            cerr << \"Error: ROM assert failed: AN!=opN ln: \" << " + zkPC + " << endl;\n";
-            code += "            cout << \"A: \" << fr.toString(pols.A7[" + (bFastMode?"0":"i") + "], 16) << \":\" << fr.toString(pols.A6[" + (bFastMode?"0":"i") + "], 16) << \":\" << fr.toString(pols.A5[" + (bFastMode?"0":"i") + "], 16) << \":\" << fr.toString(pols.A4[" + (bFastMode?"0":"i") + "], 16) << \":\" << fr.toString(pols.A3[" + (bFastMode?"0":"i") + "], 16) << \":\" << fr.toString(pols.A2[" + (bFastMode?"0":"i") + "], 16) << \":\" << fr.toString(pols.A1[" + (bFastMode?"0":"i") + "], 16) << \":\" << fr.toString(pols.A0[" + (bFastMode?"0":"i") + "], 16) << endl;\n";
-            code += "            cout << \"OP:\" << fr.toString(op7, 16) << \":\" << fr.toString(op6, 16) << \":\" << fr.toString(op5, 16) << \":\" << fr.toString(op4,16) << \":\" << fr.toString(op3, 16) << \":\" << fr.toString(op2, 16) << \":\" << fr.toString(op1, 16) << \":\" << fr.toString(op0, 16) << endl;\n";
-            code += "            exitProcess();\n";
-            code += "        }\n";
+            code += "        cerr << \"Error: ROM assert failed: AN!=opN ln: \" << " + zkPC + " << endl;\n";
+            code += "        cout << \"A: \" << fr.toString(pols.A7[" + (bFastMode?"0":"i") + "], 16) << \":\" << fr.toString(pols.A6[" + (bFastMode?"0":"i") + "], 16) << \":\" << fr.toString(pols.A5[" + (bFastMode?"0":"i") + "], 16) << \":\" << fr.toString(pols.A4[" + (bFastMode?"0":"i") + "], 16) << \":\" << fr.toString(pols.A3[" + (bFastMode?"0":"i") + "], 16) << \":\" << fr.toString(pols.A2[" + (bFastMode?"0":"i") + "], 16) << \":\" << fr.toString(pols.A1[" + (bFastMode?"0":"i") + "], 16) << \":\" << fr.toString(pols.A0[" + (bFastMode?"0":"i") + "], 16) << endl;\n";
+            code += "        cout << \"OP:\" << fr.toString(op7, 16) << \":\" << fr.toString(op6, 16) << \":\" << fr.toString(op5, 16) << \":\" << fr.toString(op4,16) << \":\" << fr.toString(op3, 16) << \":\" << fr.toString(op2, 16) << \":\" << fr.toString(op1, 16) << \":\" << fr.toString(op0, 16) << endl;\n";
+            code += "        exitProcess();\n";
             code += "    }\n";
             if (!bFastMode)
                 code += "    pols.assert_pol[i] = fr.one();\n";
@@ -1641,7 +1640,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
             code += "    sr8to4(fr, pols.SR0[" + (bFastMode?"0":"i") + "], pols.SR1[" + (bFastMode?"0":"i") + "], pols.SR2[" + (bFastMode?"0":"i") + "], pols.SR3[" + (bFastMode?"0":"i") + "], pols.SR4[" + (bFastMode?"0":"i") + "], pols.SR5[" + (bFastMode?"0":"i") + "], pols.SR6[" + (bFastMode?"0":"i") + "], pols.SR7[" + (bFastMode?"0":"i") + "], oldRoot[0], oldRoot[1], oldRoot[2], oldRoot[3]);\n";
             
-            code += "    zkResult = mainExecutor.pStateDB->get(oldRoot, key, value, &smtGetResult);\n";
+            code += "    zkResult = pStateDB->get(oldRoot, key, value, &smtGetResult, proverRequest.dbReadLog);\n";
             code += "    if (zkResult != ZKR_SUCCESS)\n";
             code += "    {\n";
             code += "        cerr << \"MainExecutor::Execute() failed calling pStateDB->get() result=\" << zkresult2string(zkResult) << endl;\n";
@@ -1754,7 +1753,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             
             code += "        sr8to4(fr, pols.SR0[" + (bFastMode?"0":"i") + "], pols.SR1[" + (bFastMode?"0":"i") + "], pols.SR2[" + (bFastMode?"0":"i") + "], pols.SR3[" + (bFastMode?"0":"i") + "], pols.SR4[" + (bFastMode?"0":"i") + "], pols.SR5[" + (bFastMode?"0":"i") + "], pols.SR6[" + (bFastMode?"0":"i") + "], pols.SR7[" + (bFastMode?"0":"i") + "], oldRoot[0], oldRoot[1], oldRoot[2], oldRoot[3]);\n";
 
-            code += "        zkResult = mainExecutor.pStateDB->set(oldRoot, ctx.lastSWrite.key, scalarD, proverRequest.input.bUpdateMerkleTree, ctx.lastSWrite.newRoot, &ctx.lastSWrite.res);\n";
+            code += "        zkResult = pStateDB->set(oldRoot, ctx.lastSWrite.key, scalarD, proverRequest.input.bUpdateMerkleTree, ctx.lastSWrite.newRoot, &ctx.lastSWrite.res, proverRequest.dbReadLog);\n";
             code += "        if (zkResult != ZKR_SUCCESS)\n";
             code += "        {\n";
             code += "            cerr << \"MainExecutor::Execute() failed calling pStateDB->set() result=\" << zkresult2string(zkResult) << endl;\n";
@@ -1825,8 +1824,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    hashIterator = ctx.hashK.find(addr);\n";
             code += "    if (hashIterator == ctx.hashK.end())\n";
             code += "    {\n";
-            code += "        HashValue hashValue;\n";
-            code += "        ctx.hashK[addr] = hashValue;\n";
+            code += "        ctx.hashK[addr] = emptyHashValue;\n";
             code += "        hashIterator = ctx.hashK.find(addr);\n";
             code += "        zkassert(hashIterator != ctx.hashK.end());\n";
             code += "    }\n\n";
@@ -1864,7 +1862,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    // Fill the hash data vector with chunks of the scalar value\n";
             code += "    for (uint64_t j=0; j<size; j++)\n";
             code += "    {\n";
-            code += "        result = (a >> ((size-j-1)*8)) & Mask8;\n";
+            code += "        result = (a >> ((size-j-1)*8)) & ScalarMask8;\n";
             code += "        uint8_t bm = result.get_ui();\n";
             code += "        if (hashIterator->second.data.size() == (pos+j))\n";
             code += "        {\n";
@@ -1929,17 +1927,35 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
             if (!bFastMode)
                 code += "    pols.hashKLen[i] = fr.one();\n";
-    
+
+            code += "    // Get the length\n";
+            code += "    lm = fr.toU64(op0);\n\n";
+
             code += "    // Find the entry in the hash database for this address\n";
-            code += "    hashIterator = ctx.hashK.find(addr);\n";
+            code += "    hashIterator = ctx.hashK.find(addr);\n\n";
+
+            code += "    // If it's undefined, compute a hash of 0 bytes\n";
             code += "    if (hashIterator == ctx.hashK.end())\n";
             code += "    {\n";
-            code += "        cerr << \"Error: hashKLen 2 could not find entry for addr=\" << addr << endl;\n";
-            code += "        proverRequest.result = ZKR_SM_MAIN_HASHK;\n";
-            code += "        return;\n";
+            code += "        // Check that length = 0\n";
+            code += "        if (lm != 0)\n";
+            code += "        {\n";
+            code += "            cerr << \"Error: hashKLen 2 hashK[addr] is empty but lm is not 0 addr=\" << addr << \" lm=\" << lm << endl;\n";
+            code += "            proverRequest.result = ZKR_SM_MAIN_HASHK;\n";
+            code += "            return;\n";
+            code += "        }\n\n";
+
+            code += "        // Create an empty entry in this address slot\n";
+            code += "        ctx.hashK[addr] = emptyHashValue;\n";
+            code += "        hashIterator = ctx.hashK.find(addr);\n";
+            code += "        zkassert(hashIterator != ctx.hashK.end());\n\n";
+            
+            code += "        // Calculate the hash of an empty string\n";
+            code += "        string digestString = keccak256(hashIterator->second.data.data(), hashIterator->second.data.size());\n";
+            code += "        hashIterator->second.digest.set_str(Remove0xIfPresent(digestString),16);\n";
+            code += "        hashIterator->second.bDigested = true;\n";
             code += "    }\n";
 
-            code += "    lm = fr.toU64(op0);\n";
             code += "    lh = hashIterator->second.data.size();\n";
             code += "    if (lm != lh)\n";
             code += "    {\n";
@@ -2025,8 +2041,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    hashIterator = ctx.hashP.find(addr);\n";
             code += "    if (hashIterator == ctx.hashP.end())\n";
             code += "    {\n";
-            code += "        HashValue hashValue;\n";
-            code += "        ctx.hashP[addr] = hashValue;\n";
+            code += "        ctx.hashP[addr] = emptyHashValue;\n";
             code += "        hashIterator = ctx.hashP.find(addr);\n";
             code += "        zkassert(hashIterator != ctx.hashP.end());\n";
             code += "    }\n";
@@ -2063,7 +2078,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
             code += "    // Fill the hash data vector with chunks of the scalar value\n";
             code += "    for (uint64_t j=0; j<size; j++) {\n";
-            code += "        result = (a >> (size-j-1)*8) & Mask8;\n";
+            code += "        result = (a >> (size-j-1)*8) & ScalarMask8;\n";
             code += "        uint8_t bm = result.get_ui();\n";
             code += "        if (hashIterator->second.data.size() == (pos+j))\n";
             code += "        {\n";
@@ -2125,16 +2140,34 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             if (!bFastMode)
                 code += "    pols.hashPLen[i] = fr.one();\n";
 
+            code += "    // Get the length\n";
+            code += "    lm = fr.toU64(op0);\n\n";
+
             code += "    // Find the entry in the hash database for this address\n";
-            code += "    hashIterator = ctx.hashP.find(addr);\n";
+            code += "    hashIterator = ctx.hashP.find(addr);\n\n";
+
+            code += "    // If it's undefined, compute a hash of 0 bytes\n";            
             code += "    if (hashIterator == ctx.hashP.end())\n";
             code += "    {\n";
-            code += "        cerr << \"Error: hashPLen 2 could not find entry for addr=\" << addr << endl;\n";
-            code += "        proverRequest.result = ZKR_SM_MAIN_HASHK;\n";
-            code += "        return;\n";
+            code += "        // Check that length = 0\n";
+            code += "        if (lm != 0)\n";
+            code += "        {\n";
+            code += "            cerr << \"Error: hashKLen 2 hashP[addr] is empty but lm is not 0 addr=\" << addr << \" lm=\" << lm << endl;\n";
+            code += "            proverRequest.result = ZKR_SM_MAIN_HASHK;\n";
+            code += "            return;\n";
+            code += "        }\n\n";
+
+            code += "        // Create an empty entry in this address slot\n";
+            code += "        ctx.hashP[addr] = emptyHashValue;\n";
+            code += "        hashIterator = ctx.hashP.find(addr);\n";
+            code += "        zkassert(hashIterator != ctx.hashP.end());\n\n";
+
+            code += "        // Calculate the hash of an empty string\n";
+            code += "        string digestString = keccak256(hashIterator->second.data.data(), hashIterator->second.data.size());\n";
+            code += "        hashIterator->second.digest.set_str(Remove0xIfPresent(digestString),16);\n";
+            code += "        hashIterator->second.bDigested = true;\n";
             code += "    }\n";
 
-            code += "    lm = fr.toU64(op0);\n";
             code += "    lh = hashIterator->second.data.size();\n";
             code += "    if (lm != lh)\n";
             code += "    {\n";
@@ -2186,7 +2219,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "        delete[] pBuffer;\n";
             code += "        hashIterator->second.bDigested = true;\n";
 
-            code += "        zkResult = mainExecutor.pStateDB->setProgram(result, hashIterator->second.data, proverRequest.input.bUpdateMerkleTree);\n";
+            code += "        zkResult = pStateDB->setProgram(result, hashIterator->second.data, proverRequest.input.bUpdateMerkleTree);\n";
             code += "        if (zkResult != ZKR_SUCCESS)\n";
             code += "        {\n";
             code += "            cerr << \"MainExecutor::Execute() failed calling pStateDB->setProgram() result=\" << zkresult2string(zkResult) << endl;\n";
@@ -2225,7 +2258,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "        hashValue.bDigested = true;\n";
             code += "        Goldilocks::Element aux[4];\n";
             code += "        scalar2fea(fr, dg, aux);\n";
-            code += "        zkResult = mainExecutor.pStateDB->getProgram(aux, hashValue.data);\n";
+            code += "        zkResult = pStateDB->getProgram(aux, hashValue.data, proverRequest.dbReadLog);\n";
             code += "        if (zkResult != ZKR_SUCCESS)\n";
             code += "        {\n";
             code += "            cerr << \"MainExecutor::Execute() failed calling pStateDB->getProgram() result=\" << zkresult2string(zkResult) << endl;\n";
@@ -2282,8 +2315,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "    // Check the condition\n";
                 code += "    if ( (A*B) + C != (D<<256) + op ) {\n";
                 code += "        cerr << \"Error: Arithmetic does not match: zkPC=" + zkPC +"\" << endl;\n";
-                code += "        mpz_class left = (A*B) + C;\n";
-                code += "        mpz_class right = (D<<256) + op;\n";
+                code += "        left = (A*B) + C;\n";
+                code += "        right = (D<<256) + op;\n";
                 code += "        cerr << \"(A*B) + C = \" << left.get_str(16) << endl;\n";
                 code += "        cerr << \"(D<<256) + op = \" << right.get_str(16) << endl;\n";
                 code += "        proverRequest.result = ZKR_SM_MAIN_ARITH;\n";
@@ -2450,7 +2483,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "    fea2scalar(fr, b, pols.B0[" + (bFastMode?"0":"i") + "], pols.B1[" + (bFastMode?"0":"i") + "], pols.B2[" + (bFastMode?"0":"i") + "], pols.B3[" + (bFastMode?"0":"i") + "], pols.B4[" + (bFastMode?"0":"i") + "], pols.B5[" + (bFastMode?"0":"i") + "], pols.B6[" + (bFastMode?"0":"i") + "], pols.B7[" + (bFastMode?"0":"i") + "]);\n";
                 code += "    fea2scalar(fr, c, op0, op1, op2, op3, op4, op5, op6, op7);\n";
 
-                code += "    expectedC = (a + b) & Mask256;\n";
+                code += "    expectedC = (a + b) & ScalarMask256;\n";
                 code += "    if (c != expectedC)\n";
                 code += "    {\n";
                 code += "        cerr << \"Error: Binary ADD operation does not match zkPC=" + zkPC + " instruction: \" << rom.line[" + zkPC + "].toString(fr) << endl;\n";
@@ -2480,7 +2513,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "    fea2scalar(fr, b, pols.B0[" + (bFastMode?"0":"i") + "], pols.B1[" + (bFastMode?"0":"i") + "], pols.B2[" + (bFastMode?"0":"i") + "], pols.B3[" + (bFastMode?"0":"i") + "], pols.B4[" + (bFastMode?"0":"i") + "], pols.B5[" + (bFastMode?"0":"i") + "], pols.B6[" + (bFastMode?"0":"i") + "], pols.B7[" + (bFastMode?"0":"i") + "]);\n";
                 code += "    fea2scalar(fr, c, op0, op1, op2, op3, op4, op5, op6, op7);\n";
 
-                code += "    expectedC = (a - b + TwoTo256) & Mask256;\n";
+                code += "    expectedC = (a - b + ScalarTwoTo256) & ScalarMask256;\n";
                 code += "    if (c != expectedC)\n";
                 code += "    {\n";
                 code += "        cerr << \"Error: Binary SUB operation does not match zkPC=" + zkPC + " instruction: \" << rom.line[" + zkPC + "].toString(fr) << endl;\n";
@@ -2539,8 +2572,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "    fea2scalar(fr, a, pols.A0[" + (bFastMode?"0":"i") + "], pols.A1[" + (bFastMode?"0":"i") + "], pols.A2[" + (bFastMode?"0":"i") + "], pols.A3[" + (bFastMode?"0":"i") + "], pols.A4[" + (bFastMode?"0":"i") + "], pols.A5[" + (bFastMode?"0":"i") + "], pols.A6[" + (bFastMode?"0":"i") + "], pols.A7[" + (bFastMode?"0":"i") + "]);\n";
                 code += "    fea2scalar(fr, b, pols.B0[" + (bFastMode?"0":"i") + "], pols.B1[" + (bFastMode?"0":"i") + "], pols.B2[" + (bFastMode?"0":"i") + "], pols.B3[" + (bFastMode?"0":"i") + "], pols.B4[" + (bFastMode?"0":"i") + "], pols.B5[" + (bFastMode?"0":"i") + "], pols.B6[" + (bFastMode?"0":"i") + "], pols.B7[" + (bFastMode?"0":"i") + "]);\n";
                 code += "    fea2scalar(fr, c, op0, op1, op2, op3, op4, op5, op6, op7);\n";
-                code += "    if (a >= TwoTo255) a = a - TwoTo256;\n";
-                code += "    if (b >= TwoTo255) b = b - TwoTo256;\n";
+                code += "    if (a >= ScalarTwoTo255) a = a - ScalarTwoTo256;\n";
+                code += "    if (b >= ScalarTwoTo255) b = b - ScalarTwoTo256;\n";
 
                 code += "    expectedC = (a < b);\n";
                 code += "    if (c != expectedC)\n";
@@ -2717,8 +2750,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
                 code += "    fea2scalar(fr, w0, pols.D0[" + (bFastMode?"0":"i") + "], pols.D1[" + (bFastMode?"0":"i") + "], pols.D2[" + (bFastMode?"0":"i") + "], pols.D3[" + (bFastMode?"0":"i") + "], pols.D4[" + (bFastMode?"0":"i") + "], pols.D5[" + (bFastMode?"0":"i") + "], pols.D6[" + (bFastMode?"0":"i") + "], pols.D7[" + (bFastMode?"0":"i") + "]);\n";
                 code += "    fea2scalar(fr, w1, pols.E0[" + (bFastMode?"0":"i") + "], pols.E1[" + (bFastMode?"0":"i") + "], pols.E2[" + (bFastMode?"0":"i") + "], pols.E3[" + (bFastMode?"0":"i") + "], pols.E4[" + (bFastMode?"0":"i") + "], pols.E5[" + (bFastMode?"0":"i") + "], pols.E6[" + (bFastMode?"0":"i") + "], pols.E7[" + (bFastMode?"0":"i") + "]);\n";
-                code += "    _W0 = (m0 & (TwoTo256 - (One << (256-offset*8)))) | (v >> offset*8);\n";
-                code += "    _W1 = (m1 & (Mask256 >> offset*8)) | ((v << (256 - offset*8)) & Mask256);\n";
+                code += "    _W0 = (m0 & (ScalarTwoTo256 - (ScalarOne << (256-offset*8)))) | (v >> offset*8);\n";
+                code += "    _W1 = (m1 & (ScalarMask256 >> offset*8)) | ((v << (256 - offset*8)) & ScalarMask256);\n";
                 code += "    if ( (w0 != _W0) || (w1 != _W1) )\n";
                 code += "    {\n";
                 code += "        cerr << \"Error: MemAlign w0, w1 invalid: w0=\" << w0.get_str(16) << \" w1=\" << w1.get_str(16) << \" _W0=\" << _W0.get_str(16) << \" _W1=\" << _W1.get_str(16) << \" m0=\" << m0.get_str(16) << \" m1=\" << m1.get_str(16) << \" offset=\" << offset << \" v=\" << v.get_str(16) << endl;\n";
@@ -2768,8 +2801,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             }
             else if (rom.program[zkPC].memAlignWR==0 && rom.program[zkPC].memAlignWR8==0)
             {
-                code += "    leftV = (m0 << offset*8) & Mask256;\n";
-                code += "    rightV = (m1 >> (256 - offset*8)) & (Mask256 >> (256 - offset*8));\n";
+                code += "    leftV = (m0 << offset*8) & ScalarMask256;\n";
+                code += "    rightV = (m1 >> (256 - offset*8)) & (ScalarMask256 >> (256 - offset*8));\n";
                 code += "    _V = leftV | rightV;\n";
                 code += "    if (v != _V)\n";
                 code += "    {\n";
@@ -2836,10 +2869,6 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    pols.PC[" + (bFastMode?"0":"nexti") + "] = op0; // If setPC, PC'=op\n"
             if (!bFastMode)
                 code += "    pols.setPC[i] = fr.one();\n";
-        }
-        else if (rom.program[zkPC].incCode)
-        {
-            code += "    pols.PC[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.PC[" + (bFastMode?"0":"i") + "], fr.fromS32(" + rom.program[zkPC].incCode + ")); // PC' = PC + incCode\n";
         }
         else if (!bFastMode)
             code += "    pols.PC[nexti] = pols.PC[i];\n";
@@ -3078,21 +3107,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         if (rom.program[zkPC].cmdAfter &&
             rom.program[zkPC].cmdAfter.length>0)
         {
-            code += "    // Evaluate the list cmdAfter commands, and any children command, recursively\n";
-            code += "    for (uint64_t j=0; j<rom.line[" + zkPC + "].cmdAfter.size(); j++)\n";
-            code += "    {\n";
-            code += "        cr.reset();\n";
-            code += "        zkPC=" + zkPC +";\n";
-            code += "        evalCommand(ctx, *rom.line[" + zkPC + "].cmdAfter[j], cr);\n";
-            code += "\n";
-            code += "        // In case of an external error, return it\n";
-            code += "        if (cr.zkResult != ZKR_SUCCESS)\n";
-            code += "        {\n";
-            code += "            proverRequest.result = cr.zkResult;\n";
-            code += "            return;\n";
-            code += "        }\n";
-            code += "    }\n";
-            code += "\n";
+            code += "    pendingAfterCmdsZkPC = " + zkPC + ";\n";
         }
 
         code += "#ifdef LOG_COMPLETED_STEPS\n";
@@ -3122,14 +3137,20 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         // In case we had a pending jump, do it now, after the work has been done
         if (bForcedJump)
         {
-            code += "    goto *" + functionName + "_labels[addr];\n\n";
+            if (bOnlyOffset)
+                code += "    goto " + functionName + "_rom_line_" + rom.program[zkPC].offset + ";\n";
+            else
+                code += "    goto *" + functionName + "_labels[addr];\n\n";
         }
         if (bConditionalJump)
         {
             code += "    if (bJump)\n";
             code += "    {\n";
             code += "        bJump = false;\n";
-            code += "        goto *" + functionName + "_labels[addr];\n";
+            if (bOnlyOffset)
+                code += "        goto " + functionName + "_rom_line_" + rom.program[zkPC].offset + ";\n";
+            else
+                code += "        goto *" + functionName + "_labels[addr];\n";
             code += "    }\n\n";
         }
     }
@@ -3150,6 +3171,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     {
         code += "    // Check that all registers are set to 0\n";
         code += "    mainExecutor.checkFinalState(ctx);\n";
+        code += "    mainExecutor.assertOutputs(ctx);\n\n";
 
         code += "    // Generate Padding KK required data\n";
         code += "    for (uint64_t i=0; i<ctx.hashK.size(); i++)\n";
@@ -3200,7 +3222,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         code += "        }\n";
         code += "        if (p != ctx.hashP[i].data.size())\n";
         code += "        {\n";
-        code += "            cerr << \"Error: Main SM Executor: Reading hashP out of limits: i=\" << i << \" p=\" << p << \" ctx.hashK[i].data.size()=\" << ctx.hashK[i].data.size() << endl;\n";
+        code += "            cerr << \"Error: Main SM Executor: Reading hashP out of limits: i=\" << i << \" p=\" << p << \" ctx.hashP[i].data.size()=\" << ctx.hashK[i].data.size() << endl;\n";
         code += "            proverRequest.result = ZKR_SM_MAIN_HASHP;\n";
         code += "            return;\n";
         code += "        }\n";
@@ -3214,6 +3236,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     code += "    cout << \"TIMER STATISTICS: Keccak time: \" << double(keccakTime)/1000 << \" ms, called \" << keccakTimes << \" times, so \" << keccakTime/zkmax(keccakTimes,(uint64_t)1) << \" us/time\" << endl;\n";
     code += "#endif\n\n";
     
+    code += "    StateDBClientFactory::freeStateDBClient(pStateDB);\n\n";
+
     code += "    cout << \"" + functionName + "() done lastStep=\" << ctx.lastStep << \" (\" << (double(ctx.lastStep)*100)/mainExecutor.N << \"%)\" << endl;\n\n";
 
     code += "    proverRequest.result = ZKR_SUCCESS;\n\n";
