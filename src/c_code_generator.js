@@ -259,8 +259,6 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         code += "    ctx.pStep = &i; // ctx.pStep is used inside evaluateCommand() to find the current value of the registers, e.g. pols(A0)[ctx.step]\n";
     }
     code += "    ctx.pZKPC = &zkPC; // Pointer to the zkPC\n\n";
-    
-    code += "    uint64_t pendingAfterCmdsZkPC = 0;\n\n";
 
     code += "    uint64_t incHashPos = 0;\n";
     code += "    uint64_t incCounter = 0;\n\n";
@@ -316,26 +314,6 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         // INITIALIZATION
 
         let opInitialized = false;
-
-        // COMAND AFTER (of previous instruction)
-        code += "    // Evaluate the list cmdAfter commands of the previous ROM line,\n";
-        code += "    // and any children command, recursively\n";
-        code += "    if (pendingAfterCmdsZkPC > 0)\n";
-        code += "    {\n";
-        code += "        for (uint64_t j=0; j<rom.line[pendingAfterCmdsZkPC].cmdAfter.size(); j++)\n";
-        code += "        {\n";
-        code += "            CommandResult cr;\n";
-        code += "            evalCommand(ctx, *rom.line[pendingAfterCmdsZkPC].cmdAfter[j], cr);\n";
-        code += "    \n";
-        code += "            // In case of an external error, return it\n";
-        code += "            if (cr.zkResult != ZKR_SUCCESS)\n";
-        code += "            {\n";
-        code += "                proverRequest.result = cr.zkResult;\n";
-        code += "                return;\n";
-        code += "            }\n";
-        code += "        }\n";
-        code += "        pendingAfterCmdsZkPC = 0;\n";
-        code += "    }\n\n";
 
         // COMMAND BEFORE
         if (rom.program[zkPC].cmdBefore &&
@@ -3104,10 +3082,31 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    pols.cntPoseidonG[nexti] = pols.cntPoseidonG[i];\n";
         }
 
+        // COMAND AFTER (of previous instruction)
         if (rom.program[zkPC].cmdAfter &&
             rom.program[zkPC].cmdAfter.length>0)
         {
-            code += "    pendingAfterCmdsZkPC = " + zkPC + ";\n";
+            code += "    // Evaluate the list cmdAfter commands of the previous ROM line,\n";
+            code += "    // and any children command, recursively\n";
+            code += "    if (i < (N_Max - 1))\n";
+            code += "    {\n";
+            if (!bFastMode)
+            code += "        i++;\n";
+            code += "        for (uint64_t j=0; j<rom.line[" + zkPC + "].cmdAfter.size(); j++)\n";
+            code += "        {\n";
+            code += "            CommandResult cr;\n";
+            code += "            evalCommand(ctx, *rom.line[" + zkPC + "].cmdAfter[j], cr);\n";
+            code += "    \n";
+            code += "            // In case of an external error, return it\n";
+            code += "            if (cr.zkResult != ZKR_SUCCESS)\n";
+            code += "            {\n";
+            code += "                proverRequest.result = cr.zkResult;\n";
+            code += "                return;\n";
+            code += "            }\n";
+            code += "        }\n";
+            if (!bFastMode)
+            code += "        i--;\n";
+            code += "    }\n\n";
         }
 
         code += "#ifdef LOG_COMPLETED_STEPS\n";
