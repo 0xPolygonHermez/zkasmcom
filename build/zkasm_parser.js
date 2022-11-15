@@ -459,17 +459,17 @@ case 100:
 break;
 case 101:
 
-            this.$ = { arith: 1, arithEq0: 1}
+            this.$ = { arithEq0: 1, arithEq1: 0, arithEq2: 0}
         
 break;
 case 102:
 
-            this.$ = { arith: 1, arithEq1: 1, arithEq3: 1}
+            this.$ = { arithEq0: 0, arithEq1: 1, arithEq2: 0}
         
 break;
 case 103:
 
-            this.$ = { arith: 1, arithEq2: 1, arithEq3: 1}
+            this.$ = { arithEq0: 0, arithEq1: 0, arithEq2: 1}
         
 break;
 case 104:
