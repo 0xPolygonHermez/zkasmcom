@@ -263,7 +263,9 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     code += "    uint64_t incHashPos = 0;\n";
     code += "    uint64_t incCounter = 0;\n\n";
     code += "    bool bJump = false;\n";
-    code += "    uint64_t jmpnCondValue = 0;\n\n";
+    if (!bFastMode)
+        code += "    uint64_t jmpnCondValue = 0;\n";
+    code += "\n";
     
     code += "    uint64_t N_Max;\n";
     code += "    if (proverRequest.input.bNoCounters)\n";
@@ -2275,7 +2277,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         }
 
         
-        if (rom.program[zkPC].arith == 1)
+        if (rom.program[zkPC].arithEq0==1 || rom.program[zkPC].arithEq1==1 || rom.program[zkPC].arithEq2==1)
         {
             // Arith instruction: check that A*B + C = D<<256 + op, using scalars (result can be a big number)
             if ( (rom.program[zkPC].arithEq0!=undefined && rom.program[zkPC].arithEq0==1) &&
@@ -2877,7 +2879,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         // TODO: When regs are 0, do not copy to nexti.  Set bIsAZero to true at the beginning.
 
         // If arith, increment pols.cntArith
-        if (rom.program[zkPC].arith) 
+        if ((rom.program[zkPC].arithEq0==1 || rom.program[zkPC].arithEq1==1 || rom.program[zkPC].arithEq2==1)) 
         {
             code += "    if (!proverRequest.input.bNoCounters)\n";
             code += "    {\n";
