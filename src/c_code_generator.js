@@ -70,6 +70,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         code += "#include <fstream>\n";
         code += "#include \"utils.hpp\"\n";
         code += "#include \"timer.hpp\"\n";
+        code += "#include \"exit_process.hpp\"\n";
+        code += "#include \"zkassert.hpp\"\n";
 
     }
     code += "\n";
