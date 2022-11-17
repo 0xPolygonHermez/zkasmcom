@@ -72,6 +72,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         code += "#include \"timer.hpp\"\n";
         code += "#include \"exit_process.hpp\"\n";
         code += "#include \"zkassert.hpp\"\n";
+        code += "#include \"poseidon_g_permutation.hpp\"\n";
 
     }
     code += "\n";
@@ -181,7 +182,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     code += "    mpz_class opScalar;\n";
     code += "    mpz_class value;\n";
     if (!bFastMode)
-        code += "    array<Goldilocks::Element,16> pg;\n";
+        code += "    array<Goldilocks::Element,17> pg;\n";
     code += "    Goldilocks::Element fea[4];\n";
     code += "    SmtAction smtAction;\n";
 
@@ -786,6 +787,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                         code += "    pg[13] = Kin0Hash[1];\n";
                         code += "    pg[14] = Kin0Hash[2];\n";
                         code += "    pg[15] = Kin0Hash[3];\n";
+                        code += "    pg[16] = fr.fromU64(POSEIDONG_PERMUTATION1_ID);\n";
                         code += "    required.PoseidonG.push_back(pg);\n";
                     }
                     
@@ -811,6 +813,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                         code += "    pg[13] = Kin1Hash[1];\n";
                         code += "    pg[14] = Kin1Hash[2];\n";
                         code += "    pg[15] = Kin1Hash[3];\n";
+                        code += "    pg[16] = fr.fromU64(POSEIDONG_PERMUTATION2_ID);\n";
                         code += "    required.PoseidonG.push_back(pg);\n";
                     }
 
@@ -894,6 +897,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                         code += "    pg[13] = Kin0Hash[1];\n";
                         code += "    pg[14] = Kin0Hash[2];\n";
                         code += "    pg[15] = Kin0Hash[3];\n";
+                        code += "    pg[16] = fr.fromU64(POSEIDONG_PERMUTATION1_ID);\n";
                         code += "    required.PoseidonG.push_back(pg);\n";
                     }
                     
@@ -923,6 +927,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                         code += "    pg[13] = Kin1Hash[1];\n";
                         code += "    pg[14] = Kin1Hash[2];\n";
                         code += "    pg[15] = Kin1Hash[3];\n";
+                        code += "    pg[16] = fr.fromU64(POSEIDONG_PERMUTATION2_ID);\n";
                         code += "    required.PoseidonG.push_back(pg);\n";
                     }
 
