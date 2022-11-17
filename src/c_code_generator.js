@@ -222,7 +222,10 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
     code += "#ifdef LOG_TIME_STATISTICS\n";
     code += "    uint64_t poseidonTime=0, poseidonTimes=0;\n";
-    code += "    uint64_t smtTime=0, smtTimes=0;\n";
+    code += "    uint64_t smtSetTime=0, smtSetTimes=0;\n";
+    code += "    uint64_t smtGetTime=0, smtGetTimes=0;\n";
+    code += "    uint64_t setProgramTime=0, setProgramTimes=0;\n";
+    code += "    uint64_t getProgramTime=0, getProgramTimes=0;\n";
     code += "    uint64_t keccakTime=0, keccakTimes=0;\n";
     code += "    uint64_t evalCommandTime=0, evalCommandTimes=0;\n";
     code += "    struct timeval t;\n";
@@ -838,9 +841,11 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
                     code += "#ifdef LOG_STORAGE\n";
                     code += "    cout << \"Storage read sRD got poseidon key: \" << ctx.fr.toString(ctx.lastSWrite.key, 16) << endl;\n";
-                    code += "#endif \n";
+                    code += "#endif\n";
                     code += "    sr8to4(fr, pols.SR0[" + (bFastMode?"0":"i") + "], pols.SR1[" + (bFastMode?"0":"i") + "], pols.SR2[" + (bFastMode?"0":"i") + "], pols.SR3[" + (bFastMode?"0":"i") + "], pols.SR4[" + (bFastMode?"0":"i") + "], pols.SR5[" + (bFastMode?"0":"i") + "], pols.SR6[" + (bFastMode?"0":"i") + "], pols.SR7[" + (bFastMode?"0":"i") + "], oldRoot[0], oldRoot[1], oldRoot[2], oldRoot[3]);\n";
-                    
+                    code += "#ifdef LOG_TIME_STATISTICS\n";
+                    code += "    gettimeofday(&t, NULL);\n";
+                    code += "#endif\n";
                     code += "    zkResult = pStateDB->get(oldRoot, key, value, &smtGetResult, proverRequest.dbReadLog);\n";
                     code += "    if (zkResult != ZKR_SUCCESS)\n";
                     code += "    {\n";
@@ -849,7 +854,10 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     code += "        return;\n";
                     code += "    }\n";
                     code += "    incCounter = smtGetResult.proofHashCounter + 2;\n";
-                    
+                    code += "#ifdef LOG_TIME_STATISTICS\n";
+                    code += "    smtGetTime += TimeDiff(t);\n";
+                    code += "    smtGetTimes++;\n";
+                    code += "#endif\n";
                     code += "    scalar2fea(fr, smtGetResult.value, fi0, fi1, fi2, fi3, fi4, fi5, fi6, fi7);\n";
 
                     code += "#ifdef LOG_STORAGE\n";
@@ -969,8 +977,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     code += "    }\n";
                     code += "    incCounter = ctx.lastSWrite.res.proofHashCounter + 2;\n";
                     code += "#ifdef LOG_TIME_STATISTICS\n";
-                    code += "    smtTime += TimeDiff(t);\n";
-                    code += "    smtTimes++;\n";
+                    code += "    smtSetTime += TimeDiff(t);\n";
+                    code += "    smtSetTimes++;\n";
                     code += "#endif\n";
                     code += "    ctx.lastSWrite.step = i;\n";
 
@@ -1625,7 +1633,9 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "#endif\n";
 
             code += "    sr8to4(fr, pols.SR0[" + (bFastMode?"0":"i") + "], pols.SR1[" + (bFastMode?"0":"i") + "], pols.SR2[" + (bFastMode?"0":"i") + "], pols.SR3[" + (bFastMode?"0":"i") + "], pols.SR4[" + (bFastMode?"0":"i") + "], pols.SR5[" + (bFastMode?"0":"i") + "], pols.SR6[" + (bFastMode?"0":"i") + "], pols.SR7[" + (bFastMode?"0":"i") + "], oldRoot[0], oldRoot[1], oldRoot[2], oldRoot[3]);\n";
-            
+            code += "#ifdef LOG_TIME_STATISTICS\n";
+            code += "    gettimeofday(&t, NULL);\n";
+            code += "#endif\n";
             code += "    zkResult = pStateDB->get(oldRoot, key, value, &smtGetResult, proverRequest.dbReadLog);\n";
             code += "    if (zkResult != ZKR_SUCCESS)\n";
             code += "    {\n";
@@ -1634,7 +1644,10 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "        return;\n";
             code += "    }\n";
             code += "    incCounter = smtGetResult.proofHashCounter + 2;\n";
-
+            code += "#ifdef LOG_TIME_STATISTICS\n";
+            code += "    smtGetTime += TimeDiff(t);\n";
+            code += "    smtGetTimes++;\n";
+            code += "#endif\n";
             if (!bFastMode)
             {
                 code += "    smtAction.bIsSet = false;\n";
@@ -1748,8 +1761,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "        }\n";
             code += "        incCounter = ctx.lastSWrite.res.proofHashCounter + 2;\n";
             code += "#ifdef LOG_TIME_STATISTICS\n";
-            code += "        smtTime += TimeDiff(t);\n";
-            code += "        smtTimes++;\n";
+            code += "        smtSetTime += TimeDiff(t);\n";
+            code += "        smtSetTimes++;\n";
             code += "#endif\n";
 
             code += "        ctx.lastSWrite.step = i;\n";
@@ -2188,7 +2201,9 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "        fea2scalar(fr, hashIterator->second.digest, result);\n";
             code += "        delete[] pBuffer;\n";
             code += "        hashIterator->second.bDigested = true;\n";
-
+            code += "#ifdef LOG_TIME_STATISTICS\n";
+            code += "        gettimeofday(&t, NULL);\n";
+            code += "#endif\n";
             code += "        zkResult = pStateDB->setProgram(result, hashIterator->second.data, proverRequest.input.bUpdateMerkleTree);\n";
             code += "        if (zkResult != ZKR_SUCCESS)\n";
             code += "        {\n";
@@ -2196,7 +2211,10 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "            proverRequest.result = zkResult;\n";
             code += "            return;\n";
             code += "        }\n";
-
+            code += "#ifdef LOG_TIME_STATISTICS\n";
+            code += "        setProgramTime += TimeDiff(t);\n";
+            code += "        setProgramTimes++;\n";
+            code += "#endif\n";
             code += "#ifdef LOG_HASH\n";
             code += "        cout << \"Hash calculate hashPLen 2: addr:\" << addr << \" hash:\" << ctx.hashP[addr].digest.get_str(16) << \" size:\" << ctx.hashP[addr].data.size() << \" data:\";\n";
             code += "        for (uint64_t k=0; k<ctx.hashP[addr].data.size(); k++) cout << byte2string(ctx.hashP[addr].data[k]) << \":\";\n";
@@ -2224,6 +2242,9 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "        hashValue.bDigested = true;\n";
             code += "        Goldilocks::Element aux[4];\n";
             code += "        scalar2fea(fr, dg, aux);\n";
+            code += "#ifdef LOG_TIME_STATISTICS\n";
+            code += "        gettimeofday(&t, NULL);\n";
+            code += "#endif\n";
             code += "        zkResult = pStateDB->getProgram(aux, hashValue.data, proverRequest.dbReadLog);\n";
             code += "        if (zkResult != ZKR_SUCCESS)\n";
             code += "        {\n";
@@ -2231,6 +2252,10 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "            proverRequest.result = zkResult;\n";
             code += "            return;\n";
             code += "        }\n";
+            code += "#ifdef LOG_TIME_STATISTICS\n";
+            code += "        getProgramTime += TimeDiff(t);\n";
+            code += "        getProgramTimes++;\n";
+            code += "#endif\n";
             code += "        ctx.hashP[addr] = hashValue;\n";
             code += "        hashIterator = ctx.hashP.find(addr);\n";
             code += "        zkassert(hashIterator != ctx.hashP.end());\n";
@@ -3248,14 +3273,17 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
     code += "#ifdef LOG_TIME_STATISTICS\n";
     code += "    cout << \"TIMER STATISTICS: Poseidon time: \" << double(poseidonTime)/1000 << \" ms, called \" << poseidonTimes << \" times, so \" << poseidonTime/zkmax(poseidonTimes,(uint64_t)1) << \" us/time\" << endl;\n";
-    code += "    cout << \"TIMER STATISTICS: SMT time: \" << double(smtTime)/1000 << \" ms, called \" << smtTimes << \" times, so \" << smtTime/zkmax(smtTimes,(uint64_t)1) << \" us/time\" << endl;\n";
+    code += "    cout << \"TIMER STATISTICS: SMT set time: \" << double(smtSetTime)/1000 << \" ms, called \" << smtSetTimes << \" times, so \" << smtSetTime/zkmax(smtSetTimes,(uint64_t)1) << \" us/time\" << endl;\n";
+    code += "    cout << \"TIMER STATISTICS: SMT get time: \" << double(smtGetTime)/1000 << \" ms, called \" << smtGetTimes << \" times, so \" << smtGetTime/zkmax(smtGetTimes,(uint64_t)1) << \" us/time\" << endl;\n";
+    code += "    cout << \"TIMER STATISTICS: Set program time: \" << double(setProgramTime)/1000 << \" ms, called \" << setProgramTimes << \" times, so \" << setProgramTime/zkmax(setProgramTimes,(uint64_t)1) << \" us/time\" << endl;\n";
+    code += "    cout << \"TIMER STATISTICS: Get program time: \" << double(getProgramTime)/1000 << \" ms, called \" << getProgramTimes << \" times, so \" << getProgramTime/zkmax(getProgramTimes,(uint64_t)1) << \" us/time\" << endl;\n";
     code += "    cout << \"TIMER STATISTICS: Keccak time: \" << double(keccakTime)/1000 << \" ms, called \" << keccakTimes << \" times, so \" << keccakTime/zkmax(keccakTimes,(uint64_t)1) << \" us/time\" << endl;\n";
     code += "    cout << \"TIMER STATISTICS: Eval command time: \" << double(evalCommandTime)/1000 << \" ms, called \" << evalCommandTimes << \" times, so \" << evalCommandTime/zkmax(evalCommandTimes,(uint64_t)1) << \" us/time\" << endl;\n";
-    code += "    uint64_t totalTime = poseidonTime + smtTime + keccakTime + evalCommandTime;\n";
-    code += "    uint64_t totalTimes = poseidonTimes + smtTimes + keccakTimes + evalCommandTimes;\n";
+    code += "    uint64_t totalTime = poseidonTime + smtSetTime + smtGetTime + setProgramTime + getProgramTime + keccakTime + evalCommandTime;\n";
+    code += "    uint64_t totalTimes = poseidonTimes + smtSetTimes + smtGetTimes + setProgramTimes + getProgramTimes + keccakTimes + evalCommandTimes;\n";
     code += "    cout << \"TIMER STATISTICS: Total time: \" << double(totalTime)/1000 << \" ms, called \" << totalTimes << \" times, so \" << totalTime/zkmax(totalTimes,(uint64_t)1) << \" us/time\" << endl;\n";
     code += "#endif\n\n";
-    
+
     code += "    StateDBClientFactory::freeStateDBClient(pStateDB);\n\n";
 
     code += "    cout << \"" + functionName + "() done lastStep=\" << ctx.lastStep << \" (\" << (double(ctx.lastStep)*100)/mainExecutor.N << \"%)\" << endl;\n\n";
