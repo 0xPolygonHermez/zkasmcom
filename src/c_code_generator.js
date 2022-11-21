@@ -116,7 +116,6 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     }
     code += "    int32_t addrRel = 0; // Relative and absolute address auxiliary variables\n";
     code += "    uint64_t addr = 0;\n";
-    code += "    uint64_t o;\n";
     if (!bFastMode)
     {
         code += "    int64_t maxMemCalculated;\n";
@@ -272,8 +271,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     code += "    uint64_t incHashPos = 0;\n";
     code += "    uint64_t incCounter = 0;\n\n";
     code += "    bool bJump = false;\n";
-    if (!bFastMode)
-        code += "    uint64_t jmpnCondValue = 0;\n";
+    code += "    uint64_t jmpnCondValue = 0;\n";
     code += "\n";
     
     code += "    uint64_t N_Max;\n";
@@ -2937,9 +2935,9 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             if (!bFastMode)
                 code += "    pols.JMPN[i] = fr.one();\n";
 
-            code += "    o = fr.toU64(op0);\n"
+            code += "    jmpnCondValue = fr.toU64(op0);\n"
             // If op<0, jump to addr: zkPC'=addr
-            code += "    if (o >= FrFirst32Negative)\n";
+            code += "    if (jmpnCondValue >= FrFirst32Negative)\n";
             code += "    {\n";
             if (!bFastMode)
             {
@@ -2953,14 +2951,14 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             bConditionalJump = true;
             code += "    }\n";
             // If op>=0, simply increase zkPC'=zkPC+1
-            code += "    else if (o <= FrLast32Positive)\n";
+            code += "    else if (jmpnCondValue <= FrLast32Positive)\n";
             code += "    {\n";
             if (!bFastMode)
                 code += "        pols.zkPC[nexti] = fr.add(pols.zkPC[i], fr.one()); // If op>=0, simply increase zkPC'=zkPC+1\n";
             code += "    }\n";
             code += "    else\n";
             code += "    {\n";
-            code += "        cerr << \"Error: MainExecutor::execute() JMPN invalid S33 value op0=\" << o << endl;\n";
+            code += "        cerr << \"Error: MainExecutor::execute() JMPN invalid S33 value op0=\" << jmpnCondValue << endl;\n";
             code += "        exitProcess();\n";
             code += "    }\n";
             if (!bFastMode)
