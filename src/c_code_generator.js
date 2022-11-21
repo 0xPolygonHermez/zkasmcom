@@ -2902,7 +2902,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         }
 
         // If bin, increment pols.cntBinary
-        if (rom.program[zkPC].bin)
+        if (rom.program[zkPC].bin || rom.program[zkPC].sWR || rom.program[zkPC].hashPDigest)
         {
             code += "    if (!proverRequest.input.bNoCounters)\n";
             code += "    {\n";
@@ -2945,7 +2945,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             {
                 code += "        pols.isNeg[i] = fr.one();\n";
                 code += "        pols.zkPC[nexti] = fr.fromU64(addr); // If op<0, jump to addr: zkPC'=addr\n";
-                code += "        jmpnCondValue = fr.toU64(fr.add(op0, fr.fromU64(2^32)));\n";
+                code += "        jmpnCondValue = fr.toU64(fr.add(op0, fr.fromU64(0x100000000)));\n";
             }
  
             //code += "        goto *" + functionName + "_labels[addr]; // If op<0, jump to addr: zkPC'=addr\n";
