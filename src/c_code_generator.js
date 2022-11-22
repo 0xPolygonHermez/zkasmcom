@@ -2344,11 +2344,11 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "    fea2scalar(fr, y3, op0, op1, op2, op3, op4, op5, op6, op7);\n";
 
                 code += "    // Convert to RawFec::Element\n";
-                code += "    mainExecutor.fec.fromString(fecX1, x1.get_str());\n";
-                code += "    mainExecutor.fec.fromString(fecY1, y1.get_str());\n";
-                code += "    mainExecutor.fec.fromString(fecX2, x2.get_str());\n";
-                code += "    mainExecutor.fec.fromString(fecY2, y2.get_str());\n";
-                code += "    mainExecutor.fec.fromString(fecX3, x3.get_str());\n";
+                code += "    mainExecutor.fec.fromMpz(fecX1, x1.get_mpz_t());\n";
+                code += "    mainExecutor.fec.fromMpz(fecY1, y1.get_mpz_t());\n";
+                code += "    mainExecutor.fec.fromMpz(fecX2, x2.get_mpz_t());\n";
+                code += "    mainExecutor.fec.fromMpz(fecY2, y2.get_mpz_t());\n";
+                code += "    mainExecutor.fec.fromMpz(fecX3, x3.get_mpz_t());\n";
 
                 let dbl = false;
                 if ( (rom.program[zkPC].arithEq0==undefined || rom.program[zkPC].arithEq0==0) &&
@@ -2406,14 +2406,14 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "    mainExecutor.fec.mul(minuend, s_fec, s_fec);\n";
                 code += "    mainExecutor.fec.add(subtrahend, fecX1, " + (dbl?"fecX1":"fecX2") + ");\n";
                 code += "    mainExecutor.fec.sub(fecS, minuend, subtrahend);\n";
-                code += "    _x3.set_str(mainExecutor.fec.toString(fecS), 10);\n";
+                code += "    mainExecutor.fec.toMpz(_x3.get_mpz_t(), fecS);\n";
 
                 code += "    // Calculate _y3 = s*(x1-x3) - y1\n";
                 code += "    mainExecutor.fec.sub(subtrahend, fecX1, fecX3);\n";
                 code += "    mainExecutor.fec.mul(minuend, s_fec, subtrahend);\n";
-                code += "    mainExecutor.fec.fromString(subtrahend, y1.get_str());\n";
+                code += "    mainExecutor.fec.fromMpz(subtrahend, y1.get_mpz_t());\n";
                 code += "    mainExecutor.fec.sub(fecS, minuend, subtrahend);\n";
-                code += "    _y3.set_str(mainExecutor.fec.toString(fecS), 10);\n";
+                code += "    mainExecutor.fec.toMpz(_y3.get_mpz_t(), fecS);\n";
 
                 code += "    // Compare\n";
                 code += "    x3eq = (x3 == _x3);\n";
