@@ -275,6 +275,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     code += "\n";
     
     code += "    uint64_t N_Max;\n";
+    code += "    uint64_t N_Max_minus_one;\n";
     code += "    if (proverRequest.input.bNoCounters)\n";
     code += "    {\n";
     code += "        if (!bProcessBatch)\n";
@@ -288,6 +289,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     code += "    {\n";
     code += "        N_Max = mainExecutor.N;\n";
     code += "    }\n\n";
+    code += "    N_Max_minus_one = N_Max - 1;\n";
 
     for (let zkPC=0; zkPC<rom.program.length; zkPC++)
     {
@@ -2887,7 +2889,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         // TODO: When regs are 0, do not copy to nexti.  Set bIsAZero to true at the beginning.
 
         // If arith, increment pols.cntArith
-        if ((rom.program[zkPC].arithEq0==1 || rom.program[zkPC].arithEq1==1 || rom.program[zkPC].arithEq2==1)) 
+        if ( (rom.program[zkPC].arithEq0==1) || (rom.program[zkPC].arithEq1==1) || (rom.program[zkPC].arithEq2==1) )
         {
             code += "    if (!proverRequest.input.bNoCounters)\n";
             code += "    {\n";
@@ -2900,7 +2902,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         }
 
         // If bin, increment pols.cntBinary
-        if (rom.program[zkPC].bin || rom.program[zkPC].sWR || rom.program[zkPC].hashPDigest)
+        if ( (rom.program[zkPC].bin==1) || (rom.program[zkPC].sWR==1) || (rom.program[zkPC].hashPDigest==1) )
         {
             code += "    if (!proverRequest.input.bNoCounters)\n";
             code += "    {\n";
@@ -2913,7 +2915,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         }
 
         // If memAlign, increment pols.cntMemAlign
-        if (rom.program[zkPC].memAlignRD==1 || rom.program[zkPC].memAlignWR==1 || rom.program[zkPC].memAlignWR8==1)
+        if ( (rom.program[zkPC].memAlignRD==1) || (rom.program[zkPC].memAlignWR==1) || (rom.program[zkPC].memAlignWR8==1) )
         {
             code += "    if (!proverRequest.input.bNoCounters)\n";
             code += "    {\n";
@@ -3120,7 +3122,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         {
             code += "    // Evaluate the list cmdAfter commands of the previous ROM line,\n";
             code += "    // and any children command, recursively\n";
-            code += "    if (i < (N_Max - 1))\n";
+            code += "    if (i < N_Max_minus_one)\n";
             code += "    {\n";
             if (!bFastMode)
             code += "        i++;\n";
@@ -3151,10 +3153,26 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
         code += "#ifdef LOG_COMPLETED_STEPS\n";
         code += "    cout << \"<-- Completed step=\" << i << \" zkPC=" + zkPC + " op=\" << fr.toString(op7,16) << \":\" << fr.toString(op6,16) << \":\" << fr.toString(op5,16) << \":\" << fr.toString(op4,16) << \":\" << fr.toString(op3,16) << \":\" << fr.toString(op2,16) << \":\" << fr.toString(op1,16) << \":\" << fr.toString(op0,16) << \" ABCDE0=\" << fr.toString(pols.A0[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.B0[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.C0[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.D0[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.E0[" + (bFastMode?"0":"i") + "],16) << \" FREE0:7=\" << fr.toString(fi0,16) << \":\" << fr.toString(fi7],16) << \" addr=\" << addr << endl;\n";
+        /*code += "    cout << \"<-- Completed step=\" << i << \" zkPC=" + zkPC + 
+                " op=\" << fr.toString(op7,16) << \":\" << fr.toString(op6,16) << \":\" << fr.toString(op5,16) << \":\" << fr.toString(op4,16) << \":\" << fr.toString(op3,16) << \":\" << fr.toString(op2,16) << \":\" << fr.toString(op1,16) << \":\" << fr.toString(op0,16) << \"" + 
+                " A=\" << fr.toString(pols.A7[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.A6[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.A5[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.A4[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.A3[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.A2[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.A1[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.A0[" + (bFastMode?"0":"i") + "],16) << \"" + 
+                " B=\" << fr.toString(pols.B7[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.B6[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.B5[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.B4[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.B3[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.B2[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.B1[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.B0[" + (bFastMode?"0":"i") + "],16) << \"" + 
+                " C=\" << fr.toString(pols.C7[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.C6[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.C5[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.C4[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.C3[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.C2[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.C1[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.C0[" + (bFastMode?"0":"i") + "],16) << \"" + 
+                " D=\" << fr.toString(pols.D7[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.D6[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.D5[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.D4[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.D3[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.D2[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.D1[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.D0[" + (bFastMode?"0":"i") + "],16) << \"" + 
+                " E=\" << fr.toString(pols.E7[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.E6[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.E5[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.E4[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.E3[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.E2[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.E1[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.E0[" + (bFastMode?"0":"i") + "],16) << \"" + 
+                " FREE0:7=\" << fr.toString(fi0,16) << \":\" << fr.toString(fi7],16) << \" addr=\" << addr << endl;\n";*/
         code += "#endif\n";
         code += "#ifdef LOG_COMPLETED_STEPS_TO_FILE\n";
         code += "    outfile.open(\"c.txt\", std::ios_base::app); // append instead of overwrite\n";
         code += "    outfile << \"<-- Completed step=\" << i << \" zkPC=" + zkPC + " op=\" << fr.toString(op7,16) << \":\" << fr.toString(op6,16) << \":\" << fr.toString(op5,16) << \":\" << fr.toString(op4,16) << \":\" << fr.toString(op3,16) << \":\" << fr.toString(op2,16) << \":\" << fr.toString(op1,16) << \":\" << fr.toString(op0,16) << \" ABCDE0=\" << fr.toString(pols.A0[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.B0[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.C0[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.D0[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.E0[" + (bFastMode?"0":"i") + "],16) << \" FREE0:7=\" << fr.toString(fi0,16) << \":\" << fr.toString(fi7,16) << \" addr=\" << addr << endl;\n";
+        /*code += "    outfile << \"<-- Completed step=\" << i << \" zkPC=" + zkPC + 
+                " op=\" << fr.toString(op7,16) << \":\" << fr.toString(op6,16) << \":\" << fr.toString(op5,16) << \":\" << fr.toString(op4,16) << \":\" << fr.toString(op3,16) << \":\" << fr.toString(op2,16) << \":\" << fr.toString(op1,16) << \":\" << fr.toString(op0,16) << \"" + 
+                " A=\" << fr.toString(pols.A7[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.A6[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.A5[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.A4[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.A3[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.A2[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.A1[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.A0[" + (bFastMode?"0":"i") + "],16) << \"" + 
+                " B=\" << fr.toString(pols.B7[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.B6[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.B5[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.B4[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.B3[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.B2[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.B1[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.B0[" + (bFastMode?"0":"i") + "],16) << \"" + 
+                " C=\" << fr.toString(pols.C7[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.C6[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.C5[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.C4[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.C3[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.C2[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.C1[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.C0[" + (bFastMode?"0":"i") + "],16) << \"" + 
+                " D=\" << fr.toString(pols.D7[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.D6[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.D5[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.D4[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.D3[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.D2[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.D1[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.D0[" + (bFastMode?"0":"i") + "],16) << \"" + 
+                " E=\" << fr.toString(pols.E7[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.E6[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.E5[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.E4[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.E3[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.E2[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.E1[" + (bFastMode?"0":"i") + "],16) << \":\" << fr.toString(pols.E0[" + (bFastMode?"0":"i") + "],16) << \"" + 
+                " FREE0:7=\" << fr.toString(fi0,16) << \":\" << fr.toString(fi7,16) << \" addr=\" << addr << endl;\n";*/
         code += "    outfile.close();\n";
         code += "#endif\n\n";
 
@@ -3167,8 +3185,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
         // INCREASE EVALUATION INDEX
 
+        code += "    if (i==N_Max_minus_one) goto " + functionName + "_end;\n";
         code += "    i++;\n";
-        code += "    if (i==N_Max) goto " + functionName + "_end;\n";
         if (!bFastMode)
             code += "    nexti=(i+1)%N_Max;\n";
         code += "\n";
@@ -3429,8 +3447,18 @@ function setter8 (reg, setReg, bFastMode, zkPC, rom)
         code += "    {\n";
         code += "        mpz_class from(proverRequest.input.from);\n";
         code += "        scalar2fea(fr, from, pols.A0[" + (bFastMode?"0":"nexti") + "], pols.A1[" + (bFastMode?"0":"nexti") + "], pols.A2[" + (bFastMode?"0":"nexti") + "], pols.A3[" + (bFastMode?"0":"nexti") + "], pols.A4[" + (bFastMode?"0":"nexti") + "], pols.A5[" + (bFastMode?"0":"nexti") + "], pols.A6[" + (bFastMode?"0":"nexti") + "], pols.A7[" + (bFastMode?"0":"nexti") + "] );\n";
-        code += "    }\n\n";
-
+        code += "    }\n";
+        if (!bFastMode)
+        {
+            code += "    else\n";
+            code += "    {\n";
+            code += "        // " + reg + "' = " + reg + "\n";
+            for (let j=0; j<8; j++)
+                code += "        pols." + reg + j + "[nexti] = pols." + reg + j + "[i];\n";
+            code += "\n";
+            code += "    }\n";
+        }
+        code += "\n";
     }
     else if (!bFastMode)
     {
