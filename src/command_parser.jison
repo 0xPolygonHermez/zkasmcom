@@ -24,6 +24,7 @@ CNT_MEM_ALIGN           { return 'CNT_MEM_ALIGN' }
 CNT_PADDING_PG          { return 'CNT_PADDING_PG' }
 CNT_POSEIDON_G          { return 'CNT_POSEIDON_G' }
 HASHPOS                 { return 'HASHPOS'; }
+RCX                     { return 'RCX'; }
 var                     { return 'VAR'; }
 [a-zA-Z_][a-zA-Z$_0-9]*  { return 'IDENTIFIER'; }
 \(                      { return '('}
@@ -286,6 +287,7 @@ reg
     | STEP
     | MAXMEM
     | HASHPOS
+    | RCX
     ;
 
 counter
