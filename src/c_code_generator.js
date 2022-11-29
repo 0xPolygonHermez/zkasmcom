@@ -2878,6 +2878,19 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    if (!proverRequest.input.bNoCounters)\n";
             code += "    {\n";
             code += "        pols.cntArith[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.cntArith[" + (bFastMode?"0":"i") + "], fr.one());\n";
+            code += "        if (fr.toU64(pols.cntArith[" + (bFastMode?"0":"nexti") + "]) > mainExecutor.MAX_CNT_ARITH)\n";
+            code += "        {\n";
+            code += "            cerr << \"Error: Main Executor found pols.cntArith[nexti]=\" << fr.toU64(pols.cntArith[" + (bFastMode?"0":"nexti") + "]) << \" > MAX_CNT_ARITH=\" << mainExecutor.MAX_CNT_ARITH << \" step=\" << i << \" zkPC=\" << " + zkPC + " << \" instruction=\" << rom.line[" + zkPC + "].toString(fr) << endl;\n";
+            if (bFastMode)
+            {
+            code += "            proverRequest.result = ZKR_SM_MAIN_OOC_ARITH;\n";
+            code += "            return;\n";
+            }
+            else
+            {
+            code += "            exitProcess();\n";
+            }
+            code += "        }\n";
             code += "    }\n\n";
         }
         else if (!bFastMode)
@@ -2891,6 +2904,19 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    if (!proverRequest.input.bNoCounters)\n";
             code += "    {\n";
             code += "        pols.cntBinary[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.cntBinary[" + (bFastMode?"0":"i") + "], fr.one());\n";
+            code += "        if (fr.toU64(pols.cntBinary[" + (bFastMode?"0":"nexti") + "]) > mainExecutor.MAX_CNT_BINARY)\n";
+            code += "        {\n";
+            code += "            cerr << \"Error: Main Executor found pols.cntBinary[nexti]=\" << fr.toU64(pols.cntBinary[" + (bFastMode?"0":"nexti") + "]) << \" > MAX_CNT_BINARY=\" << mainExecutor.MAX_CNT_BINARY << \" step=\" << i << \" zkPC=\" << " + zkPC + " << \" instruction=\" << rom.line[" + zkPC + "].toString(fr) << endl;\n";
+            if (bFastMode)
+            {
+            code += "            proverRequest.result = ZKR_SM_MAIN_OOC_BINARY;\n";
+            code += "            return;\n";
+            }
+            else
+            {
+            code += "            exitProcess();\n";
+            }
+            code += "        }\n";
             code += "    }\n\n";
         }
         else if (!bFastMode)
@@ -2904,6 +2930,19 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    if (!proverRequest.input.bNoCounters)\n";
             code += "    {\n";
             code += "        pols.cntMemAlign[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.cntMemAlign[" + (bFastMode?"0":"i") + "], fr.one());\n";
+            code += "        if (fr.toU64(pols.cntMemAlign[" + (bFastMode?"0":"nexti") + "]) > mainExecutor.MAX_CNT_MEM_ALIGN)\n";
+            code += "        {\n";
+            code += "            cerr << \"Error: Main Executor found pols.cntMemAlign[nexti]=\" << fr.toU64(pols.cntMemAlign[" + (bFastMode?"0":"nexti") + "]) << \" > MAX_CNT_MEM_ALIGN=\" << mainExecutor.MAX_CNT_MEM_ALIGN << \" step=\" << i << \" zkPC=\" << " + zkPC + " << \" instruction=\" << rom.line[" + zkPC + "].toString(fr) << endl;\n";
+            if (bFastMode)
+            {
+            code += "            proverRequest.result = ZKR_SM_MAIN_OOC_MEM_ALIGN;\n";
+            code += "            return;\n";
+            }
+            else
+            {
+            code += "            exitProcess();\n";
+            }
+            code += "        }\n";
             code += "    }\n\n";
         }
         else if (!bFastMode)
@@ -3069,6 +3108,19 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    if (!proverRequest.input.bNoCounters)\n";
             code += "    {\n";
             code += "        pols.cntKeccakF[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.cntKeccakF[" + (bFastMode?"0":"i") + "], fr.fromU64(incCounter));\n";
+            code += "        if (fr.toU64(pols.cntKeccakF[" + (bFastMode?"0":"nexti") + "]) > mainExecutor.MAX_CNT_KECCAK_F)\n";
+            code += "        {\n";
+            code += "            cerr << \"Error: Main Executor found pols.cntKeccakF[nexti]=\" << fr.toU64(pols.cntKeccakF[" + (bFastMode?"0":"nexti") + "]) << \" > MAX_CNT_KECCAK_F=\" << mainExecutor.MAX_CNT_KECCAK_F << \" step=\" << i << \" zkPC=\" << " + zkPC + " << \" instruction=\" << rom.line[" + zkPC + "].toString(fr) << endl;\n";
+            if (bFastMode)
+            {
+            code += "            proverRequest.result = ZKR_SM_MAIN_OOC_KECCAK_F;\n";
+            code += "            return;\n";
+            }
+            else
+            {
+            code += "            exitProcess();\n";
+            }
+            code += "        }\n";
             code += "    }\n\n";
         }
         else if (!bFastMode)
@@ -3081,6 +3133,19 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    if (!proverRequest.input.bNoCounters)\n";
             code += "    {\n";
             code += "        pols.cntPaddingPG[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.cntPaddingPG[" + (bFastMode?"0":"i") + "], fr.fromU64(incCounter));\n";
+            code += "        if (fr.toU64(pols.cntPaddingPG[" + (bFastMode?"0":"nexti") + "]) > mainExecutor.MAX_CNT_PADDING_PG)\n";
+            code += "        {\n";
+            code += "            cerr << \"Error: Main Executor found pols.cntPaddingPG[nexti]=\" << fr.toU64(pols.cntPaddingPG[" + (bFastMode?"0":"nexti") + "]) << \" > MAX_CNT_PADDING_PG=\" << mainExecutor.MAX_CNT_PADDING_PG << \" step=\" << i << \" zkPC=\" << " + zkPC + " << \" instruction=\" << rom.line[" + zkPC + "].toString(fr) << endl;\n";
+            if (bFastMode)
+            {
+            code += "            proverRequest.result = ZKR_SM_MAIN_OOC_PADDING_PG;\n";
+            code += "            return;\n";
+            }
+            else
+            {
+            code += "            exitProcess();\n";
+            }
+            code += "        }\n";
             code += "    }\n\n";
         }
         else if (!bFastMode)
@@ -3093,6 +3158,19 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    if (!proverRequest.input.bNoCounters)\n";
             code += "    {\n";
             code += "        pols.cntPoseidonG[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.cntPoseidonG[" + (bFastMode?"0":"i") + "], fr.fromU64(incCounter));\n";
+            code += "        if (fr.toU64(pols.cntPoseidonG[" + (bFastMode?"0":"nexti") + "]) > mainExecutor.MAX_CNT_POSEIDON_G)\n";
+            code += "        {\n";
+            code += "            cerr << \"Error: Main Executor found pols.cntPoseidonG[nexti]=\" << fr.toU64(pols.cntPoseidonG[" + (bFastMode?"0":"nexti") + "]) << \" > MAX_CNT_POSEIDON_G=\" << mainExecutor.MAX_CNT_POSEIDON_G << \" step=\" << i << \" zkPC=\" << " + zkPC + " << \" instruction=\" << rom.line[" + zkPC + "].toString(fr) << endl;\n";
+            if (bFastMode)
+            {
+            code += "            proverRequest.result = ZKR_SM_MAIN_OOC_POSEIDON_G;\n";
+            code += "            return;\n";
+            }
+            else
+            {
+            code += "            exitProcess();\n";
+            }
+            code += "        }\n";
             code += "    }\n\n";
         }
         else if (!bFastMode)
