@@ -73,6 +73,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         code += "#include \"exit_process.hpp\"\n";
         code += "#include \"zkassert.hpp\"\n";
         code += "#include \"poseidon_g_permutation.hpp\"\n";
+        code += "#include \"time_metric.hpp\"\n";
 
     }
     code += "\n";
@@ -220,14 +221,9 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     code += "    BinaryAction binaryAction;\n";
 
     code += "#ifdef LOG_TIME_STATISTICS\n";
-    code += "    uint64_t poseidonTime=0, poseidonTimes=0;\n";
-    code += "    uint64_t smtSetTime=0, smtSetTimes=0;\n";
-    code += "    uint64_t smtGetTime=0, smtGetTimes=0;\n";
-    code += "    uint64_t setProgramTime=0, setProgramTimes=0;\n";
-    code += "    uint64_t getProgramTime=0, getProgramTimes=0;\n";
-    code += "    uint64_t keccakTime=0, keccakTimes=0;\n";
-    code += "    uint64_t evalCommandTime=0, evalCommandTimes=0;\n";
     code += "    struct timeval t;\n";
+    code += "    TimeMetricStorage mainMetrics;\n";
+    code += "    TimeMetricStorage evalCommandMetrics;\n";
     code += "#endif\n";
 
     // Arith
@@ -342,8 +338,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "        evalCommand(ctx, *rom.line[" + zkPC + "].cmdBefore[j], cr);\n";
             code += "\n";
             code += "#ifdef LOG_TIME_STATISTICS\n";
-            code += "        evalCommandTime += TimeDiff(t);\n";
-            code += "        evalCommandTimes+=1;\n";
+            code += "        mainMetrics.add(\"Eval command\", TimeDiff(t));\n";
+            code += "        evalCommandMetrics.add(*rom.line[" + zkPC + "].cmdBefore[j], TimeDiff(t));\n";
             code += "#endif\n";
             code += "        // In case of an external error, return it\n";
             code += "        if (cr.zkResult != ZKR_SUCCESS)\n";
@@ -835,8 +831,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     code += "    key[2] = Kin1Hash[2];\n";
                     code += "    key[3] = Kin1Hash[3];\n";
                     code += "#ifdef LOG_TIME_STATISTICS\n";
-                    code += "    poseidonTime += TimeDiff(t);\n";
-                    code += "    poseidonTimes+=3;\n";
+                    code += "    mainMetrics.add(\"Poseidon\", TimeDiff(t), 3);\n";
                     code += "#endif\n";
 
                     code += "#ifdef LOG_STORAGE\n";
@@ -855,8 +850,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     code += "    }\n";
                     code += "    incCounter = smtGetResult.proofHashCounter + 2;\n";
                     code += "#ifdef LOG_TIME_STATISTICS\n";
-                    code += "    smtGetTime += TimeDiff(t);\n";
-                    code += "    smtGetTimes++;\n";
+                    code += "    mainMetrics.add(\"SMT Get\", TimeDiff(t));\n";
                     code += "#endif\n";
                     code += "    scalar2fea(fr, smtGetResult.value, fi0, fi1, fi2, fi3, fi4, fi5, fi6, fi7);\n";
 
@@ -954,8 +948,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     code += "    ctx.lastSWrite.key[2] = Kin1Hash[2];\n";
                     code += "    ctx.lastSWrite.key[3] = Kin1Hash[3];\n";
                     code += "#ifdef LOG_TIME_STATISTICS\n";
-                    code += "    poseidonTime += TimeDiff(t);\n";
-                    code += "    poseidonTimes++;\n";
+                    code += "    mainMetrics.add(\"Poseidon\", TimeDiff(t));\n";
                     code += "#endif\n";
 
                     code += "#ifdef LOG_STORAGE\n";
@@ -977,8 +970,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     code += "    }\n";
                     code += "    incCounter = ctx.lastSWrite.res.proofHashCounter + 2;\n";
                     code += "#ifdef LOG_TIME_STATISTICS\n";
-                    code += "    smtSetTime += TimeDiff(t);\n";
-                    code += "    smtSetTimes++;\n";
+                    code += "    mainMetrics.add(\"SMT Set\", TimeDiff(t));\n";
                     code += "#endif\n";
                     code += "    ctx.lastSWrite.step = i;\n";
 
@@ -1276,8 +1268,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "    evalCommand(ctx, rom.line[" + zkPC + "].freeInTag, cr);\n\n";
 
                 code += "#ifdef LOG_TIME_STATISTICS\n";
-                code += "    evalCommandTime += TimeDiff(t);\n";
-                code += "    evalCommandTimes+=1;\n";
+                code += "    mainMetrics.add(\"Eval command\", TimeDiff(t));\n";
+                code += "    evalCommandMetrics.add(rom.line[" + zkPC + "].freeInTag, TimeDiff(t));\n";
                 code += "#endif\n";
 
                 code += "    // In case of an external error, return it\n";
@@ -1624,8 +1616,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    key[3] = Kin1Hash[3];\n";
 
             code += "#ifdef LOG_TIME_STATISTICS\n";
-            code += "    poseidonTime += TimeDiff(t);\n";
-            code += "    poseidonTimes+=3;\n";
+            code += "    mainMetrics.add(\"Poseidon\", TimeDiff(t), 3);\n";
             code += "#endif\n";
 
             code += "#ifdef LOG_STORAGE\n";
@@ -1645,8 +1636,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    }\n";
             code += "    incCounter = smtGetResult.proofHashCounter + 2;\n";
             code += "#ifdef LOG_TIME_STATISTICS\n";
-            code += "    smtGetTime += TimeDiff(t);\n";
-            code += "    smtGetTimes++;\n";
+            code += "    mainMetrics.add(\"SMT Get\", TimeDiff(t));\n";
             code += "#endif\n";
             if (!bFastMode)
             {
@@ -1740,8 +1730,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "        ctx.lastSWrite.key[3] = Kin1Hash[3];\n";
                 
             code += "#ifdef LOG_TIME_STATISTICS\n";
-            code += "        poseidonTime += TimeDiff(t);\n";
-            code += "        poseidonTimes++;\n";
+            code += "        mainMetrics.add(\"Poseidon\", TimeDiff(t));\n";
             code += "#endif\n";
 
             code += "        // Call SMT to get the new Merkel Tree root hash\n";
@@ -1761,8 +1750,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "        }\n";
             code += "        incCounter = ctx.lastSWrite.res.proofHashCounter + 2;\n";
             code += "#ifdef LOG_TIME_STATISTICS\n";
-            code += "        smtSetTime += TimeDiff(t);\n";
-            code += "        smtSetTimes++;\n";
+            code += "        mainMetrics.add(\"SMT Set\", TimeDiff(t));\n";
             code += "#endif\n";
 
             code += "        ctx.lastSWrite.step = i;\n";
@@ -1961,8 +1949,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "        hashIterator->second.digest.set_str(Remove0xIfPresent(digestString),16);\n";
             code += "        hashIterator->second.bDigested = true;\n";
             code += "#ifdef LOG_TIME_STATISTICS\n";
-            code += "        keccakTime += TimeDiff(t);\n";
-            code += "        keccakTimes++;\n";
+            code += "        mainMetrics.add(\"Keccak\", TimeDiff(t));\n";
             code += "#endif\n";
 
             code += "#ifdef LOG_HASHK\n";
@@ -2195,8 +2182,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "        Goldilocks::Element result[4];\n";
             code += "        mainExecutor.poseidon.linear_hash(result, pBuffer, bufferSize);\n";
             code += "#ifdef LOG_TIME_STATISTICS\n";
-            code += "        poseidonTime += TimeDiff(t);\n";
-            code += "        poseidonTimes++;\n";
+            code += "        mainMetrics.add(\"Poseidon\", TimeDiff(t));\n";
             code += "#endif\n";
             code += "        fea2scalar(fr, hashIterator->second.digest, result);\n";
             code += "        delete[] pBuffer;\n";
@@ -2212,8 +2198,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "            return;\n";
             code += "        }\n";
             code += "#ifdef LOG_TIME_STATISTICS\n";
-            code += "        setProgramTime += TimeDiff(t);\n";
-            code += "        setProgramTimes++;\n";
+            code += "        mainMetrics.add(\"Set program\", TimeDiff(t));\n";
             code += "#endif\n";
             code += "#ifdef LOG_HASH\n";
             code += "        cout << \"Hash calculate hashPLen 2: addr:\" << addr << \" hash:\" << ctx.hashP[addr].digest.get_str(16) << \" size:\" << ctx.hashP[addr].data.size() << \" data:\";\n";
@@ -2253,8 +2238,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "            return;\n";
             code += "        }\n";
             code += "#ifdef LOG_TIME_STATISTICS\n";
-            code += "        getProgramTime += TimeDiff(t);\n";
-            code += "        getProgramTimes++;\n";
+            code += "        mainMetrics.add(\"Get program\", TimeDiff(t));\n";
             code += "#endif\n";
             code += "        ctx.hashP[addr] = hashValue;\n";
             code += "        hashIterator = ctx.hashP.find(addr);\n";
@@ -2894,6 +2878,19 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    if (!proverRequest.input.bNoCounters)\n";
             code += "    {\n";
             code += "        pols.cntArith[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.cntArith[" + (bFastMode?"0":"i") + "], fr.one());\n";
+            code += "        if (fr.toU64(pols.cntArith[" + (bFastMode?"0":"nexti") + "]) > mainExecutor.MAX_CNT_ARITH)\n";
+            code += "        {\n";
+            code += "            cerr << \"Error: Main Executor found pols.cntArith[nexti]=\" << fr.toU64(pols.cntArith[" + (bFastMode?"0":"nexti") + "]) << \" > MAX_CNT_ARITH=\" << mainExecutor.MAX_CNT_ARITH << \" step=\" << i << \" zkPC=\" << " + zkPC + " << \" instruction=\" << rom.line[" + zkPC + "].toString(fr) << endl;\n";
+            if (bFastMode)
+            {
+            code += "            proverRequest.result = ZKR_SM_MAIN_OOC_ARITH;\n";
+            code += "            return;\n";
+            }
+            else
+            {
+            code += "            exitProcess();\n";
+            }
+            code += "        }\n";
             code += "    }\n\n";
         }
         else if (!bFastMode)
@@ -2907,6 +2904,19 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    if (!proverRequest.input.bNoCounters)\n";
             code += "    {\n";
             code += "        pols.cntBinary[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.cntBinary[" + (bFastMode?"0":"i") + "], fr.one());\n";
+            code += "        if (fr.toU64(pols.cntBinary[" + (bFastMode?"0":"nexti") + "]) > mainExecutor.MAX_CNT_BINARY)\n";
+            code += "        {\n";
+            code += "            cerr << \"Error: Main Executor found pols.cntBinary[nexti]=\" << fr.toU64(pols.cntBinary[" + (bFastMode?"0":"nexti") + "]) << \" > MAX_CNT_BINARY=\" << mainExecutor.MAX_CNT_BINARY << \" step=\" << i << \" zkPC=\" << " + zkPC + " << \" instruction=\" << rom.line[" + zkPC + "].toString(fr) << endl;\n";
+            if (bFastMode)
+            {
+            code += "            proverRequest.result = ZKR_SM_MAIN_OOC_BINARY;\n";
+            code += "            return;\n";
+            }
+            else
+            {
+            code += "            exitProcess();\n";
+            }
+            code += "        }\n";
             code += "    }\n\n";
         }
         else if (!bFastMode)
@@ -2920,6 +2930,19 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    if (!proverRequest.input.bNoCounters)\n";
             code += "    {\n";
             code += "        pols.cntMemAlign[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.cntMemAlign[" + (bFastMode?"0":"i") + "], fr.one());\n";
+            code += "        if (fr.toU64(pols.cntMemAlign[" + (bFastMode?"0":"nexti") + "]) > mainExecutor.MAX_CNT_MEM_ALIGN)\n";
+            code += "        {\n";
+            code += "            cerr << \"Error: Main Executor found pols.cntMemAlign[nexti]=\" << fr.toU64(pols.cntMemAlign[" + (bFastMode?"0":"nexti") + "]) << \" > MAX_CNT_MEM_ALIGN=\" << mainExecutor.MAX_CNT_MEM_ALIGN << \" step=\" << i << \" zkPC=\" << " + zkPC + " << \" instruction=\" << rom.line[" + zkPC + "].toString(fr) << endl;\n";
+            if (bFastMode)
+            {
+            code += "            proverRequest.result = ZKR_SM_MAIN_OOC_MEM_ALIGN;\n";
+            code += "            return;\n";
+            }
+            else
+            {
+            code += "            exitProcess();\n";
+            }
+            code += "        }\n";
             code += "    }\n\n";
         }
         else if (!bFastMode)
@@ -3085,6 +3108,19 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    if (!proverRequest.input.bNoCounters)\n";
             code += "    {\n";
             code += "        pols.cntKeccakF[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.cntKeccakF[" + (bFastMode?"0":"i") + "], fr.fromU64(incCounter));\n";
+            code += "        if (fr.toU64(pols.cntKeccakF[" + (bFastMode?"0":"nexti") + "]) > mainExecutor.MAX_CNT_KECCAK_F)\n";
+            code += "        {\n";
+            code += "            cerr << \"Error: Main Executor found pols.cntKeccakF[nexti]=\" << fr.toU64(pols.cntKeccakF[" + (bFastMode?"0":"nexti") + "]) << \" > MAX_CNT_KECCAK_F=\" << mainExecutor.MAX_CNT_KECCAK_F << \" step=\" << i << \" zkPC=\" << " + zkPC + " << \" instruction=\" << rom.line[" + zkPC + "].toString(fr) << endl;\n";
+            if (bFastMode)
+            {
+            code += "            proverRequest.result = ZKR_SM_MAIN_OOC_KECCAK_F;\n";
+            code += "            return;\n";
+            }
+            else
+            {
+            code += "            exitProcess();\n";
+            }
+            code += "        }\n";
             code += "    }\n\n";
         }
         else if (!bFastMode)
@@ -3097,6 +3133,19 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    if (!proverRequest.input.bNoCounters)\n";
             code += "    {\n";
             code += "        pols.cntPaddingPG[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.cntPaddingPG[" + (bFastMode?"0":"i") + "], fr.fromU64(incCounter));\n";
+            code += "        if (fr.toU64(pols.cntPaddingPG[" + (bFastMode?"0":"nexti") + "]) > mainExecutor.MAX_CNT_PADDING_PG)\n";
+            code += "        {\n";
+            code += "            cerr << \"Error: Main Executor found pols.cntPaddingPG[nexti]=\" << fr.toU64(pols.cntPaddingPG[" + (bFastMode?"0":"nexti") + "]) << \" > MAX_CNT_PADDING_PG=\" << mainExecutor.MAX_CNT_PADDING_PG << \" step=\" << i << \" zkPC=\" << " + zkPC + " << \" instruction=\" << rom.line[" + zkPC + "].toString(fr) << endl;\n";
+            if (bFastMode)
+            {
+            code += "            proverRequest.result = ZKR_SM_MAIN_OOC_PADDING_PG;\n";
+            code += "            return;\n";
+            }
+            else
+            {
+            code += "            exitProcess();\n";
+            }
+            code += "        }\n";
             code += "    }\n\n";
         }
         else if (!bFastMode)
@@ -3109,6 +3158,19 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    if (!proverRequest.input.bNoCounters)\n";
             code += "    {\n";
             code += "        pols.cntPoseidonG[" + (bFastMode?"0":"nexti") + "] = fr.add(pols.cntPoseidonG[" + (bFastMode?"0":"i") + "], fr.fromU64(incCounter));\n";
+            code += "        if (fr.toU64(pols.cntPoseidonG[" + (bFastMode?"0":"nexti") + "]) > mainExecutor.MAX_CNT_POSEIDON_G)\n";
+            code += "        {\n";
+            code += "            cerr << \"Error: Main Executor found pols.cntPoseidonG[nexti]=\" << fr.toU64(pols.cntPoseidonG[" + (bFastMode?"0":"nexti") + "]) << \" > MAX_CNT_POSEIDON_G=\" << mainExecutor.MAX_CNT_POSEIDON_G << \" step=\" << i << \" zkPC=\" << " + zkPC + " << \" instruction=\" << rom.line[" + zkPC + "].toString(fr) << endl;\n";
+            if (bFastMode)
+            {
+            code += "            proverRequest.result = ZKR_SM_MAIN_OOC_POSEIDON_G;\n";
+            code += "            return;\n";
+            }
+            else
+            {
+            code += "            exitProcess();\n";
+            }
+            code += "        }\n";
             code += "    }\n\n";
         }
         else if (!bFastMode)
@@ -3136,8 +3198,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "            evalCommand(ctx, *rom.line[" + zkPC + "].cmdAfter[j], cr);\n";
             code += "    \n";
             code += "#ifdef LOG_TIME_STATISTICS\n";
-            code += "            evalCommandTime += TimeDiff(t);\n";
-            code += "            evalCommandTimes+=1;\n";
+            code += "            mainMetrics.add(\"Eval command\", TimeDiff(t));\n";
+            code += "            evalCommandMetrics.add(*rom.line[" + zkPC + "].cmdAfter[j], TimeDiff(t));\n";
             code += "#endif\n";
             code += "            // In case of an external error, return it\n";
             code += "            if (cr.zkResult != ZKR_SUCCESS)\n";
@@ -3288,16 +3350,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     }
 
     code += "#ifdef LOG_TIME_STATISTICS\n";
-    code += "    cout << \"TIMER STATISTICS: Poseidon time: \" << double(poseidonTime)/1000 << \" ms, called \" << poseidonTimes << \" times, so \" << poseidonTime/zkmax(poseidonTimes,(uint64_t)1) << \" us/time\" << endl;\n";
-    code += "    cout << \"TIMER STATISTICS: SMT set time: \" << double(smtSetTime)/1000 << \" ms, called \" << smtSetTimes << \" times, so \" << smtSetTime/zkmax(smtSetTimes,(uint64_t)1) << \" us/time\" << endl;\n";
-    code += "    cout << \"TIMER STATISTICS: SMT get time: \" << double(smtGetTime)/1000 << \" ms, called \" << smtGetTimes << \" times, so \" << smtGetTime/zkmax(smtGetTimes,(uint64_t)1) << \" us/time\" << endl;\n";
-    code += "    cout << \"TIMER STATISTICS: Set program time: \" << double(setProgramTime)/1000 << \" ms, called \" << setProgramTimes << \" times, so \" << setProgramTime/zkmax(setProgramTimes,(uint64_t)1) << \" us/time\" << endl;\n";
-    code += "    cout << \"TIMER STATISTICS: Get program time: \" << double(getProgramTime)/1000 << \" ms, called \" << getProgramTimes << \" times, so \" << getProgramTime/zkmax(getProgramTimes,(uint64_t)1) << \" us/time\" << endl;\n";
-    code += "    cout << \"TIMER STATISTICS: Keccak time: \" << double(keccakTime)/1000 << \" ms, called \" << keccakTimes << \" times, so \" << keccakTime/zkmax(keccakTimes,(uint64_t)1) << \" us/time\" << endl;\n";
-    code += "    cout << \"TIMER STATISTICS: Eval command time: \" << double(evalCommandTime)/1000 << \" ms, called \" << evalCommandTimes << \" times, so \" << evalCommandTime/zkmax(evalCommandTimes,(uint64_t)1) << \" us/time\" << endl;\n";
-    code += "    uint64_t totalTime = poseidonTime + smtSetTime + smtGetTime + setProgramTime + getProgramTime + keccakTime + evalCommandTime;\n";
-    code += "    uint64_t totalTimes = poseidonTimes + smtSetTimes + smtGetTimes + setProgramTimes + getProgramTimes + keccakTimes + evalCommandTimes;\n";
-    code += "    cout << \"TIMER STATISTICS: Total time: \" << double(totalTime)/1000 << \" ms, called \" << totalTimes << \" times, so \" << totalTime/zkmax(totalTimes,(uint64_t)1) << \" us/time\" << endl;\n";
+    code += "    mainMetrics.print(\"Main Executor calls\");\n";
+    code += "    evalCommandMetrics.print(\"Main Executor eval command calls\");\n";
     code += "#endif\n\n";
 
     code += "    StateDBClientFactory::freeStateDBClient(pStateDB);\n\n";
