@@ -1928,8 +1928,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "        zkassert(hashIterator != ctx.hashK.end());\n\n";
             
             code += "        // Calculate the hash of an empty string\n";
-            code += "        string digestString = keccak256(hashIterator->second.data.data(), hashIterator->second.data.size());\n";
-            code += "        hashIterator->second.digest.set_str(Remove0xIfPresent(digestString),16);\n";
+            code += "        keccak256(hashIterator->second.data.data(), hashIterator->second.data.size(), hashIterator->second.digest);\n";
             code += "        hashIterator->second.bDigested = true;\n";
             code += "    }\n";
 
@@ -1945,8 +1944,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "#ifdef LOG_TIME_STATISTICS\n";
             code += "        gettimeofday(&t, NULL);\n";
             code += "#endif\n";
-            code += "        string digestString = keccak256(hashIterator->second.data.data(), hashIterator->second.data.size());\n";
-            code += "        hashIterator->second.digest.set_str(Remove0xIfPresent(digestString),16);\n";
+            code += "        keccak256(hashIterator->second.data.data(), hashIterator->second.data.size(), hashIterator->second.digest);\n";
             code += "        hashIterator->second.bDigested = true;\n";
             code += "#ifdef LOG_TIME_STATISTICS\n";
             code += "        mainMetrics.add(\"Keccak\", TimeDiff(t));\n";
@@ -2129,8 +2127,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "        zkassert(hashIterator != ctx.hashP.end());\n\n";
 
             code += "        // Calculate the hash of an empty string\n";
-            code += "        string digestString = keccak256(hashIterator->second.data.data(), hashIterator->second.data.size());\n";
-            code += "        hashIterator->second.digest.set_str(Remove0xIfPresent(digestString),16);\n";
+            code += "        keccak256(hashIterator->second.data.data(), hashIterator->second.data.size(), hashIterator->second.digest);\n";
             code += "        hashIterator->second.bDigested = true;\n";
             code += "    }\n";
 
