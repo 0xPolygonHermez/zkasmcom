@@ -14,6 +14,7 @@ B                       { return 'B'; }
 C                       { return 'C'; }
 D                       { return 'D'; }
 E                       { return 'E'; }
+RCX                     { return 'RCX'; }
 SR                      { return 'SR'; }
 CTX                     { return 'CTX'; }
 SP                      { return 'SP'; }
@@ -74,6 +75,7 @@ GLOBAL                  { return 'GLOBAL' }
 CTX                     { return 'CTX' }
 CONST                   { return 'CONST' }
 CONSTL                  { return 'CONSTL' }
+REPEAT                  { return 'REPEAT' }
 \"[^"]+\"               { yytext = yytext.slice(1,-1); return 'STRING'; }
 [a-zA-Z_][a-zA-Z$_0-9]*   { return 'IDENTIFIER'; }
 \%[a-zA-Z_][a-zA-Z$_0-9]* { yytext = yytext.slice(1); return 'CONSTID'; }
@@ -677,7 +679,11 @@ op
         }
     | INST_MAP_ROM
         {
-            $$ = {instMapRom: 1}
+            $$ = { instMapRom: 1 }
+        }
+    | REPEAT '(' RCX ')'
+        {
+            $$ = { repeat: 1 }
         }
     ;
 
@@ -707,6 +713,7 @@ reg
     | MAXMEM
     | HASHPOS
     | ROTL_C
+    | RCX
     ;
 
 
