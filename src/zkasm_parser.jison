@@ -68,7 +68,6 @@ MEM_ALIGN_WR            { return 'MEM_ALIGN_WR' }
 INST_MAP_ROM            { return 'INST_MAP_ROM' }
 SYS                     { return 'SYS' }
 MEM                     { return 'MEM' }
-CODE                    { return 'CODE' }
 STACK                   { return 'STACK' }
 INCLUDE                 { return 'INCLUDE' }
 VAR                     { return 'VAR' }
@@ -616,15 +615,15 @@ op
         }
     | ARITH
         {
-            $$ = { arith: 1, arithEq0: 1}
+            $$ = { arithEq0: 1, arithEq1: 0, arithEq2: 0}
         }
     | ARITH_ECADD_DIFFERENT
         {
-            $$ = { arith: 1, arithEq1: 1, arithEq3: 1}
+            $$ = { arithEq0: 0, arithEq1: 1, arithEq2: 0}
         }
     | ARITH_ECADD_SAME
         {
-            $$ = { arith: 1, arithEq2: 1, arithEq3: 1}
+            $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 1}
         }
     | SHL
         {
@@ -668,15 +667,15 @@ op
         }
     | MEM_ALIGN_RD
         {
-            $$ = { memAlign: 1, memAlignWR: 0, memAlignWR8: 0}
+            $$ = { memAlignRD: 1, memAlignWR: 0, memAlignWR8: 0}
         }
     | MEM_ALIGN_WR
         {
-            $$ = { memAlign: 1, memAlignWR: 1, memAlignWR8: 0}
+            $$ = { memAlignRD: 0, memAlignWR: 1, memAlignWR8: 0}
         }
     | MEM_ALIGN_WR8
         {
-            $$ = { memAlign: 1, memAlignWR: 0, memAlignWR8: 1}
+            $$ = { memAlignRD: 0, memAlignWR: 0, memAlignWR8: 1}
         }
     | INST_MAP_ROM
         {
@@ -721,91 +720,59 @@ reg
 addr
     : SP
         {
-            $$ = { isStack: 1, isCode: 0, isMem:0, ind:0, indRR: 0, incCode:0, incStack:0, offset: 0, useCTX: 1}
+            $$ = { isStack: 1, isMem:0, ind:0, indRR: 0, incStack:0, offset: 0, useCTX: 1}
         }
     | SP '+' NUMBER
         {
-            $$ = { isStack: 1, isCode: 0, isMem:0, ind:0, indRR: 0, incCode:0, incStack: 0, offset: $3, useCTX: 1}}
+            $$ = { isStack: 1, isMem:0, ind:0, indRR: 0, incStack: 0, offset: $3, useCTX: 1}}
         }
     | SP '-' NUMBER
         {
-            $$ = { isStack: 1, isCode: 0, isMem:0, ind:0, indRR: 0, incCode:0, incStack: 0, offset: -$3, useCTX: 1}}
+            $$ = { isStack: 1, isMem:0, ind:0, indRR: 0, incStack: 0, offset: -$3, useCTX: 1}}
         }
     | SP '++'
         {
-            $$ = { isStack: 1, isCode: 0, isMem:0, ind:0, indRR: 0, incStack: 1, offset: 0, useCTX: 1}}
+            $$ = { isStack: 1, isMem:0, ind:0, indRR: 0, incStack: 1, offset: 0, useCTX: 1}}
         }
     | SP '--'
         {
-            $$ = { isStack: 1, isCode: 0, isMem:0, ind:0, indRR: 0, incCode:0, incStack: -1, offset: 0, useCTX: 1}}
-        }
-    | PC
-        {
-            $$ = { isStack: 0, isCode: 1, isMem:0, ind:0, indRR: 0, incCode:0, incStack: 0, offset: 0, useCTX: 1}
-        }
-    | PC '+' NUMBER
-        {
-            $$ = { isStack: 0, isCode: 1, isMem:0, ind:0, indRR: 0, incCode:0, incStack: 0, offset: $3, useCTX: 1}
-        }
-    | PC '-' NUMBER
-        {
-            $$ = { isStack: 0, isCode: 1, isMem:0, ind:0, indRR: 0,     incCode:0, incStack: 0, offset: -$3, useCTX: 1}
-        }
-    | PC '++'
-        {
-            $$ = { isStack: 0, isCode: 1, isMem:0, ind:0, indRR: 0, incCode:1, incStack: 0, offset: 0, useCTX: 1}
-        }
-    | PC '--'
-        {
-            $$ = { isStack: 0, isCode: 1, isMem:0, ind:0, indRR: 0, incCode:-1, incStack: 0, offset: 0, useCTX: 1}
+            $$ = { isStack: 1, isMem:0, ind:0, indRR: 0, incStack: -1, offset: 0, useCTX: 1}}
         }
     | SYS ':' E '+' NUMBER
         {
-            $$ = { isStack: 0, isCode: 0, ind:1, indRR: 0, incCode:0, incStack: 0, offset: $5}
+            $$ = { isStack: 0, isMem:0, ind:1, indRR: 0, incStack: 0, offset: $5}
         }
     | SYS ':' E '-' NUMBER
         {
-            $$ = { isStack: 0, isCode: 0, ind:1, indRR: 0, incCode:0, incStack: 0, offset: -$5}
+            $$ = { isStack: 0, isMem:0, ind:1, indRR: 0, incStack: 0, offset: -$5}
         }
     | SYS ':' E
         {
-            $$ = { isStack: 0, isCode: 0, ind:1, indRR: 0, incCode:0, incStack: 0, offset: 0}
+            $$ = { isStack: 0, isMem:0, ind:1, indRR: 0, incStack: 0, offset: 0}
         }
     | MEM ':' E '+' NUMBER
         {
-            $$ = { isStack: 0, isMem: 1, isCode: 0, ind:1, indRR: 0, incCode:0, incStack: 0, offset: $5, useCTX: 1}
+            $$ = { isStack: 0, isMem: 1, ind:1, indRR: 0, incStack: 0, offset: $5, useCTX: 1}
         }
     | MEM ':' E '-' NUMBER
         {
-            $$ = { isStack: 0, isMem: 1, isCode: 0, ind:1, indRR: 0, incCode:0, incStack: 0, offset: -$5, useCTX: 1}
+            $$ = { isStack: 0, isMem: 1, ind:1, indRR: 0, incStack: 0, offset: -$5, useCTX: 1}
         }
     | MEM ':' E
         {
-            $$ = { isStack: 0, isMem: 1, isCode: 0, ind:1, indRR: 0, incCode:0, incStack: 0, offset: 0, useCTX: 1}
-        }
-    | CODE ':' E '+' NUMBER
-        {
-            $$ = { isStack: 0, isCode: 1, ind:1, indRR: 0, incCode:0, incStack: 0, offset: $5, useCTX: 1}
-        }
-    | CODE ':' E '-' NUMBER
-        {
-            $$ = { isStack: 0, isCode: 1, ind:1, indRR: 0, incCode:0, incStack: 0, offset: -$5, useCTX: 1}
-        }
-    | CODE ':' E
-        {
-            $$ = { isStack: 0, isCode: 1, ind:1, indRR: 0, incCode:0, incStack: 0, offset: 0, useCTX: 1}
+            $$ = { isStack: 0, isMem: 1, ind:1, indRR: 0, incStack: 0, offset: 0, useCTX: 1}
         }
     | STACK ':' E '+' NUMBER
         {
-            $$ = { isStack: 1, isCode: 0, ind:1, indRR: 0, incCode:0, incStack: 0, offset: $5, useCTX: 1}
+            $$ = { isStack: 1, ind:1, indRR: 0, incStack: 0, offset: $5, useCTX: 1}
         }
     | STACK ':' E '-' NUMBER
         {
-            $$ = { isStack: 1, isCode: 0, ind:1, indRR: 0, incCode:0, incStack: 0, offset: -$5, useCTX: 1}
+            $$ = { isStack: 1, ind:1, indRR: 0, incStack: 0, offset: -$5, useCTX: 1}
         }
     | STACK ':' E
         {
-            $$ = { isStack: 1, isCode: 0, ind:1, indRR: 0, incCode:0, incStack: 0, offset: 0, useCTX: 1}
+            $$ = { isStack: 1, ind:1, indRR: 0, incStack: 0, offset: 0, useCTX: 1}
         }
     | IDENTIFIER
         {
