@@ -185,7 +185,8 @@ module.exports = async function compile(fileName, ctx, config) {
 
         const res = {
             program:  stringifyBigInts(ctx.out),
-            labels: ctx.definedLabels
+            labels: ctx.definedLabels,
+            constants: stringifyBigInts(ctx.constants)
         }
 
         return res;
