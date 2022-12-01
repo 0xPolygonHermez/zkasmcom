@@ -263,6 +263,12 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         code += "    ctx.pStep = &i; // ctx.pStep is used inside evaluateCommand() to find the current value of the registers, e.g. pols(A0)[ctx.step]\n";
     }
     code += "    ctx.pZKPC = &zkPC; // Pointer to the zkPC\n\n";
+    if (!bFastMode)
+    {
+    code += "    Goldilocks::Element previousRCX = fr.zero(); // Cache value of RCX\n";
+    code += "    Goldilocks::Element previousRCXInv = fr.zero(); // Cache value the inverse of RCX, which is expensive to calculate at every evaluation if RCX does not change when used for something non-related with the repeat instruction\n";
+    }
+    code += "    Goldilocks::Element currentRCX = fr.zero();\n";
 
     code += "    uint64_t incHashPos = 0;\n";
     code += "    uint64_t incCounter = 0;\n\n";
@@ -553,6 +559,12 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "    pols.inROTL_C[i] = rom.line[zkPC].inROTL_C;\n";
             }
             code += "\n";
+            opInitialized = true;
+        }
+
+        if (rom.program[zkPC].inRCX)
+        {
+            code += selector1("RCX", rom.program[zkPC].inRCX, opInitialized, bFastMode);
             opInitialized = true;
         }
 
@@ -1051,7 +1063,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     code += "    }\n";
 
                     code += "    // If digest was not calculated, this is an error\n";
-                    code += "    if (!hashIterator->second.bDigested)\n";
+                    code += "    if (!hashIterator->second.lenCalled)\n";
                     code += "    {\n";
                     code += "        cerr << \"Error: hashKDigest 1: digest not calculated for addr=\" << addr << \".  Call hashKLen to finish digest.\" << endl;\n";
                     code += "        proverRequest.result = ZKR_SM_MAIN_HASHK;\n";
@@ -1131,7 +1143,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                     code += "        return;\n";
                     code += "    }\n";
                     code += "    // If digest was not calculated, this is an error\n";
-                    code += "    if (!hashIterator->second.bDigested)\n";
+                    code += "    if (!hashIterator->second.lenCalled)\n";
                     code += "    {\n";
                     code += "        cerr << \"Error: hashPDigest 1: digest not calculated.  Call hashPLen to finish digest.\" << endl;\n";
                     code += "        proverRequest.result = ZKR_SM_MAIN_HASHP;\n";
@@ -1929,8 +1941,14 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             
             code += "        // Calculate the hash of an empty string\n";
             code += "        keccak256(hashIterator->second.data.data(), hashIterator->second.data.size(), hashIterator->second.digest);\n";
-            code += "        hashIterator->second.bDigested = true;\n";
             code += "    }\n";
+
+            code += "    if (ctx.hashK[addr].lenCalled)\n";
+            code += "    {\n";
+            code += "        cerr << \"Error: hashKLen 2 called more than once addr=\" << addr << \" zkPC=\" << " + zkPC + " << \" rom line=\" << rom.line[" + zkPC + "].toString(fr) << endl;\n";
+            code += "        exitProcess();\n";
+            code += "    }\n";
+            code += "    ctx.hashK[addr].lenCalled = true;\n";
 
             code += "    lh = hashIterator->second.data.size();\n";
             code += "    if (lm != lh)\n";
@@ -1939,13 +1957,12 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "        proverRequest.result = ZKR_SM_MAIN_HASHK;\n";
             code += "        return;\n";
             code += "    }\n";
-            code += "    if (!hashIterator->second.bDigested)\n";
+            code += "    if (!hashIterator->second.digestCalled)\n";
             code += "    {\n";
             code += "#ifdef LOG_TIME_STATISTICS\n";
             code += "        gettimeofday(&t, NULL);\n";
             code += "#endif\n";
             code += "        keccak256(hashIterator->second.data.data(), hashIterator->second.data.size(), hashIterator->second.digest);\n";
-            code += "        hashIterator->second.bDigested = true;\n";
             code += "#ifdef LOG_TIME_STATISTICS\n";
             code += "        mainMetrics.add(\"Keccak\", TimeDiff(t));\n";
             code += "#endif\n";
@@ -1982,20 +1999,20 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    // Get contents of op into dg\n";
             code += "    fea2scalar(fr, dg, op0, op1, op2, op3, op4, op5, op6, op7);\n";
 
-            code += "    // Check the digest has been calculated\n";
-            code += "    if (!hashIterator->second.bDigested)\n";
-            code += "    {\n";
-            code += "        cerr << \"Error: hashKDigest 2: Cannot load keccak from DB\" << endl;\n";
-            code += "        proverRequest.result = ZKR_SM_MAIN_HASHK;\n";
-            code += "        return;\n";
-            code += "    }\n";
-            
             code += "    if (dg != hashIterator->second.digest)\n";
             code += "    {\n";
             code += "        cerr << \"Error: hashKDigest 2: Digest does not match op\" << endl;\n";
             code += "        proverRequest.result = ZKR_SM_MAIN_HASHK;\n";
             code += "        return;\n";
             code += "    }\n";
+
+            code += "    if (ctx.hashK[addr].digestCalled)\n";
+            code += "    {\n";
+            code += "        cerr << \"Error: hashKDigest 2 called more than once addr=\" << addr << \" zkPC=\" << " + zkPC + " << \" rom line=\" << rom.line[" + zkPC + "].toString(fr) << endl;\n";
+            code += "        exitProcess();\n";
+            code += "    }\n";
+            code += "    ctx.hashK[addr].digestCalled = true;\n";
+
             code += "    incCounter = ceil((double(hashIterator->second.data.size()) + double(1)) / double(136));\n";
 
             code += "#ifdef LOG_HASHK\n";
@@ -2128,8 +2145,14 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
 
             code += "        // Calculate the hash of an empty string\n";
             code += "        keccak256(hashIterator->second.data.data(), hashIterator->second.data.size(), hashIterator->second.digest);\n";
-            code += "        hashIterator->second.bDigested = true;\n";
             code += "    }\n";
+
+            code += "    if (ctx.hashP[addr].lenCalled)\n";
+            code += "    {\n";
+            code += "        cerr << \"Error: hashPLen 2 called more than once addr=\" << addr << \" zkPC=\" << " + zkPC + " << \" rom line=\" << rom.line[" + zkPC + "].toString(fr) << endl;\n";
+            code += "        exitProcess();\n";
+            code += "    }\n";
+            code += "    ctx.hashP[addr].lenCalled = true;\n";
 
             code += "    lh = hashIterator->second.data.size();\n";
             code += "    if (lm != lh)\n";
@@ -2138,7 +2161,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "        proverRequest.result = ZKR_SM_MAIN_HASHP;\n";
             code += "        return;\n";
             code += "    }\n";
-            code += "    if (!hashIterator->second.bDigested)\n";
+            code += "    if (!hashIterator->second.digestCalled)\n";
             code += "    {\n";
             code += "        if (hashIterator->second.data.size() == 0)\n";
             code += "        {\n";
@@ -2183,7 +2206,6 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "#endif\n";
             code += "        fea2scalar(fr, hashIterator->second.digest, result);\n";
             code += "        delete[] pBuffer;\n";
-            code += "        hashIterator->second.bDigested = true;\n";
             code += "#ifdef LOG_TIME_STATISTICS\n";
             code += "        gettimeofday(&t, NULL);\n";
             code += "#endif\n";
@@ -2221,7 +2243,6 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "    {\n";
             code += "        HashValue hashValue;\n";
             code += "        hashValue.digest = dg;\n";
-            code += "        hashValue.bDigested = true;\n";
             code += "        Goldilocks::Element aux[4];\n";
             code += "        scalar2fea(fr, dg, aux);\n";
             code += "#ifdef LOG_TIME_STATISTICS\n";
@@ -2241,6 +2262,13 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "        hashIterator = ctx.hashP.find(addr);\n";
             code += "        zkassert(hashIterator != ctx.hashP.end());\n";
             code += "    }\n";
+
+            code += "    if (ctx.hashP[addr].digestCalled)\n";
+            code += "    {\n";
+            code += "        cerr << \"Error: hashPDigest 2 called more than once addr=\" << addr << \" zkPC=\" << " + zkPC + " << \" rom line=\" << rom.line[" + zkPC + "].toString(fr) << endl;\n";
+            code += "        exitProcess();\n";
+            code += "    }\n";
+            code += "    ctx.hashP[addr].digestCalled = true;\n";
 
             code += "    incCounter = ceil((double(hashIterator->second.data.size()) + double(1)) / double(56));\n";
 
@@ -2812,6 +2840,12 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "\n";
         }
 
+        // Repeat instruction
+        if ((rom.program[zkPC].repeat == 1) && (!bFastMode))
+        {
+            code += "    pols.repeat[i] = fr.one();\n";
+        }
+
         /***********/
         /* SETTERS */
         /***********/
@@ -2945,6 +2979,40 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         else if (!bFastMode)
         {
             code += "    pols.cntMemAlign[nexti] = pols.cntMemAlign[i];\n";
+        }
+
+        // If setRCX, RCX=op, else if RCX>0, RCX--
+        if (rom.program[zkPC].setRCX)
+        {
+            code += "    pols.RCX[" + (bFastMode?"0":"nexti") + "] = op0;\n";
+            if (!bFastMode)
+            code += "    pols.setRCX[i] = fr.one();\n";
+        }
+        else if (rom.program[zkPC].repeat)
+        {
+            code += "    currentRCX = pols.RCX[" + (bFastMode?"0":"i") + "];\n";
+            code += "    if (!fr.isZero(pols.RCX[" + (bFastMode?"0":"i") + "]))\n";
+            code += "    {\n";
+            code += "        pols.RCX[" + (bFastMode?"0":"nexti") + "] = fr.sub(pols.RCX[" + (bFastMode?"0":"i") + "], fr.one());\n";
+            code += "    }\n";
+         }
+        else
+        {
+            code += "    pols.RCX[" + (bFastMode?"0":"nexti") + "] = pols.RCX[" + (bFastMode?"0":"i") + "];\n";
+        }
+
+        // Calculate the inverse of RCX (if not zero)
+        if (!bFastMode)
+        {
+        code += "    if (!fr.isZero(pols.RCX[nexti]))\n";
+        code += "    {\n";
+        code += "        if (!fr.equal(previousRCX, pols.RCX[nexti]))\n";
+        code += "        {\n";
+        code += "            previousRCX = pols.RCX[nexti];\n";
+        code += "            previousRCXInv = fr.inv(previousRCX);\n";
+        code += "        }\n";
+        code += "        pols.RCXInv[nexti] = previousRCXInv;\n";
+        code += "    }\n";
         }
 
         /*********/
@@ -3269,6 +3337,11 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "        goto *" + functionName + "_labels[addr];\n";
             code += "    }\n\n";
         }
+        if (rom.program[zkPC].repeat)
+        {
+            code += "    if (!fr.isZero(currentRCX])\n";
+            code += "        goto " + functionName + "_rom_line_" + zkPC + ";\n";
+        }
     }
 
     code += functionName + "_end:\n\n";
@@ -3314,6 +3387,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         code += "            proverRequest.result = ZKR_SM_MAIN_HASHK;\n";
         code += "            return;\n";
         code += "        }\n";
+        code += "        h.digestCalled = ctx.hashK[i].digestCalled;\n";
+        code += "        h.lenCalled = ctx.hashK[i].lenCalled;\n";
         code += "        required.PaddingKK.push_back(h);\n";
         code += "    }\n";
 
@@ -3342,6 +3417,8 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         code += "            proverRequest.result = ZKR_SM_MAIN_HASHP;\n";
         code += "            return;\n";
         code += "        }\n";
+        code += "        h.digestCalled = ctx.hashK[i].digestCalled;\n";
+        code += "        h.lenCalled = ctx.hashK[i].lenCalled;\n";
         code += "        required.PaddingPG.push_back(h);\n";
         code += "    }\n";
     }
