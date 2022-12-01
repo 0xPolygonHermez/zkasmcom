@@ -1636,6 +1636,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
             code += "#endif\n";
 
             code += "    sr8to4(fr, pols.SR0[" + (bFastMode?"0":"i") + "], pols.SR1[" + (bFastMode?"0":"i") + "], pols.SR2[" + (bFastMode?"0":"i") + "], pols.SR3[" + (bFastMode?"0":"i") + "], pols.SR4[" + (bFastMode?"0":"i") + "], pols.SR5[" + (bFastMode?"0":"i") + "], pols.SR6[" + (bFastMode?"0":"i") + "], pols.SR7[" + (bFastMode?"0":"i") + "], oldRoot[0], oldRoot[1], oldRoot[2], oldRoot[3]);\n";
+            
             code += "#ifdef LOG_TIME_STATISTICS\n";
             code += "    gettimeofday(&t, NULL);\n";
             code += "#endif\n";
@@ -3427,7 +3428,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
     code += "    mainMetrics.print(\"Main Executor calls\");\n";
     code += "    evalCommandMetrics.print(\"Main Executor eval command calls\");\n";
     code += "#endif\n\n";
-
+    
     code += "    StateDBClientFactory::freeStateDBClient(pStateDB);\n\n";
 
     code += "    cout << \"" + functionName + "() done lastStep=\" << ctx.lastStep << \" (\" << (double(ctx.lastStep)*100)/mainExecutor.N << \"%)\" << endl;\n\n";
