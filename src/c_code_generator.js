@@ -3340,7 +3340,7 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
         }
         if (rom.program[zkPC].repeat)
         {
-            code += "    if (!fr.isZero(currentRCX])\n";
+            code += "    if (!fr.isZero(currentRCX))\n";
             code += "        goto " + functionName + "_rom_line_" + zkPC + ";\n";
         }
     }
