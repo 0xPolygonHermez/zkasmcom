@@ -1279,83 +1279,148 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 code += "#ifdef LOG_TIME_STATISTICS\n";
                 code += "    gettimeofday(&t, NULL);\n";
                 code += "#endif\n";
-                code += "    // Call evalCommand()\n";
-                code += "    cr.reset();\n";
-                code += "    zkPC=" + zkPC +";\n";
-                code += "    evalCommand(ctx, rom.line[" + zkPC + "].freeInTag, cr);\n\n";
+                
+                if ( (rom.program[zkPC].freeInTag.op=="functionCall") && (rom.program[zkPC].freeInTag.funcName=="getBytecode") )
+                {
+                    code += "    cr.reset();\n";
+                    code += "    zkPC=" + zkPC +";\n";
+                    code += "    eval_getBytecode(ctx, rom.line[" + zkPC + "].freeInTag, cr);\n\n";
+                    code += "    fi0 = cr.fea0;\n";
+                    code += "    fi1 = cr.fea1;\n";
+                    code += "    fi2 = cr.fea2;\n";
+                    code += "    fi3 = cr.fea3;\n";
+                    code += "    fi4 = cr.fea4;\n";
+                    code += "    fi5 = cr.fea5;\n";
+                    code += "    fi6 = cr.fea6;\n";
+                    code += "    fi7 = cr.fea7;\n";
+                }
+                else if ( (rom.program[zkPC].freeInTag.op=="functionCall") && (rom.program[zkPC].freeInTag.funcName=="eventLog") )
+                {
+                    if (rom.program[zkPC].freeInTag.funcName == "storeLog")
+                        code += "    ctx.proverRequest.fullTracer.onStoreLog(ctx, rom.line[" + zkPC + "].freeInTag);\n";
+                    else if (rom.program[zkPC].freeInTag.params[0].funcName == "onOpcode")
+                        code += "    ctx.proverRequest.fullTracer.onOpcode(ctx, rom.line[" + zkPC + "].freeInTag);\n";
+                    else if (rom.program[zkPC].freeInTag.params[0].varName == "onError")
+                        code += "    ctx.proverRequest.fullTracer.onError(ctx, rom.line[" + zkPC + "].freeInTag);\n";
+                    else if (rom.program[zkPC].freeInTag.params[0].varName == "onProcessTx")
+                        code += "    ctx.proverRequest.fullTracer.onProcessTx(ctx, rom.line[" + zkPC + "].freeInTag);\n";
+                    else if (rom.program[zkPC].freeInTag.params[0].varName == "onUpdateStorage")
+                        code += "    ctx.proverRequest.fullTracer.onUpdateStorage(ctx, rom.line[" + zkPC + "].freeInTag);\n";
+                    else if (rom.program[zkPC].freeInTag.params[0].varName == "onFinishTx")
+                        code += "    ctx.proverRequest.fullTracer.onFinishTx(ctx, rom.line[" + zkPC + "].freeInTag);\n";
+                    else if (rom.program[zkPC].freeInTag.params[0].varName == "onStartBatch")
+                        code += "    ctx.proverRequest.fullTracer.onStartBatch(ctx, rom.line[" + zkPC + "].freeInTag);\n";
+                    else if (rom.program[zkPC].freeInTag.params[0].varName == "onFinishBatch")
+                        code += "    ctx.proverRequest.fullTracer.onFinishBatch(ctx, rom.line[" + zkPC + "].freeInTag);\n";
+                    else
+                    {
+                        console.log("Error: Invalid freeIn eventLog: zkPC=" + zkPC + " nHits=" + nHits);
+                        process.exit();
+                    }
+                    code += "    fi0 = fr.zero();\n";
+                    code += "    fi1 = fr.zero();\n";
+                    code += "    fi2 = fr.zero();\n";
+                    code += "    fi3 = fr.zero();\n";
+                    code += "    fi4 = fr.zero();\n";
+                    code += "    fi5 = fr.zero();\n";
+                    code += "    fi6 = fr.zero();\n";
+                    code += "    fi7 = fr.zero();\n";
+                }
+                else if ( (rom.program[zkPC].op=="functionCall") && (rom.program[zkPC].funcName=="beforeLast") )
+                {
+                    code += "    if (*ctx.pStep >= ctx.N-2)\n";
+                    code += "        fi0 = fr.zero();\n";
+                    code += "    else\n";
+                    code += "        fi0 = fr.negone();\n";
+                    code += "    fi1 = fr.zero();\n";
+                    code += "    fi2 = fr.zero();\n";
+                    code += "    fi3 = fr.zero();\n";
+                    code += "    fi4 = fr.zero();\n";
+                    code += "    fi5 = fr.zero();\n";
+                    code += "    fi6 = fr.zero();\n";
+                    code += "    fi7 = fr.zero();\n";
+                }
+                else
+                {
+                    code += "    // Call evalCommand()\n";
+                    code += "    cr.reset();\n";
+                    code += "    zkPC=" + zkPC +";\n";
+                    code += "    evalCommand(ctx, rom.line[" + zkPC + "].freeInTag, cr);\n\n";
+
+                    code += "    // In case of an external error, return it\n";
+                    code += "    if (cr.zkResult != ZKR_SUCCESS)\n";
+                    code += "    {\n";
+                    code += "        proverRequest.result = cr.zkResult;\n";
+                    code += "        return;\n";
+                    code += "    }\n\n";
+
+                    code += "    // Copy fi=command result, depending on its type \n";
+                    code += "    switch (cr.type)\n";
+                    code += "    {\n";
+                    code += "    case crt_fea:\n";
+                    code += "        fi0 = cr.fea0;\n";
+                    code += "        fi1 = cr.fea1;\n";
+                    code += "        fi2 = cr.fea2;\n";
+                    code += "        fi3 = cr.fea3;\n";
+                    code += "        fi4 = cr.fea4;\n";
+                    code += "        fi5 = cr.fea5;\n";
+                    code += "        fi6 = cr.fea6;\n";
+                    code += "        fi7 = cr.fea7;\n";
+                    code += "        break;\n";
+                    code += "    case crt_fe:\n";
+                    code += "        fi0 = cr.fe;\n";
+                    code += "        fi1 = fr.zero();\n";
+                    code += "        fi2 = fr.zero();\n";
+                    code += "        fi3 = fr.zero();\n";
+                    code += "        fi4 = fr.zero();\n";
+                    code += "        fi5 = fr.zero();\n";
+                    code += "        fi6 = fr.zero();\n";
+                    code += "        fi7 = fr.zero();\n";
+                    code += "        break;\n";
+                    code += "    case crt_scalar:\n";
+                    code += "        scalar2fea(fr, cr.scalar, fi0, fi1, fi2, fi3, fi4, fi5, fi6, fi7);\n";
+                    code += "        break;\n";
+                    code += "    case crt_u16:\n";
+                    code += "        fi0 = fr.fromU64(cr.u16);\n";
+                    code += "        fi1 = fr.zero();\n";
+                    code += "        fi2 = fr.zero();\n";
+                    code += "        fi3 = fr.zero();\n";
+                    code += "        fi4 = fr.zero();\n";
+                    code += "        fi5 = fr.zero();\n";
+                    code += "        fi6 = fr.zero();\n";
+                    code += "        fi7 = fr.zero();\n";
+                    code += "        break;\n";
+                    code += "    case crt_u32:\n";
+                    code += "        fi0 = fr.fromU64(cr.u32);\n";
+                    code += "        fi1 = fr.zero();\n";
+                    code += "        fi2 = fr.zero();\n";
+                    code += "        fi3 = fr.zero();\n";
+                    code += "        fi4 = fr.zero();\n";
+                    code += "        fi5 = fr.zero();\n";
+                    code += "        fi6 = fr.zero();\n";
+                    code += "        fi7 = fr.zero();\n";
+                    code += "        break;\n";
+                    code += "    case crt_u64:\n";
+                    code += "        fi0 = fr.fromU64(cr.u64);\n";
+                    code += "        fi1 = fr.zero();\n";
+                    code += "        fi2 = fr.zero();\n";
+                    code += "        fi3 = fr.zero();\n";
+                    code += "        fi4 = fr.zero();\n";
+                    code += "        fi5 = fr.zero();\n";
+                    code += "        fi6 = fr.zero();\n";
+                    code += "        fi7 = fr.zero();\n";
+                    code += "        break;\n";
+                    code += "    default:\n";
+                    code += "        cerr << \"Error: unexpected command result type: \" << cr.type << endl;\n";
+                    code += "        exitProcess();\n";
+                    code += "    }\n";
+                }
 
                 code += "#ifdef LOG_TIME_STATISTICS\n";
                 code += "    mainMetrics.add(\"Eval command\", TimeDiff(t));\n";
                 code += "    evalCommandMetrics.add(rom.line[" + zkPC + "].freeInTag, TimeDiff(t));\n";
                 code += "#endif\n";
 
-                code += "    // In case of an external error, return it\n";
-                code += "    if (cr.zkResult != ZKR_SUCCESS)\n";
-                code += "    {\n";
-                code += "        proverRequest.result = cr.zkResult;\n";
-                code += "        return;\n";
-                code += "    }\n\n";
-
-                code += "    // Copy fi=command result, depending on its type \n";
-                code += "    switch (cr.type)\n";
-                code += "    {\n";
-                code += "    case crt_fea:\n";
-                code += "        fi0 = cr.fea0;\n";
-                code += "        fi1 = cr.fea1;\n";
-                code += "        fi2 = cr.fea2;\n";
-                code += "        fi3 = cr.fea3;\n";
-                code += "        fi4 = cr.fea4;\n";
-                code += "        fi5 = cr.fea5;\n";
-                code += "        fi6 = cr.fea6;\n";
-                code += "        fi7 = cr.fea7;\n";
-                code += "        break;\n";
-                code += "    case crt_fe:\n";
-                code += "        fi0 = cr.fe;\n";
-                code += "        fi1 = fr.zero();\n";
-                code += "        fi2 = fr.zero();\n";
-                code += "        fi3 = fr.zero();\n";
-                code += "        fi4 = fr.zero();\n";
-                code += "        fi5 = fr.zero();\n";
-                code += "        fi6 = fr.zero();\n";
-                code += "        fi7 = fr.zero();\n";
-                code += "        break;\n";
-                code += "    case crt_scalar:\n";
-                code += "        scalar2fea(fr, cr.scalar, fi0, fi1, fi2, fi3, fi4, fi5, fi6, fi7);\n";
-                code += "        break;\n";
-                code += "    case crt_u16:\n";
-                code += "        fi0 = fr.fromU64(cr.u16);\n";
-                code += "        fi1 = fr.zero();\n";
-                code += "        fi2 = fr.zero();\n";
-                code += "        fi3 = fr.zero();\n";
-                code += "        fi4 = fr.zero();\n";
-                code += "        fi5 = fr.zero();\n";
-                code += "        fi6 = fr.zero();\n";
-                code += "        fi7 = fr.zero();\n";
-                code += "        break;\n";
-                code += "    case crt_u32:\n";
-                code += "        fi0 = fr.fromU64(cr.u32);\n";
-                code += "        fi1 = fr.zero();\n";
-                code += "        fi2 = fr.zero();\n";
-                code += "        fi3 = fr.zero();\n";
-                code += "        fi4 = fr.zero();\n";
-                code += "        fi5 = fr.zero();\n";
-                code += "        fi6 = fr.zero();\n";
-                code += "        fi7 = fr.zero();\n";
-                code += "        break;\n";
-                code += "    case crt_u64:\n";
-                code += "        fi0 = fr.fromU64(cr.u64);\n";
-                code += "        fi1 = fr.zero();\n";
-                code += "        fi2 = fr.zero();\n";
-                code += "        fi3 = fr.zero();\n";
-                code += "        fi4 = fr.zero();\n";
-                code += "        fi5 = fr.zero();\n";
-                code += "        fi6 = fr.zero();\n";
-                code += "        fi7 = fr.zero();\n";
-                code += "        break;\n";
-                code += "    default:\n";
-                code += "        cerr << \"Error: unexpected command result type: \" << cr.type << endl;\n";
-                code += "        exitProcess();\n";
-                code += "    }\n";
                 /*
                 code += "    // If we are in fast mode and we are consuming the last evaluations, exit the loop\n";
                 code += "    if (cr.beforeLast)\n";
@@ -2652,6 +2717,9 @@ module.exports = async function generate(rom, functionName, fileName, bFastMode,
                 if (!bFastMode)
                 {                
                     code += "    pols.binOpcode[i] = fr.fromU64(5);\n";
+
+                    code += "    if (c != 0)\n";
+                    code += "        pols.carry[i] = fr.one();\n";
 
                     code += "    // Store the binary action to execute it later with the binary SM\n";
                     code += "    binaryAction.a = a;\n";
