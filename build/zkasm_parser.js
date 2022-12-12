@@ -441,17 +441,17 @@ case 97:
 break;
 case 98:
 
-            this.$ = {JMP: 0,  JMPC: 0, JMPN: 0, offset: $$[$0-3], ind: 0, indRR: 1, call: 1}
+            this.$ = {JMP: 0,  JMPC: 0, JMPN: 0, offset: $$[$0-3], ind: 0, indRR: 1, return: 0, call: 1}
         
 break;
 case 99:
 
-            this.$ = {JMP: 0,  JMPC: 0, JMPN: 0, offset: $$[$0-3], ind: 1, indRR: 0, call: 1}
+            this.$ = {JMP: 0,  JMPC: 0, JMPN: 0, offset: $$[$0-3], ind: 1, indRR: 0, return: 0, call: 1}
         
 break;
 case 100:
 
-            this.$ = {JMP: 0, JMPC: 0, JMPN: 0,  ind: 0, indRR: 0, return: 1}
+            this.$ = {JMP: 0, JMPC: 0, JMPN: 0,  call: 0, return: 1}
         
 break;
 case 101:

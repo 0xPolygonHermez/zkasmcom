@@ -610,15 +610,15 @@ op
         }
     | CALL '(' REFERENCE '+' RR ')'
         {
-            $$ = {JMP: 0,  JMPC: 0, JMPN: 0, offset: $3, ind: 0, indRR: 1, call: 1}
+            $$ = {JMP: 0,  JMPC: 0, JMPN: 0, offset: $3, ind: 0, indRR: 1, return: 0, call: 1}
         }
     | CALL '(' REFERENCE '+' E ')'
         {
-            $$ = {JMP: 0,  JMPC: 0, JMPN: 0, offset: $3, ind: 1, indRR: 0, call: 1}
+            $$ = {JMP: 0,  JMPC: 0, JMPN: 0, offset: $3, ind: 1, indRR: 0, return: 0, call: 1}
         }
     | RETURN
         {
-            $$ = {JMP: 0, JMPC: 0, JMPN: 0,  ind: 0, indRR: 0, return: 1}
+            $$ = {JMP: 0, JMPC: 0, JMPN: 0,  call: 0, return: 1}
         }
     | ASSERT
         {
