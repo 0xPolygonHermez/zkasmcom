@@ -354,84 +354,89 @@ case 79:
             this.$.hashPDigest = 1;
         
 break;
-case 80: case 81:
+case 80:
 
-            this.$ = { [$$[$0-3]]: 1, useJmpAddr: 1, jmpAddr: $$[$0-1], elseAddr: 'next' }
+            this.$ = { [$$[$0-3]]: 1, useJmpAddr: 1, jmpAddr: $$[$0-1] }
+        
+break;
+case 81:
+
+            this.$ = { [$$[$0-3]]: 1, useJmpAddr: 1, jmpAddr: $$[$0-1], useElseAddr: 1, elseAddr: 'next' }
         
 break;
 case 82:
 
-            this.$ = { [$$[$0-5]]: 1, useJmpAddr: 1, jmpAddr: $$[$0-3], elseAddr: $$[$0-1] }
+            this.$ = { [$$[$0-5]]: 1, useJmpAddr: 1, jmpAddr: $$[$0-3], useElseAddr: 1, elseAddr: $$[$0-1] }
         
 break;
 case 83:
 
-            this.$ = { [$$[$0-3]]: 1, useJmpAddr: 1, jmpAddr: 'next', elseAddr: $$[$0-1] }
+            this.$ = { [$$[$0-3]]: 1, useJmpAddr: 1, jmpAddr: 'next', useElseAddr: 1, elseAddr: $$[$0-1] }
         
 break;
 case 84:
 
-            this.$ = { [$$[$0-5]]: 1, useJmpAddr: 1, jmpAddr: 'next', elseAddr: $$[$0-3] }
+            this.$ = { [$$[$0-5]]: 1, useJmpAddr: 1, jmpAddr: 'next', useElseAddr: 1, elseAddr: $$[$0-3] }
         
 break;
 case 85:
 
-            this.$ = { [$$[$0-3]]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: 0, elseAddr: 0 }
+            this.$ = { [$$[$0-3]]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: 0 }
         
 break;
 case 86:
 
-            this.$ = { [$$[$0-3]]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: 0, elseAddr: 0 }
+            this.$ = { [$$[$0-3]]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: 0 }
         
 break;
 case 87:
 
-            this.$ = { [$$[$0-5]]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: $$[$0-3], elseAddr: 0 }
+            this.$ = { [$$[$0-5]]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: $$[$0-3] }
         
 break;
 case 88:
 
-            this.$ = { [$$[$0-5]]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: $$[$0-3], elseAddr: 0 }
+            this.$ = { [$$[$0-5]]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: $$[$0-3] }
         
 break;
 case 89:
 
-            this.$ = { [$$[$0-3]]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: 0, elseAddr: 'next' }
+            this.$ = { [$$[$0-3]]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: 0, useElseAddr: 1, elseAddr: 'next' }
         
 break;
 case 90:
 
-            this.$ = { [$$[$0-3]]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: 0, elseAddr: 'next' }
+            this.$ = { [$$[$0-3]]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: 0, useElseAddr: 1, elseAddr: 'next' }
         
 break;
 case 91:
 
-            this.$ = { [$$[$0-5]]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: $$[$0-3], elseAddr: 'next' }
+            this.$ = { [$$[$0-5]]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: $$[$0-3], useElseAddr: 1, elseAddr: 'next' }
         
 break;
 case 92:
 
-            this.$ = { [$$[$0-5]]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: $$[$0-3], elseAddr: 'next' }
+            this.$ = { [$$[$0-5]]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: $$[$0-3], useElseAddr: 1, elseAddr: 'next' }
         
 break;
 case 93:
 
-            this.$ = { [$$[$0-5]]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: 0, elseAddr: $$[$0-1] }
+            this.$ = { [$$[$0-5]]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: 0, useElseAddr: 1, elseAddr: $$[$0-1] }
         
 break;
 case 94:
 
-            this.$ = { [$$[$0-5]]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: 0, elseAddr: $$[$0-1] }
+            this.$ = { [$$[$0-5]]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: 0, useElseAddr: 1, elseAddr: $$[$0-1] }
         
 break;
 case 95:
 
-            this.$ = { [$$[$0-7]]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: $$[$0-5], elseAddr: $$[$0-1] }
+            this.$ = { [$$[$0-7]]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: $$[$0-5], useElseAddr: 1, elseAddr: $$[$0-1] }
         
 break;
 case 96:
 
-            this.$ = { [$$[$0-7]]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: $$[$0-5], elseAddr: $$[$0-1] }
+            this.$ = { [$$[$0-7]]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: $$[$0-5], useElseAddr: 1, elseAddr: $$[$0-1] }
         
 break;
 case 97:
