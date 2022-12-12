@@ -538,71 +538,71 @@ op
         }
     | JMP '(' IDENTIFIER ')'
         {
-            $$ = { [$1]: 1, useJmpAddr: 1, jmpAddr: $3, elseAddr: 'next' }
+            $$ = { [$1]: 1, useJmpAddr: 1, jmpAddr: $3 }
         }
     | jmpCond '(' IDENTIFIER ')'
         {
-            $$ = { [$1]: 1, useJmpAddr: 1, jmpAddr: $3, elseAddr: 'next' }
+            $$ = { [$1]: 1, useJmpAddr: 1, jmpAddr: $3, useElseAddr: 1, elseAddr: 'next' }
         }
     | jmpCond '(' IDENTIFIER ',' IDENTIFIER ')'
         {
-            $$ = { [$1]: 1, useJmpAddr: 1, jmpAddr: $3, elseAddr: $5 }
+            $$ = { [$1]: 1, useJmpAddr: 1, jmpAddr: $3, useElseAddr: 1, elseAddr: $5 }
         }
     | jmpNotCond '(' IDENTIFIER ')'
         {
-            $$ = { [$1]: 1, useJmpAddr: 1, jmpAddr: 'next', elseAddr: $3 }
+            $$ = { [$1]: 1, useJmpAddr: 1, jmpAddr: 'next', useElseAddr: 1, elseAddr: $3 }
         }
     | jmpNotCond '(' IDENTIFIER ',' IDENTIFIER ')'
         {
-            $$ = { [$1]: 1, useJmpAddr: 1, jmpAddr: 'next', elseAddr: $3 }
+            $$ = { [$1]: 1, useJmpAddr: 1, jmpAddr: 'next', useElseAddr: 1, elseAddr: $3 }
         }
     | JMP '(' RR ')'
         {
-            $$ = { [$1]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: 0, elseAddr: 0 }
+            $$ = { [$1]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: 0 }
         }
     | JMP '(' E ')'
         {
-            $$ = { [$1]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: 0, elseAddr: 0 }
+            $$ = { [$1]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: 0 }
         }
     | JMP '(' REFERENCE '+' RR ')'
         {
-            $$ = { [$1]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: $3, elseAddr: 0 }
+            $$ = { [$1]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: $3 }
         }
     | JMP '(' REFERENCE '+' E ')'
         {
-            $$ = { [$1]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: $3, elseAddr: 0 }
+            $$ = { [$1]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: $3 }
         }
     | jmpCond '(' RR ')'
         {
-            $$ = { [$1]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: 0, elseAddr: 'next' }
+            $$ = { [$1]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: 0, useElseAddr: 1, elseAddr: 'next' }
         }
     | jmpCond '(' E ')'
         {
-            $$ = { [$1]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: 0, elseAddr: 'next' }
+            $$ = { [$1]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: 0, useElseAddr: 1, elseAddr: 'next' }
         }
     | jmpCond '(' REFERENCE '+' RR ')'
         {
-            $$ = { [$1]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: $3, elseAddr: 'next' }
+            $$ = { [$1]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: $3, useElseAddr: 1, elseAddr: 'next' }
         }
     | jmpCond '(' REFERENCE '+' E ')'
         {
-            $$ = { [$1]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: $3, elseAddr: 'next' }
+            $$ = { [$1]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: $3, useElseAddr: 1, elseAddr: 'next' }
         }
     | jmpCond '(' RR ',' IDENTIFIER ')'
         {
-            $$ = { [$1]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: 0, elseAddr: $5 }
+            $$ = { [$1]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: 0, useElseAddr: 1, elseAddr: $5 }
         }
     | jmpCond '(' E ',' IDENTIFIER ')'
         {
-            $$ = { [$1]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: 0, elseAddr: $5 }
+            $$ = { [$1]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: 0, useElseAddr: 1, elseAddr: $5 }
         }
     | jmpCond '(' REFERENCE '+' RR ',' IDENTIFIER ')'
         {
-            $$ = { [$1]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: $3, elseAddr: $7 }
+            $$ = { [$1]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: $3, useElseAddr: 1, elseAddr: $7 }
         }
     | jmpCond '(' REFERENCE '+' E ',' IDENTIFIER')'
         {
-            $$ = { [$1]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: $3, elseAddr: $7 }
+            $$ = { [$1]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: $3, useElseAddr: 1, elseAddr: $7 }
         }
     | CALL '(' IDENTIFIER ')'
         {
