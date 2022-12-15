@@ -554,7 +554,7 @@ op
         }
     | jmpNotCond '(' IDENTIFIER ',' IDENTIFIER ')'
         {
-            $$ = { [$1]: 1, useJmpAddr: 1, jmpAddr: 'next', useElseAddr: 1, elseAddr: $3 }
+            $$ = { [$1]: 1, useJmpAddr: 1, jmpAddr:  $5, useElseAddr: 1, elseAddr: $3 }
         }
     | JMP '(' RR ')'
         {

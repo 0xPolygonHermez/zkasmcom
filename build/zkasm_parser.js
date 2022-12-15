@@ -376,7 +376,7 @@ case 83:
 break;
 case 84:
 
-            this.$ = { [$$[$0-5]]: 1, useJmpAddr: 1, jmpAddr: 'next', useElseAddr: 1, elseAddr: $$[$0-3] }
+            this.$ = { [$$[$0-5]]: 1, useJmpAddr: 1, jmpAddr: $$[$0-1], useElseAddr: 1, elseAddr: $$[$0-3] }
         
 break;
 case 85:
