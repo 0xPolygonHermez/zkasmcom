@@ -4,13 +4,11 @@ const path = require("path");
 const fs = require("fs");
 const version = require("../package").version;
 const compile = require("./compiler.js");
-const generate = require("./c_code_generator.js");
 
 const argv = require("yargs")
     .version(version)
-    .usage("zkasm <source.zkasm> -o <output.json>")
+    .usage("zkasm <source.zkasm> -o <output.json> [-D name=value]")
     .alias("o", "output")
-    .alias("c", "ccodegeneration")
     .option('D', {
         alias: 'define',
         array: true
@@ -19,8 +17,8 @@ const argv = require("yargs")
 
 async function run() {
     let inputFile;
-    if (argv._.length == 0) {
-        console.log("Only one circuit at a time is permited");
+    if (argv._.length > 1) {
+        console.log("Only one source file at a time is permitted");
         process.exit(1);
     } else if (argv._.length == 1) {
         inputFile = argv._[0];
@@ -32,9 +30,6 @@ async function run() {
     const fileName = path.basename(fullFileName, ".zkasm");
 
     const outputFile = typeof(argv.output) === "string" ?  argv.output.trim() : fileName + ".json";
-
-    const cCodeGeneration = argv.ccodegeneration;
-    const codeGenerationName = typeof(argv.ccodegeneration) === "string" ? argv.ccodegeneration : "main_exec_generated";
 
     const defines = [];
     if (argv.define) {
@@ -48,53 +43,13 @@ async function run() {
         });
     }
     const out = await compile(fullFileName, null, {defines: defines});
-    // console.log(JSON.stringify(out, null, 1));
 
     await fs.promises.writeFile(outputFile, JSON.stringify(out, null, 1) + "\n");
-
-    /*
-    let writeStream = fs.createWriteStream(outputFile);
-
-    // the finish event is emitted when all data has been flushed from the stream
-
-    for (let i=0; i<out.length; i++) {
-        let S = out[i].toString(16).padStart(64, "0");
-        writeStream.write("0x"+S+ "\n", 'utf8');
-    }
-
-    // close the stream
-    writeStream.end();
-
-    await new Promise(fulfill => writeStream.on("finish", fulfill));
-
-    */
-    if (cCodeGeneration)
-    {
-        let functionName = codeGenerationName;
-        let fileName = codeGenerationName;
-        let directoryName = codeGenerationName;
-
-        // Create directory if it does not exist
-        if (!fs.existsSync(directoryName)){
-            fs.mkdirSync(directoryName);
-        }
-        const code = await generate(out, functionName, fileName, false, false);
-        await fs.promises.writeFile(directoryName + "/" + fileName + ".cpp", code, "utf8");
-        const header = await generate(out, functionName, fileName, false, true);
-        await fs.promises.writeFile(directoryName + "/" + fileName + ".hpp", header, "utf8");
-        functionName += "_fast";
-        fileName += "_fast";
-        const codeFast = await generate(out, functionName, fileName, true, false);
-        await fs.promises.writeFile(directoryName + "/" + fileName + ".cpp", codeFast, "utf8");
-        const headerFast = await generate(out, functionName, fileName, true, true);
-        await fs.promises.writeFile(directoryName + "/" + fileName + ".hpp", headerFast, "utf8");
-    }
 }
 
 run().then(()=> {
     process.exit(0);
 }, (err) => {
-//    console.log(err);
     console.log(err.stack);
     if (err.pos) {
         console.error(`ERROR at ${err.errFile}:${err.pos.first_line},${err.pos.first_column}-${err.pos.last_line},${err.pos.last_column}   ${err.errStr}`);
