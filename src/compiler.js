@@ -170,7 +170,7 @@ module.exports = async function compile(fileName, ctx, config) {
             }
             if ((typeof ctx.out[i].jmpAddr !== "undefined") && (isNaN(ctx.out[i].jmpAddr))) {
                 const codeAddr = getCodeAddress(ctx.out[i].jmpAddr, i);
-                if (codeAddr === "undefined") {
+                if (codeAddr === false) {
                     error(ctx.out[i].line, `Label: ${ctx.out[i].jmpAddr} not defined.`);
                 }
                 ctx.out[i].jmpAddrLabel = ctx.out[i].jmpAddr;
@@ -178,7 +178,7 @@ module.exports = async function compile(fileName, ctx, config) {
             }
             if ((typeof ctx.out[i].elseAddr !== "undefined") && (isNaN(ctx.out[i].elseAddr))) {
                 const codeAddr = getCodeAddress(ctx.out[i].elseAddr, i);
-                if (codeAddr === "undefined") {
+                if (codeAddr === false) {
                     error(ctx.out[i].line, `Label: ${ctx.out[i].elseAddr} not defined.`);
                 }
                 ctx.out[i].elseAddrLabel = ctx.out[i].elseAddr;
