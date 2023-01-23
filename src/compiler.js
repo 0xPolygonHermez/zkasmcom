@@ -122,7 +122,7 @@ module.exports = async function compile(fileName, ctx, config) {
                 traceStep.cmdBefore = pendingCommands;
                 pendingCommands = [];
             }
-            lastLineAllowsCommand = !(traceStep.JMP || traceStep.JMPC || traceStep.JMPN);
+            lastLineAllowsCommand = !(traceStep.JMP || traceStep.JMPC || traceStep.JMPN || traceStep.JMPC || traceStep.call || traceStep.return);
         } else if (l.type == "label") {
             const id = l.identifier
             if (ctx.definedLabels[id]) error(l, `RedefinedLabel: ${id}` );
@@ -145,16 +145,14 @@ module.exports = async function compile(fileName, ctx, config) {
 
     if (isMain) {
         for (let i=0; i<ctx.out.length; i++) {
-            if (
-                    (typeof ctx.out[i].offset !== "undefined") &&
-                    (isNaN(ctx.out[i].offset))
-               ) {
-                if (ctx.out[i].JMP || ctx.out[i].JMPC || ctx.out[i].JMPN) {
-                    if (typeof ctx.definedLabels[ctx.out[i].offset] === "undefined") {
+            if ((typeof ctx.out[i].offset !== "undefined") && (isNaN(ctx.out[i].offset))) {
+                if (!ctx.out[i].useJmpAddr && (ctx.out[i].JMP || ctx.out[i].JMPC || ctx.out[i].JMPN || ctx.out[i].JMPZ || ctx.out[i].call)) {
+                    const codeAddr = getCodeAddress(ctx.out[i].offset, i);
+                    if (codeAddr === false) {
                         error(ctx.out[i].line, `Label: ${ctx.out[i].offset} not defined.`);
                     }
                     ctx.out[i].offsetLabel = ctx.out[i].offset;
-                    ctx.out[i].offset = ctx.definedLabels[ctx.out[i].offset];
+                    ctx.out[i].offset = codeAddr;
                 } else {
                     ctx.out[i].offsetLabel = ctx.out[i].offset;
                     if (typeof ctx.vars[ctx.out[i].offset] === "undefined") {
@@ -170,6 +168,23 @@ module.exports = async function compile(fileName, ctx, config) {
                     ctx.out[i].offset = ctx.vars[ctx.out[i].offset].offset;
                 }
             }
+            if ((typeof ctx.out[i].jmpAddr !== "undefined") && (isNaN(ctx.out[i].jmpAddr))) {
+                const codeAddr = getCodeAddress(ctx.out[i].jmpAddr, i);
+                if (codeAddr === "undefined") {
+                    error(ctx.out[i].line, `Label: ${ctx.out[i].jmpAddr} not defined.`);
+                }
+                ctx.out[i].jmpAddrLabel = ctx.out[i].jmpAddr;
+                ctx.out[i].jmpAddr = codeAddr;
+            }
+            if ((typeof ctx.out[i].elseAddr !== "undefined") && (isNaN(ctx.out[i].elseAddr))) {
+                const codeAddr = getCodeAddress(ctx.out[i].elseAddr, i);
+                if (codeAddr === "undefined") {
+                    error(ctx.out[i].line, `Label: ${ctx.out[i].elseAddr} not defined.`);
+                }
+                ctx.out[i].elseAddrLabel = ctx.out[i].elseAddr;
+                ctx.out[i].elseAddr = codeAddr;
+            }
+
             try {
                 parseCommands(ctx.out[i].cmdBefore);
                 parseCommands(ctx.out[i].cmdAfter);
@@ -190,6 +205,12 @@ module.exports = async function compile(fileName, ctx, config) {
         }
 
         return res;
+    }
+
+    function getCodeAddress(label, zkPC) {
+        if (label === "next") return zkPC + 1;
+        if (typeof ctx.definedLabels[label] === 'undefined') return false;
+        return ctx.definedLabels[label];
     }
 
     function parseCommands(cmdList) {

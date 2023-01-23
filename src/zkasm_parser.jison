@@ -28,15 +28,20 @@ MAXMEM                  { return 'MAXMEM'; }
 HASHPOS                 { return 'HASHPOS'; }
 MLOAD                   { return 'MLOAD' }
 MSTORE                  { return 'MSTORE' }
-HASHK                   { return 'HASHK' }
 HASHKLEN                { return 'HASHKLEN' }
 HASHKDIGEST             { return 'HASHKDIGEST' }
-HASHP                   { return 'HASHP' }
+HASHK1                  { return 'HASHK1' }
+HASHK                   { return 'HASHK' }
 HASHPLEN                { return 'HASHPLEN' }
 HASHPDIGEST             { return 'HASHPDIGEST' }
+HASHP1                  { return 'HASHP1' }
+HASHP                   { return 'HASHP' }
 ECRECOVER               { return 'ECRECOVER' }
 JMP                     { return 'JMP' }
 JMPC                    { return 'JMPC' }
+JMPZ                    { return 'JMPZ' }
+JMPNZ                   { return 'JMPNZ' }
+JMPNC                   { return 'JMPNC' }
 JMPN                    { return 'JMPN' }
 CALL                    { return 'CALL' }
 RETURN                  { return 'RETURN' }
@@ -496,6 +501,11 @@ op
             $$ = $3;
             $$.hashK = 1;
         }
+    | HASHK1 '(' hashId ')'
+        {
+            $$ = $3;
+            $$.hashK1 = 1;
+        }
     | HASHKLEN '(' hashId ')'
         {
             $$ = $3;
@@ -511,6 +521,11 @@ op
             $$ = $3;
             $$.hashP = 1;
         }
+    | HASHP1 '(' hashId ')'
+        {
+            $$ = $3;
+            $$.hashP1 = 1;
+        }
     | HASHPLEN '(' hashId ')'
         {
             $$ = $3;
@@ -523,79 +538,87 @@ op
         }
     | JMP '(' IDENTIFIER ')'
         {
-            $$ = {JMP: 1, JMPC: 0, JMPN: 0, offset: $3}
+            $$ = { [$1]: 1, useJmpAddr: 1, jmpAddr: $3 }
+        }
+    | jmpCond '(' IDENTIFIER ')'
+        {
+            $$ = { [$1]: 1, useJmpAddr: 1, jmpAddr: $3, useElseAddr: 1, elseAddr: 'next' }
+        }
+    | jmpCond '(' IDENTIFIER ',' IDENTIFIER ')'
+        {
+            $$ = { [$1]: 1, useJmpAddr: 1, jmpAddr: $3, useElseAddr: 1, elseAddr: $5 }
+        }
+    | jmpNotCond '(' IDENTIFIER ')'
+        {
+            $$ = { [$1]: 1, useJmpAddr: 1, jmpAddr: 'next', useElseAddr: 1, elseAddr: $3 }
+        }
+    | jmpNotCond '(' IDENTIFIER ',' IDENTIFIER ')'
+        {
+            $$ = { [$1]: 1, useJmpAddr: 1, jmpAddr:  $5, useElseAddr: 1, elseAddr: $3 }
         }
     | JMP '(' RR ')'
         {
-            $$ = {JMP: 1, JMPC: 0, JMPN: 0, ind: 0, indRR: 1, offset: 0}
+            $$ = { [$1]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: 0 }
         }
     | JMP '(' E ')'
         {
-            $$ = {JMP: 1, JMPC: 0, JMPN: 0, ind: 1, indRR: 0, offset: 0}
+            $$ = { [$1]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: 0 }
         }
     | JMP '(' REFERENCE '+' RR ')'
         {
-            $$ = {JMP: 1, JMPC: 0, JMPN: 0, ind: 0, indRR: 1, offset: $3}
+            $$ = { [$1]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: $3 }
         }
     | JMP '(' REFERENCE '+' E ')'
         {
-            $$ = {JMP: 1, JMPC: 0, JMPN: 0, ind: 1, indRR: 0, offset: $3}
+            $$ = { [$1]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: $3 }
         }
-    | JMPC '(' IDENTIFIER ')'
+    | jmpCond '(' RR ')'
         {
-            $$ = {JMPC: 1, JMPN: 0, offset: $3}
+            $$ = { [$1]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: 0, useElseAddr: 1, elseAddr: 'next' }
         }
-    | JMPN '(' IDENTIFIER ')'
+    | jmpCond '(' E ')'
         {
-            $$ = {JMPC: 0, JMPN: 1, offset: $3}
+            $$ = { [$1]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: 0, useElseAddr: 1, elseAddr: 'next' }
+        }
+    | jmpCond '(' REFERENCE '+' RR ')'
+        {
+            $$ = { [$1]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: $3, useElseAddr: 1, elseAddr: 'next' }
+        }
+    | jmpCond '(' REFERENCE '+' E ')'
+        {
+            $$ = { [$1]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: $3, useElseAddr: 1, elseAddr: 'next' }
+        }
+    | jmpCond '(' RR ',' IDENTIFIER ')'
+        {
+            $$ = { [$1]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: 0, useElseAddr: 1, elseAddr: $5 }
+        }
+    | jmpCond '(' E ',' IDENTIFIER ')'
+        {
+            $$ = { [$1]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: 0, useElseAddr: 1, elseAddr: $5 }
+        }
+    | jmpCond '(' REFERENCE '+' RR ',' IDENTIFIER ')'
+        {
+            $$ = { [$1]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: $3, useElseAddr: 1, elseAddr: $7 }
+        }
+    | jmpCond '(' REFERENCE '+' E ',' IDENTIFIER')'
+        {
+            $$ = { [$1]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: $3, useElseAddr: 1, elseAddr: $7 }
         }
     | CALL '(' IDENTIFIER ')'
         {
-            $$ = {JMP: 1,  JMPC: 0, JMPN: 0, offset: $3, assignment: { in: {type: 'add', values: [{type: 'REG', reg: 'zkPC'}, {type: 'CONST', const: 1}] }, out:['RR']}}
+            $$ = {JMP: 0,  JMPC: 0, JMPN: 0, useJmpAddr:1, jmpAddr: $3, call: 1}
         }
     | CALL '(' REFERENCE '+' RR ')'
         {
-            $$ = {JMP: 1,  JMPC: 0, JMPN: 0, offset: $3, ind: 0, indRR: 1, assignment: { in: {type: 'add', values: [{type: 'REG', reg: 'zkPC'}, {type: 'CONST', const: 1}] }, out:['RR']}}
+            $$ = {JMP: 0,  JMPC: 0, JMPN: 0, offset: $3, ind: 0, indRR: 1, return: 0, call: 1}
         }
     | CALL '(' REFERENCE '+' E ')'
         {
-            $$ = {JMP: 1,  JMPC: 0, JMPN: 0, offset: $3, ind: 1, indRR: 0, assignment: { in: {type: 'add', values: [{type: 'REG', reg: 'zkPC'}, {type: 'CONST', const: 1}] }, out:['RR']}}
-        }
-    | JMPC '(' RR ')'
-        {
-            $$ = {JMP: 0, JMPC: 1, JMPN: 0, ind: 0, indRR: 1, offset: 0}
-        }
-    | JMPC '(' E ')'
-        {
-            $$ = {JMP: 0, JMPC: 1, JMPN: 0, ind: 1, indRR: 0, offset: 0}
-        }
-    | JMPC '(' REFERENCE '+' RR ')'
-        {
-            $$ = {JMP: 0, JMPC: 1, JMPN: 0, ind: 0, indRR: 1, offset: $3}
-        }
-    | JMPC '(' REFERENCE '+' E ')'
-        {
-            $$ = {JMP: 0, JMPC: 1, JMPN: 0, ind: 1, indRR: 0, offset: $3}
-        }
-    | JMPN '(' RR ')'
-        {
-            $$ = {JMP: 0, JMPC: 0, JMPN: 1, ind: 0, indRR: 1, offset: 0}
-        }
-    | JMPN '(' E ')'
-        {
-            $$ = {JMP: 0, JMPC: 0, JMPN: 1, ind: 1, indRR: 0, offset: 0}
-        }
-    | JMPN '(' REFERENCE '+' RR ')'
-        {
-            $$ = {JMP: 0, JMPC: 0, JMPN: 1, ind: 0, indRR: 1, offset: $3}
-        }
-    | JMPN '(' REFERENCE '+' E ')'
-        {
-            $$ = {JMP: 0, JMPC: 0, JMPN: 1, ind: 1, indRR: 0, offset: $3}
+            $$ = {JMP: 0,  JMPC: 0, JMPN: 0, offset: $3, ind: 1, indRR: 0, return: 0, call: 1}
         }
     | RETURN
         {
-            $$ = {JMP: 1, JMPC: 0, JMPN: 0,  ind: 0, indRR: 1, offset: 0}
+            $$ = {JMP: 0, JMPC: 0, JMPN: 0,  call: 0, return: 1}
         }
     | ASSERT
         {
@@ -686,6 +709,18 @@ op
             $$ = { repeat: 1 }
         }
     ;
+
+jmpCond
+    : JMPN
+    | JMPC
+    | JMPZ
+    ;
+
+jmpNotCond
+    : JMPNC { $$ = 'JMPC' }
+    | JMPNZ { $$ = 'JMPZ' }
+    ;
+
 
 counter
     : CNT_ARITH         { $$ = 'cntArith' }
