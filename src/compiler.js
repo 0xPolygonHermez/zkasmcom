@@ -269,15 +269,24 @@ module.exports = async function compile(fileName, ctx, config) {
 function defineConstant(ctx, name, ctype, value) {
     const l = ctx.currentLine;
 
-    if (ctx.config && ctx.config.defines && typeof ctx.config.defines[name] !== 'undefined') {
-        console.log(`NOTICE: Ignore constant definition ${name} on ${l.fileName}:${l.line} because it was defined by command line`);
-        return;
-    }
-
     if (typeof ctx.constants[name] !== 'undefined') {
         throw error(l, `Redefinition of constant ${name} previously defined on `+
                        `${ctx.constants[name].fileName}:${ctx.constants[name].line}`);
     }
+
+    if (ctx.config && ctx.config.defines && typeof ctx.config.defines[name] !== 'undefined') {
+        console.log(`NOTICE: Ignore constant definition ${name} on ${l.fileName}:${l.line} because it was defined by command line`);
+        ctx.constants[name] = {
+            value: ctx.config.defines[name].value,
+            type: ctx.config.defines[name].type,
+            originalValue: value,
+            originalType: ctype,
+            defines: true,
+            line: l.line,
+            fileName: l.fileName};
+        return;
+    }
+
     if (ctype == 'CONSTL') {
         if (value > maxConstl || value < minConstl) {
             throw error(l, `Constant ${name} out of range, value ${value} must be in range [${minConstl},${maxConstl}]`);
@@ -299,6 +308,13 @@ function defineConstant(ctx, name, ctype, value) {
 
 function getConstant(ctx, name, throwIfNotExists = true) {
     if (ctx.config && ctx.config.defines && typeof ctx.config.defines[name] !== 'undefined') {
+        if (typeof ctx.constants[name] == 'undefined') {
+            ctx.constants[name] = {
+                value: ctx.config.defines[name].value,
+                type: ctx.config.defines[name].type,
+                defines: true
+            };
+        }
         return [ctx.config.defines[name].value, ctx.config.defines[name].type];
     }
 
