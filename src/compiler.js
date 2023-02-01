@@ -300,17 +300,21 @@ function defineConstant(ctx, name, ctype, value) {
                        `${ctx.constants[name].fileName}:${ctx.constants[name].line}`);
     }
 
-    if (ctx.config && ctx.config.defines && typeof ctx.config.defines[name] !== 'undefined') {
-        console.log(`NOTICE: Ignore constant definition ${name} on ${l.fileName}:${l.line} because it was defined by command line`);
-        ctx.constants[name] = {
-            value: ctx.config.defines[name].value,
-            type: ctx.config.defines[name].type,
-            originalValue: value,
-            originalType: ctype,
-            defines: true,
-            line: l.line,
-            fileName: l.fileName};
-        return;
+    if (ctx.config && ctx.config.defines) {
+        const defname = name.split('.')[1];
+        const definition = ctx.config.defines[name] ?? (ctx.config.defines[defname] ?? false);
+        if (definition !== false) {
+            console.log(`NOTICE: Ignore constant definition ${name} on ${l.fileName}:${l.line} because it was defined by command line (${defname})`);
+            ctx.constants[name] = {
+                value: definition.value,
+                type: definition.type,
+                originalValue: value,
+                originalType: ctype,
+                defines: true,
+                line: l.line,
+                fileName: l.fileName};
+            return;
+        }
     }
 
     if (ctype == 'CONSTL') {
@@ -333,7 +337,6 @@ function defineConstant(ctx, name, ctype, value) {
 }
 
 function getConstant(ctx, name, throwIfNotExists = true) {
-    console.log(ctx.constants);
     const cname = resolveNamespace(ctx, name);
     if (ctx.config && ctx.config.defines) {
         const defname = cname.split('.')[1];
