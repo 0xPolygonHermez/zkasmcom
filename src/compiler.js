@@ -20,9 +20,9 @@ module.exports = async function compile(fileName, ctx, config) {
             refs: [],
             out: [],
             vars: {},
+            namespaces: { global: { lastGlobalVarAssigned: -1,lastLocalVarCtxAssigned: -1}},
+            namespace: "global",
             constants: {},
-            lastGlobalVarAssigned: -1,
-            lastLocalVarCtxAssigned: -1,
             config: config,
             srcLines: [],
         }
@@ -64,20 +64,26 @@ module.exports = async function compile(fileName, ctx, config) {
             await compile(fullFileNameI, ctx);
             if (pendingCommands.length>0) error(l, "command not allowed before include");
             lastLineAllowsCommand = false;
+        } else if (l.type == "namespace") {
+            if (typeof ctx.namespaces[l.namespace] === "undefined") {
+                ctx.namespaces[l.namespace] = {lastGlobalVarAssigned: -1, lastLocalVarCtxAssigned: -1};
+            }
+            ctx.namespace = l.namespace;
         } else if (l.type == "var") {
-            if (typeof ctx.vars[l.name] !== "undefined") error(l, `Variable ${l.name} already defined`);
+            const varname = resolveNamespace(ctx, l.name, true);
+            if (typeof ctx.vars[varname] !== "undefined") error(l, `Variable ${l.name} (${varname}) already defined`);
             if (l.scope == "GLOBAL") {
-                ctx.vars[l.name] = {
+                ctx.vars[varname] = {
                     scope: "GLOBAL",
-                    offset: ctx.lastGlobalVarAssigned + 1
+                    offset: ctx.namespaces[ctx.namespace].lastGlobalVarAssigned + 1
                 }
-                ctx.lastGlobalVarAssigned += l.count;
+                ctx.namespaces[ctx.namespace].lastGlobalVarAssigned += l.count;
             } else if (l.scope == "CTX") {
-                ctx.vars[l.name] = {
+                ctx.vars[varname] = {
                     scope: "CTX",
-                    offset: ctx.lastLocalVarCtxAssigned + 1
+                    offset: ctx.namespaces[ctx.namespace].lastLocalVarCtxAssigned + 1
                 }
-                ctx.lastLocalVarCtxAssigned += l.count;
+                ctx.namespaces[ctx.namespace].lastLocalVarCtxAssigned += l.count;
             } else {
                 throw error(l, `Invalid scope ${l.scope}`);
             }
@@ -86,7 +92,8 @@ module.exports = async function compile(fileName, ctx, config) {
         } else if (l.type == 'constdef' || l.type == 'constldef' ) {
             const value = evaluateExpression(ctx, l.value);
             let ctype = l.type == 'constldef' ? 'CONSTL':'CONST';
-            defineConstant(ctx, l.name, ctype, value);
+            const constname = resolveNamespace(ctx, l.name, true);
+            defineConstant(ctx, constname, ctype, value);
         } else if (l.type == "step") {
             const traceStep = {
                 // type: "step"
@@ -117,6 +124,7 @@ module.exports = async function compile(fileName, ctx, config) {
             }
             // traceStep.lineNum = ctx.out.length;
             traceStep.line = l;
+            traceStep.namespace = ctx.namespace;
             ctx.out.push(traceStep);
             if (pendingCommands.length>0) {
                 traceStep.cmdBefore = pendingCommands;
@@ -124,7 +132,7 @@ module.exports = async function compile(fileName, ctx, config) {
             }
             lastLineAllowsCommand = !(traceStep.JMP || traceStep.JMPC || traceStep.JMPN || traceStep.JMPC || traceStep.call || traceStep.return);
         } else if (l.type == "label") {
-            const id = l.identifier
+            const id = resolveNamespace(ctx, l.identifier, true);
             if (ctx.definedLabels[id]) error(l, `RedefinedLabel: ${id}` );
             ctx.definedLabels[id] = ctx.out.length;
             if (pendingCommands.length>0) error(l, "command not allowed before label")
@@ -145,43 +153,48 @@ module.exports = async function compile(fileName, ctx, config) {
 
     if (isMain) {
         for (let i=0; i<ctx.out.length; i++) {
+            ctx.namespace = ctx.out[i].namespace;
             if ((typeof ctx.out[i].offset !== "undefined") && (isNaN(ctx.out[i].offset))) {
                 if (!ctx.out[i].useJmpAddr && (ctx.out[i].JMP || ctx.out[i].JMPC || ctx.out[i].JMPN || ctx.out[i].JMPZ || ctx.out[i].call)) {
-                    const codeAddr = getCodeAddress(ctx.out[i].offset, i);
+                    const label = resolveNamespace(ctx, ctx.out[i].offset);
+                    const codeAddr = getCodeAddress(label, i);
                     if (codeAddr === false) {
-                        error(ctx.out[i].line, `Label: ${ctx.out[i].offset} not defined.`);
+                        error(ctx.out[i].line, `Label: ${label} not defined.`);
                     }
-                    ctx.out[i].offsetLabel = ctx.out[i].offset;
+                    ctx.out[i].offsetLabel = label;
                     ctx.out[i].offset = codeAddr;
                 } else {
-                    ctx.out[i].offsetLabel = ctx.out[i].offset;
-                    if (typeof ctx.vars[ctx.out[i].offset] === "undefined") {
-                        error(ctx.out[i].line, `Variable: ${ctx.out[i].offset} not defined.`);
+                    const varname = resolveNamespace(ctx, ctx.out[i].offset);
+                    ctx.out[i].offsetLabel = varname;
+                    if (typeof ctx.vars[varname] === "undefined") {
+                        error(ctx.out[i].line, `Variable: ${varname} not defined.`);
                     }
-                    if (ctx.vars[ctx.out[i].offset].scope === 'CTX') {
+                    if (ctx.vars[varname].scope === 'CTX') {
                         ctx.out[i].useCTX = 1;
-                    } else if (ctx.vars[ctx.out[i].offset].scope === 'GLOBAL') {
+                    } else if (ctx.vars[varname].scope === 'GLOBAL') {
                         ctx.out[i].useCTX = 0;
                     } else {
-                        error(ctx.out[i].line, `Invalid variable scpoe: ${ctx.out[i].offset} not defined.`);
+                        error(ctx.out[i].line, `Invalid variable scope: ${varname} not defined.`);
                     }
-                    ctx.out[i].offset = ctx.vars[ctx.out[i].offset].offset;
+                    ctx.out[i].offset = ctx.vars[varname].offset;
                 }
             }
             if ((typeof ctx.out[i].jmpAddr !== "undefined") && (isNaN(ctx.out[i].jmpAddr))) {
-                const codeAddr = getCodeAddress(ctx.out[i].jmpAddr, i);
+                const label = resolveNamespace(ctx, ctx.out[i].jmpAddr);
+                const codeAddr = getCodeAddress(label, i);
                 if (codeAddr === false) {
-                    error(ctx.out[i].line, `Label: ${ctx.out[i].jmpAddr} not defined.`);
+                    error(ctx.out[i].line, `Label: ${label} not defined.`);
                 }
-                ctx.out[i].jmpAddrLabel = ctx.out[i].jmpAddr;
+                ctx.out[i].jmpAddrLabel = label;
                 ctx.out[i].jmpAddr = codeAddr;
             }
             if ((typeof ctx.out[i].elseAddr !== "undefined") && (isNaN(ctx.out[i].elseAddr))) {
-                const codeAddr = getCodeAddress(ctx.out[i].elseAddr, i);
+                const label = resolveNamespace(ctx, ctx.out[i].elseAddr);
+                const codeAddr = getCodeAddress(label, i);
                 if (codeAddr === false) {
-                    error(ctx.out[i].line, `Label: ${ctx.out[i].elseAddr} not defined.`);
+                    error(ctx.out[i].line, `Label: ${label} not defined.`);
                 }
-                ctx.out[i].elseAddrLabel = ctx.out[i].elseAddr;
+                ctx.out[i].elseAddrLabel = label;
                 ctx.out[i].elseAddr = codeAddr;
             }
 
@@ -208,7 +221,7 @@ module.exports = async function compile(fileName, ctx, config) {
     }
 
     function getCodeAddress(label, zkPC) {
-        if (label === "next") return zkPC + 1;
+        if (label === "###__NEXT__###") return zkPC + 1;
         if (typeof ctx.definedLabels[label] === 'undefined') return false;
         return ctx.definedLabels[label];
     }
@@ -230,7 +243,7 @@ module.exports = async function compile(fileName, ctx, config) {
         if (typeof cmd !== 'object' || cmd === null) return;
         if (cmd.op === 'getData') {
             if (cmd.module === 'mem' && typeof cmd.offsetLabel === 'undefined') {
-                const name = cmd.offset;
+                const name = resolveNamespace(ctx, cmd.offset);
                 if (typeof ctx.vars[name] === 'undefined') {
                     error(ctx.out[i].line, `Not found reference ${cmd.module}.${name}`);
                 }
@@ -240,7 +253,7 @@ module.exports = async function compile(fileName, ctx, config) {
                 return;
             }
             else if (cmd.module === 'const' && typeof cmd.offsetLabel === 'undefined') {
-                const name = cmd.offset;
+                const name = resolveNamespace(ctx, cmd.offset);
                 cmd.op = 'number'
                 cmd.num = getConstantValue(ctx, name);
                 cmd.offsetLabel = name;
@@ -264,6 +277,19 @@ module.exports = async function compile(fileName, ctx, config) {
             }
         }
     }
+}
+
+function resolveNamespace(ctx, name, isDefinition)
+{
+    const hasNamespace = name.includes('.');
+    if (hasNamespace) {
+        if (isDefinition) {
+            throw error(ctx.currentLine, `Namespace specified on definition of ${name}`);
+        }
+        return name;
+    }
+    if (name === '###__NEXT__###') return name;
+    return `${ctx.namespace}.${name}`;
 }
 
 function defineConstant(ctx, name, ctype, value) {
@@ -307,22 +333,28 @@ function defineConstant(ctx, name, ctype, value) {
 }
 
 function getConstant(ctx, name, throwIfNotExists = true) {
-    if (ctx.config && ctx.config.defines && typeof ctx.config.defines[name] !== 'undefined') {
-        if (typeof ctx.constants[name] == 'undefined') {
-            ctx.constants[name] = {
-                value: ctx.config.defines[name].value,
-                type: ctx.config.defines[name].type,
-                defines: true
-            };
+    console.log(ctx.constants);
+    const cname = resolveNamespace(ctx, name);
+    if (ctx.config && ctx.config.defines) {
+        const defname = cname.split('.')[1];
+        const definition = ctx.config.defines[cname] ?? (ctx.config.defines[defname] ?? false);
+        if (definition !== false) {
+            if (typeof ctx.constants[cname] == 'undefined') {
+                ctx.constants[cname] = {
+                    value: definition.value,
+                    type: definition.type,
+                    defines: true
+                };
+            }
+            return [definition.value, definition.type];
         }
-        return [ctx.config.defines[name].value, ctx.config.defines[name].type];
     }
 
-    if (typeof ctx.constants[name] === 'undefined') {
-        if (throwIfNotExists) error(ctx.currentLine, `Not found constant ${name}`);
+    if (typeof ctx.constants[cname] === 'undefined') {
+        if (throwIfNotExists) error(ctx.currentLine, `Not found constant ${cname}`);
         else return [null, null];
     }
-    return [ctx.constants[name].value, ctx.constants[name].type];
+    return [ctx.constants[cname].value, ctx.constants[cname].type];
 }
 
 function getConstantValue(ctx, name, throwIfNotExists = true) {

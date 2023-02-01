@@ -81,10 +81,11 @@ CTX                     { return 'CTX' }
 CONST                   { return 'CONST' }
 CONSTL                  { return 'CONSTL' }
 REPEAT                  { return 'REPEAT' }
+NAMESPACE               { return 'NAMESPACE' }
 \"[^"]+\"               { yytext = yytext.slice(1,-1); return 'STRING'; }
-[a-zA-Z_][a-zA-Z$_0-9]*   { return 'IDENTIFIER'; }
-\%[a-zA-Z_][a-zA-Z$_0-9]* { yytext = yytext.slice(1); return 'CONSTID'; }
-\@[a-zA-Z_][a-zA-Z$_0-9]* { yytext = yytext.slice(1); return 'REFERENCE'; }
+([a-zA-Z_][a-zA-Z_0-9]*\.)?[a-zA-Z_][a-zA-Z$_0-9]*   { return 'IDENTIFIER'; }
+\%([a-zA-Z_][a-zA-Z_0-9]*\.)?[a-zA-Z_][a-zA-Z$_0-9]* { yytext = yytext.slice(1); return 'CONSTID'; }
+\@([a-zA-Z_][a-zA-Z_0-9]*\.)?[a-zA-Z_][a-zA-Z$_0-9]* { yytext = yytext.slice(1); return 'REFERENCE'; }
 \:                      { return ':'; }
 \,                      { return ','}
 \(                      { return '('}
@@ -192,6 +193,10 @@ statment
         {
             $$ = $1;
         }
+    | namespace
+        {
+            $$ = $1;
+        }
     | command
         {
             $$ = $1;
@@ -272,6 +277,13 @@ include
         }
     ;
 
+namespace
+    : NAMESPACE IDENTIFIER
+        {
+            $$ = {type: "namespace", namespace: $2}
+        }
+    ;
+
 nexpr
     : NUMBER
         {
@@ -309,7 +321,7 @@ nexpr
         {
             $$ = {type: $2, values: [$1, $3]}
         }
-      | nexpr '/' nexpr
+    | nexpr '/' nexpr
         {
             $$ = {type: $2, values: [$1, $3]}
         }
@@ -542,7 +554,7 @@ op
         }
     | jmpCond '(' IDENTIFIER ')'
         {
-            $$ = { [$1]: 1, useJmpAddr: 1, jmpAddr: $3, useElseAddr: 1, elseAddr: 'next' }
+            $$ = { [$1]: 1, useJmpAddr: 1, jmpAddr: $3, useElseAddr: 1, elseAddr: '###__NEXT__###' }
         }
     | jmpCond '(' IDENTIFIER ',' IDENTIFIER ')'
         {
@@ -550,7 +562,7 @@ op
         }
     | jmpNotCond '(' IDENTIFIER ')'
         {
-            $$ = { [$1]: 1, useJmpAddr: 1, jmpAddr: 'next', useElseAddr: 1, elseAddr: $3 }
+            $$ = { [$1]: 1, useJmpAddr: 1, jmpAddr: '###__NEXT__###', useElseAddr: 1, elseAddr: $3 }
         }
     | jmpNotCond '(' IDENTIFIER ',' IDENTIFIER ')'
         {
@@ -574,19 +586,19 @@ op
         }
     | jmpCond '(' RR ')'
         {
-            $$ = { [$1]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: 0, useElseAddr: 1, elseAddr: 'next' }
+            $$ = { [$1]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: 0, useElseAddr: 1, elseAddr: '###__NEXT__###' }
         }
     | jmpCond '(' E ')'
         {
-            $$ = { [$1]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: 0, useElseAddr: 1, elseAddr: 'next' }
+            $$ = { [$1]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: 0, useElseAddr: 1, elseAddr: '###__NEXT__###' }
         }
     | jmpCond '(' REFERENCE '+' RR ')'
         {
-            $$ = { [$1]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: $3, useElseAddr: 1, elseAddr: 'next' }
+            $$ = { [$1]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: $3, useElseAddr: 1, elseAddr: '###__NEXT__###' }
         }
     | jmpCond '(' REFERENCE '+' E ')'
         {
-            $$ = { [$1]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: $3, useElseAddr: 1, elseAddr: 'next' }
+            $$ = { [$1]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: $3, useElseAddr: 1, elseAddr: '###__NEXT__###' }
         }
     | jmpCond '(' RR ',' IDENTIFIER ')'
         {

@@ -1,0 +1,42 @@
+NAMESPACE fork0
+VAR GLOBAL v1
+VAR CTX c1
+VAR GLOBAL common
+CONST %C1 = 30
+NAMESPACE fork1
+VAR GLOBAL v2
+VAR CTX c2
+VAR GLOBAL __common__
+VAR GLOBAL common
+CONST %C1 = 13
+
+start:
+        STEP => A
+        0   :ASSERT
+
+        10 :MSTORE(v2)
+        11 :MSTORE(c2)
+        12 :MSTORE(common)
+        ${dump(const:C1)}
+        13 => A
+        %C1 :ASSERT
+NAMESPACE fork0
+        20 :MSTORE(v1)
+        21 :MSTORE(c1)
+
+        ${dump(const:C1)}
+        ${dump(mem:c1)}
+        0 :MLOAD(common)
+        12 :MLOAD(fork1.common)
+        30 => A
+        %C1 :ASSERT
+        :JMP(start)
+        A-1 :ASSERT
+start:
+        0 => A,B,C,D,E,CTX, SP, PC, GAS, MAXMEM, SR, HASHPOS
+
+finalWait:
+        ${beforeLast()}  : JMPN(finalWait)
+
+                         : JMP(fork1.start)
+opINVALID:

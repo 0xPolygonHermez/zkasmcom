@@ -26,7 +26,8 @@ CNT_POSEIDON_G          { return 'CNT_POSEIDON_G' }
 HASHPOS                 { return 'HASHPOS'; }
 RCX                     { return 'RCX'; }
 var                     { return 'VAR'; }
-[a-zA-Z_][a-zA-Z$_0-9]*  { return 'IDENTIFIER'; }
+[a-zA-Z_][a-zA-Z_0-9]*\:([a-zA-Z_][a-zA-Z_0-9]*\.)?[a-zA-Z_][a-zA-Z$_0-9]*   { return 'DATA_IDENTIFIER'; }
+[a-zA-Z_][a-zA-Z$_0-9]*   { return 'IDENTIFIER'; }
 \(                      { return '('}
 \)                      { return ')'}
 \+                      { return '+'}
@@ -53,9 +54,7 @@ var                     { return 'VAR'; }
 \>                      { return 'GT'}
 \!                      { return '!'}
 \?                      { return '?'}
-\:                      { return ':'}
 \.\.                    { return RANGE_DOTS }
-\.                      { return '.'}
 <<EOF>>                 { return 'EOF'; }
 .                       { /* console.log("INVALID: " + yytext); */ return 'INVALID'; }
 
@@ -254,9 +253,9 @@ e0
         {
             $$ = $2;
         }
-    | IDENTIFIER '.' IDENTIFIER
+    | DATA_IDENTIFIER
         {
-            $$ = {op: "getData", module: $1, offset: $3}
+            $$ = {op: "getData", module: $1.split(':')[0], offset: $1.split(':')[1]}
         }
     ;
 
