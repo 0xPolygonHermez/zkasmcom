@@ -13,6 +13,7 @@ const argv = require("yargs")
         alias: 'define',
         array: true
     })
+    .options('t', { alias: 'set', type: 'array' })
     .argv;
 
 async function run() {
@@ -42,7 +43,20 @@ async function run() {
             }
         });
     }
-    const out = await compile(fullFileName, null, {defines: defines});
+    let config = {defines};
+    for (set of (argv.set ?? [])) {
+        const index = set.indexOf('=');
+        const name = index < 0 ? set : set.substr(0, index);
+        let value = index < 0 ? true : set.substr(index+1);
+        if (!isNaN(value) && value !== true) {
+            const numValue = parseInt(value);
+            const bigValue = BigInt(value);
+            if ( bigValue === BigInt(numValue)) value = numValue;
+            else value = BigInt(value);
+        }
+        config[name] = value;
+    }
+    const out = await compile(fullFileName, null, config);
 
     await fs.promises.writeFile(outputFile, JSON.stringify(out, null, 1) + "\n");
 }
