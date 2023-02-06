@@ -12,9 +12,13 @@ Generate json file from zkasm file:
 ```sh
 $ node src/zkasm.js <input.zkasm> -o <output.json>
 ```
-Generate C++ code from zkasm file (C++ files will be generated in the ./main_exec_generated folder):
+For test purposes (partial inclusion of files):
+- allowUndefinedLabels: Allows to leave labels undefined.
+- allowOverwriteLabels: Allows to overwrite labels.
+- allowUndefinedVariables: Allows to leave variables without declaration (undefined)
+
 ```sh
-$ node src/zkasm.js <input.zkasm> -c
+node src/zkasm.js <input.zkasm> -o <output.json> -t allowUndefinedLabels -t allowOverwriteLabels -t allowUndefinedVariables
 ```
 
 ## Instruction
@@ -38,7 +42,7 @@ ROTL_C => A
 ## License
 
 ### Copyright
-Polygon `zkasmcom` was developed by Polygon. While we plan to adopt an open source license, we haven’t selected one yet, so all rights are reserved for the time being. Please reach out to us if you have thoughts on licensing.  
-  
+Polygon `zkasmcom` was developed by Polygon. While we plan to adopt an open source license, we haven’t selected one yet, so all rights are reserved for the time being. Please reach out to us if you have thoughts on licensing.
+
 ### Disclaimer
 This code has not yet been audited, and should not be used in any production systems.

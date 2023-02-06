@@ -125,7 +125,9 @@ module.exports = async function compile(fileName, ctx, config) {
             lastLineAllowsCommand = !(traceStep.JMP || traceStep.JMPC || traceStep.JMPN || traceStep.JMPC || traceStep.call || traceStep.return);
         } else if (l.type == "label") {
             const id = l.identifier
-            if (ctx.definedLabels[id]) error(l, `RedefinedLabel: ${id}` );
+            if (ctx.definedLabels[id]) {
+                optionalError(config.allowOverwriteLabels, l, `RedefinedLabel: ${id}`);
+            }
             ctx.definedLabels[id] = ctx.out.length;
             if (pendingCommands.length>0) error(l, "command not allowed before label")
             lastLineAllowsCommand = false;
@@ -148,30 +150,34 @@ module.exports = async function compile(fileName, ctx, config) {
             if ((typeof ctx.out[i].offset !== "undefined") && (isNaN(ctx.out[i].offset))) {
                 if (!ctx.out[i].useJmpAddr && (ctx.out[i].JMP || ctx.out[i].JMPC || ctx.out[i].JMPN || ctx.out[i].JMPZ || ctx.out[i].call)) {
                     const codeAddr = getCodeAddress(ctx.out[i].offset, i);
+
                     if (codeAddr === false) {
-                        error(ctx.out[i].line, `Label: ${ctx.out[i].offset} not defined.`);
+                        optionalError(config.allowUndefinedLabels, ctx.out[i].line,  `Label: ${ctx.out[i].offset} not defined.`);
                     }
                     ctx.out[i].offsetLabel = ctx.out[i].offset;
                     ctx.out[i].offset = codeAddr;
                 } else {
                     ctx.out[i].offsetLabel = ctx.out[i].offset;
                     if (typeof ctx.vars[ctx.out[i].offset] === "undefined") {
-                        error(ctx.out[i].line, `Variable: ${ctx.out[i].offset} not defined.`);
+                        optionalError(config.allowUndefinedVariables, ctx.out[i].line,  `Variable: ${ctx.out[i].offset} not defined.`);
+                        ctx.out[i].offset = 0;
                     }
-                    if (ctx.vars[ctx.out[i].offset].scope === 'CTX') {
-                        ctx.out[i].useCTX = 1;
-                    } else if (ctx.vars[ctx.out[i].offset].scope === 'GLOBAL') {
-                        ctx.out[i].useCTX = 0;
-                    } else {
-                        error(ctx.out[i].line, `Invalid variable scpoe: ${ctx.out[i].offset} not defined.`);
+                    else {
+                        if (ctx.vars[ctx.out[i].offset].scope === 'CTX') {
+                            ctx.out[i].useCTX = 1;
+                        } else if (ctx.vars[ctx.out[i].offset].scope === 'GLOBAL') {
+                            ctx.out[i].useCTX = 0;
+                        } else {
+                            error(ctx.out[i].line, `Invalid variable scope: ${ctx.out[i].offset} not defined.`);
+                        }
+                        ctx.out[i].offset = ctx.vars[ctx.out[i].offset].offset;
                     }
-                    ctx.out[i].offset = ctx.vars[ctx.out[i].offset].offset;
                 }
             }
             if ((typeof ctx.out[i].jmpAddr !== "undefined") && (isNaN(ctx.out[i].jmpAddr))) {
                 const codeAddr = getCodeAddress(ctx.out[i].jmpAddr, i);
                 if (codeAddr === false) {
-                    error(ctx.out[i].line, `Label: ${ctx.out[i].jmpAddr} not defined.`);
+                    optionalError(config.allowUndefinedLabels, ctx.out[i].line,  `Label: ${ctx.out[i].jmpAddr} not defined.`);
                 }
                 ctx.out[i].jmpAddrLabel = ctx.out[i].jmpAddr;
                 ctx.out[i].jmpAddr = codeAddr;
@@ -179,7 +185,7 @@ module.exports = async function compile(fileName, ctx, config) {
             if ((typeof ctx.out[i].elseAddr !== "undefined") && (isNaN(ctx.out[i].elseAddr))) {
                 const codeAddr = getCodeAddress(ctx.out[i].elseAddr, i);
                 if (codeAddr === false) {
-                    error(ctx.out[i].line, `Label: ${ctx.out[i].elseAddr} not defined.`);
+                    optionalError(config.allowUndefinedLabels, ctx.out[i].line,  `Label: ${ctx.out[i].elseAddr} not defined.`);
                 }
                 ctx.out[i].elseAddrLabel = ctx.out[i].elseAddr;
                 ctx.out[i].elseAddr = codeAddr;
@@ -524,6 +530,15 @@ function appendOp(step, op) {
         if (typeof step[key] !== "undefined") throw new Error(`Var ${key} already defined`);
         step[key] = op[key];
     });
+}
+
+function optionalError(allowed, l, msg) {
+    if (allowed) warning(l, msg);
+    else error(l, msg);
+}
+
+function warning(l, msg) {
+    console.log(`WARNING ${l.fileName}:${l.line}: ${msg}`);
 }
 
 function error(l, err) {
