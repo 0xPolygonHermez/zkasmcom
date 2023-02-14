@@ -1,4 +1,4 @@
-# zkVM instructions
+`# zkVM instructions
 
 ### MLOAD(addr)
 
@@ -215,7 +215,7 @@ constl set 8 registers (op0, op1, op2, ..,op7)
 
 ### zk-counters
 - Keeps track of zk-counters
-  - `CNT_ARITH'
+  - `CNT_ARITH`
   - `CNT_BINARY`
   - `CNT_KECCAK_F`
   - `CNT_MEM_ALIGN`
