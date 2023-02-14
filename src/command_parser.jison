@@ -16,7 +16,6 @@ GAS                     { return 'GAS'; }
 zkPC                    { return 'zkPC'; }
 RR                      { return 'RR'; }
 STEP                    { return 'STEP'; }
-MAXMEM                  { return 'MAXMEM'; }
 CNT_ARITH               { return 'CNT_ARITH' }
 CNT_BINARY              { return 'CNT_BINARY' }
 CNT_KECCAK_F            { return 'CNT_KECCAK_F' }
@@ -285,7 +284,6 @@ reg
     | zkPC
     | RR
     | STEP
-    | MAXMEM
     | HASHPOS
     | RCX
     ;
