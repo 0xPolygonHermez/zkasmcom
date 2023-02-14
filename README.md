@@ -23,7 +23,7 @@ node src/zkasm.js <input.zkasm> -o <output.json> -t allowUndefinedLabels -t allo
 
 ## Instructions
 
-In this [link](instructions) found more information about instructions.
+In this [link](instructions.md) found more information about instructions.
 
 ## License
 
