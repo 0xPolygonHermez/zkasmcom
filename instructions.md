@@ -1,4 +1,4 @@
-`# zkVM instructions
+# zkVM instructions
 
 ### MLOAD(addr)
 
