@@ -4,8 +4,8 @@ start:
         2 => B
 
         :CALL(subroutine)             ; same as :JMP(RR)
-        
-        0 => A,B,D 
+
+        0 => A,B,D
         5 => E     :ARITH
 
         4 => A
@@ -13,7 +13,7 @@ start:
 
         zkPC+1 => RR :JMP(subroutine) ; same as CALL(subroutime)
 
-        0 => A,B,D 
+        0 => A,B,D
         12 => E     :ARITH
 
         :JMP(end)
@@ -21,9 +21,9 @@ start:
 subroutine:
         A+B => C
         :RETURN                       ; same as :JMP(RR)
-       
+
 end:
-       0 => A,B,C,D,E,CTX, SP, PC, GAS, MAXMEM, SR                 ; Set all registers to 0
+       0 => A,B,C,D,E,CTX, SP, PC, GAS, SR                 ; Set all registers to 0
 
 longLoop:
         STEP-0x10000+40  : JMPC(longLoop2)
