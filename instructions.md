@@ -1,5 +1,5 @@
-## zkVM instructions
-[TOC]
+# zkVM instructions
+
 ### MLOAD(addr)
 
 op = mem(addr)
