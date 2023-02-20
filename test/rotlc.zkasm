@@ -7,7 +7,7 @@ start:
         0x1415161718191A1B1C1D1E1F202122232425262728292A2B2C2D2E2F10111213n: ASSERT
 
 end:
-       0 => A,B,C,D,E,CTX, SP, PC, GAS, MAXMEM, SR
+       0 => A,B,C,D,E,CTX, SP, PC, GAS, SR
 
 finalWait:
         ${beforeLast()}  : JMPN(finalWait)

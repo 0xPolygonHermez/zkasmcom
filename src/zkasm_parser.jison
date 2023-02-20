@@ -24,7 +24,6 @@ zkPC                    { return 'zkPC'; }
 RR                      { return 'RR'; }
 STEP                    { return 'STEP'; }
 ROTL_C                  { return 'ROTL_C'; }
-MAXMEM                  { return 'MAXMEM'; }
 HASHPOS                 { return 'HASHPOS'; }
 MLOAD                   { return 'MLOAD' }
 MSTORE                  { return 'MSTORE' }
@@ -725,7 +724,6 @@ reg
     | RR
     | zkPC
     | STEP
-    | MAXMEM
     | HASHPOS
     | ROTL_C
     | RCX

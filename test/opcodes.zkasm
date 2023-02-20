@@ -48,7 +48,7 @@ main:
 
 
 end:
-       0 => A,B,C,D,E,CTX, SP, PC, GAS, MAXMEM, SR                 ; Set all registers to 0
+       0 => A,B,C,D,E,CTX, SP, PC, GAS, SR                 ; Set all registers to 0
 
 longLoop:
         STEP-0x10000+40  : JMPC(longLoop2)
