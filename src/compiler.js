@@ -11,7 +11,7 @@ const maxConstl = (1n << 256n) - 1n;
 const minConstl = -(1n << 255n);
 const readOnlyRegisters = ['STEP', 'ROTL_C'];
 
-module.exports = async function compile(fileName, ctx, config) {
+module.exports = async function compile(fileName, ctx, config = {}) {
 
     let isMain;
     if (!ctx) {
