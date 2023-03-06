@@ -1,4 +1,8 @@
 start:
+
+        STEP => A
+        0   :ASSERT
+
 CONST  %MIN = -(1 << 31)
         %MIN => A
         -2147483648 :ASSERT
@@ -7,11 +11,6 @@ CONST  %MAX = (1 << 32) - 1
         4294967295 => A
         %MAX :ASSERT
         ${const.MAX} :ASSERT
-
-CONSTL %MINL = -(1 << 255)
-        -57896044618658097711785492504343953926634992332820282019728792003956564819968n => A
-        %MINL :ASSERT
-        ${const.MINL} :ASSERT
 
 CONSTL %MAXL = (1 << 256) - 1
         115792089237316195423570985008687907853269984665640564039457584007913129639935n => A
@@ -173,57 +172,25 @@ CONSTL %BIT8 = 0x123456789ABCDEF0n ^ 0n
         %BIT8 => A
         0x123456789ABCDEF0n : ASSERT
 
-; TODO: check if NUMBER/NUMBERL is out of RANGE.
-;        0x123456789ABCDEF0 : ASSERT
+
+        2n ** 128n => B
+        2n * 1923n => B
+        2n + 1923n => B
+
+        2 ** 31 => C
+        2 * 31 => C
+        2 + 1923 => C
+        -2 => C
+        0x0FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF => B
 
         ; commands always return a CONSTL
         ; ${const.MIN} => A
         ; -2147483648 :ASSERT
 
-end:
-       0 => A,B,C,D,E,CTX, SP, PC, GAS, SR                 ; Set all registers to 0
+        0 => A,B,C,D,E,CTX, SP, PC, GAS, RR, RCX, SR, HASHPOS
 
-longLoop:
-        STEP-0x10000+40  : JMPC(longLoop2)
-                        : JMP(finalLoop)
-longLoop2:
-        0
-        0
-        0
-        0       ; 4
-        0
-        0
-        0
-        0       ; 8
-        0
-        0
-        0
-        0       ; 12
-        0
-        0
-        0
-        0       ; 16
-        0
-        0
-        0
-        0       ; 20
-        0
-        0
-        0
-        0       ; 24
-        0
-        0
-        0
-        0       ; 28
-        0
-        0
-        0
-        0       : JMP(longLoop) ; 32
-
-
-finalLoop:
-        STEP-0x10000+2  : JMPC(finalLoop)
+finalWait:
+        ${beforeLast()}  : JMPN(finalWait)
 
                          : JMP(start)
-
 opINVALID:
