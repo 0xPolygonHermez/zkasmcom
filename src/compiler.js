@@ -61,7 +61,7 @@ module.exports = async function compile(fileName, ctx, config = {}) {
         l.fileName = relativeFileName;
         if (l.type == "include") {
             const fullFileNameI = path.resolve(fileDir, l.file);
-            await compile(fullFileNameI, ctx);
+            await compile(fullFileNameI, ctx, config);
             if (pendingCommands.length>0) error(l, "command not allowed before include");
             lastLineAllowsCommand = false;
         } else if (l.type == "var") {
