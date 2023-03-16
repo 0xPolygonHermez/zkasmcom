@@ -105,8 +105,15 @@ module.exports = async function compile(fileName, ctx, config = {}) {
                     appendOp(traceStep, processAssignmentIn(ctx, l.assignment.in, ctx.out.length));
                     appendOp(traceStep, processAssignmentOut(ctx, l.assignment.out));
                 }
+                let assignmentRequired = false;
                 for (let j=0; j< l.ops.length; j++) {
-                    appendOp(traceStep, l.ops[j])
+                    appendOp(traceStep, l.ops[j]);
+                    if (l.ops[j].JMP || l.ops[j].call || l.ops[j].return || l.ops[j].repeat) continue;
+                    assignmentRequired = true;
+                }
+
+                if (assignmentRequired && !l.assignment) {
+                    error(l, "Left assignment required");
                 }
 
                 if (traceStep.JMPC && !traceStep.bin) {
