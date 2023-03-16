@@ -122,7 +122,7 @@ module.exports = async function compile(fileName, ctx, config = {}) {
             } catch (err) {
                 error(l, err);
             }
-            // trac../zkevm-rom-internal/main/main.zkasmeStep.lineNum = ctx.out.length;
+            // traceStep.lineNum = ctx.out.length;
             traceStep.line = l;
             ctx.out.push(traceStep);
             if (pendingCommands.length>0) {
