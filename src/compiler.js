@@ -8,7 +8,7 @@ const stringifyBigInts = require("ffjavascript").utils.stringifyBigInts;
 const maxConst = (1n << 32n) - 1n;
 const minConst = -(1n << 31n);
 const maxConstl = (1n << 256n) - 1n;
-const minConstl = -(1n << 255n);
+const minConstl = 0n;
 const readOnlyRegisters = ['STEP', 'ROTL_C'];
 
 module.exports = async function compile(fileName, ctx, config = {}) {
@@ -359,20 +359,30 @@ function processAssignmentIn(ctx, input, currentLine) {
     }
     if (input.type == "CONST") {
         res.CONST = BigInt(input.const);
+        checkConstRange(ctx, res);
         return res;
     }
     if (input.type == "CONSTL") {
         res.CONSTL = BigInt(input.const);
+        checkConstRange(ctx, res);
         return res;
     }
     if (input.type == 'CONSTID') {
         const [value, ctype] = getConstant(ctx, input.identifier);
         res[ctype] = value;
+        checkConstRange(ctx, res);
         return res;
     }
 
+    if (input.type == "expl") {
+        res.CONSTL = BigInt(input.values[0])**BigInt(input.values[1]);
+        checkConstRange(ctx, res);
+        return res;
+    }
     if (input.type == "exp") {
-        res.CONST = BigInt(input.values[0])**BigInt(input.values[1]);
+        const value = BigInt(input.values[0])**BigInt(input.values[1]);
+        res.CONST = value;
+        checkConstRange(ctx, res);
         return res;
     }
     if ((input.type == "add") || (input.type == "sub") || (input.type == "neg") || (input.type == "mul")) {
@@ -382,7 +392,16 @@ function processAssignmentIn(ctx, input, currentLine) {
         E2 = processAssignmentIn(ctx, input.values[1], currentLine);
     }
     if (input.type == "mul") {
-        if (isConstant(E1)) {
+        if (typeof E1.CONSTL !== 'undefined' && typeof E2.CONSTL !== 'undefined') {
+            res.CONSTL = BigInt(E1.CONSTL) * BigInt(E2.CONSTL);
+            checkConstRange(ctx, res);
+            return res;
+        }
+        else if (typeof E1.CONST !== 'undefined' && typeof E2.CONST !== 'undefined') {
+            res.CONST = BigInt(E1.CONST) * BigInt(E2.CONST);
+            checkConstRange(ctx, res);
+            return res;
+        } else if (isConstant(E1)) {
             if (typeof E2.CONSTL !== 'undefined') {
                 throw new Error("Not allowed CONST and CONSTL in same operation");
             }
@@ -548,5 +567,31 @@ function error(l, err) {
     } else {
         const msg = `ERROR ${l.fileName}:${l.line}: ${err}`;
         throw new Error(msg);
+    }
+}
+
+function checkConstRange(ctx, value, isLongValue) {
+    const l = ctx.currentLine;
+
+    if (typeof isLongValue == 'undefined') {
+        if (typeof value.CONSTL !== 'undefined') {
+            isLongValue = true;
+            value = value.CONSTL;
+        }
+        else if (typeof value.CONST !== 'undefined') {
+            isLongValue = false;
+            value = value.CONST;
+        }
+        else {
+            throw error(l, `Constant value ${value} undefined type on checkConstRange`);
+        }
+    }
+
+    if (!isLongValue && (value > maxConst || value < minConst)) {
+        throw error(l, `Constant value ${value} out of range [${minConst},${maxConst}]`);
+    }
+
+    if (isLongValue && (value > maxConstl || value < minConstl)) {
+        throw error(l, `Long-constant value ${value} out of range [${minConstl},${maxConstl}]`);
     }
 }

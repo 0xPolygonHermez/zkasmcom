@@ -437,6 +437,10 @@ inReg
         {
             $$ = {type: "exp", values: [$1, $3]}
         }
+    | NUMBERL '**' NUMBERL
+        {
+            $$ = {type: "expl", values: [$1, $3]}
+        }
     | NUMBER
         {
             $$ = {type: 'CONST' , const: $1}
