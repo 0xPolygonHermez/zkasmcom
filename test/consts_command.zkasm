@@ -10,7 +10,7 @@ CONSTL %MAXL = (1 << 256) - 1
         ${115792089237316195423570985008687907853269984665640564039457584007913129639935} :ASSERT
 
 end:
-       0 => A,B,C,D,E,CTX, SP, PC, GAS, MAXMEM, SR
+       0 => A,B,C,D,E,CTX, SP, PC, GAS, SR
 
 finalWait:
         ${beforeLast()}  : JMPN(finalWait)

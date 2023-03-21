@@ -24,7 +24,6 @@ zkPC                    { return 'zkPC'; }
 RR                      { return 'RR'; }
 STEP                    { return 'STEP'; }
 ROTL_C                  { return 'ROTL_C'; }
-MAXMEM                  { return 'MAXMEM'; }
 HASHPOS                 { return 'HASHPOS'; }
 MLOAD                   { return 'MLOAD' }
 MSTORE                  { return 'MSTORE' }
@@ -36,7 +35,6 @@ HASHPLEN                { return 'HASHPLEN' }
 HASHPDIGEST             { return 'HASHPDIGEST' }
 HASHP1                  { return 'HASHP1' }
 HASHP                   { return 'HASHP' }
-ECRECOVER               { return 'ECRECOVER' }
 JMP                     { return 'JMP' }
 JMPC                    { return 'JMPC' }
 JMPZ                    { return 'JMPZ' }
@@ -59,8 +57,6 @@ EQ                      { return 'EQ' }
 AND                     { return 'AND' }
 OR                      { return 'OR' }
 XOR                     { return 'XOR' }
-SHL                     { return 'SHL' }
-SHR                     { return 'SHR' }
 CNT_ARITH               { return 'CNT_ARITH' }
 CNT_BINARY              { return 'CNT_BINARY' }
 CNT_KECCAK_F            { return 'CNT_KECCAK_F' }
@@ -70,7 +66,6 @@ CNT_POSEIDON_G          { return 'CNT_POSEIDON_G' }
 MEM_ALIGN_WR8           { return 'MEM_ALIGN_WR8' }
 MEM_ALIGN_RD            { return 'MEM_ALIGN_RD' }
 MEM_ALIGN_WR            { return 'MEM_ALIGN_WR' }
-INST_MAP_ROM            { return 'INST_MAP_ROM' }
 SYS                     { return 'SYS' }
 MEM                     { return 'MEM' }
 STACK                   { return 'STACK' }
@@ -442,6 +437,10 @@ inReg
         {
             $$ = {type: "exp", values: [$1, $3]}
         }
+    | NUMBERL '**' NUMBERL
+        {
+            $$ = {type: "expl", values: [$1, $3]}
+        }
     | NUMBER
         {
             $$ = {type: 'CONST' , const: $1}
@@ -624,10 +623,6 @@ op
         {
             $$ = {assert: 1}
         }
-    | ECRECOVER
-        {
-            $$ = {ecRecover: 1}
-        }
     | SLOAD
         {
             $$ = {sRD: 1}
@@ -647,14 +642,6 @@ op
     | ARITH_ECADD_SAME
         {
             $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 1}
-        }
-    | SHL
-        {
-            $$ = { shl: 1}
-        }
-    | SHR
-        {
-            $$ = { shr: 1}
         }
     | ADD
         {
@@ -700,10 +687,6 @@ op
         {
             $$ = { memAlignRD: 0, memAlignWR: 0, memAlignWR8: 1}
         }
-    | INST_MAP_ROM
-        {
-            $$ = { instMapRom: 1 }
-        }
     | REPEAT '(' RCX ')'
         {
             $$ = { repeat: 1 }
@@ -745,7 +728,6 @@ reg
     | RR
     | zkPC
     | STEP
-    | MAXMEM
     | HASHPOS
     | ROTL_C
     | RCX

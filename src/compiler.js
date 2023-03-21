@@ -8,10 +8,10 @@ const stringifyBigInts = require("ffjavascript").utils.stringifyBigInts;
 const maxConst = (1n << 32n) - 1n;
 const minConst = -(1n << 31n);
 const maxConstl = (1n << 256n) - 1n;
-const minConstl = -(1n << 255n);
+const minConstl = 0n;
 const readOnlyRegisters = ['STEP', 'ROTL_C'];
 
-module.exports = async function compile(fileName, ctx, config) {
+module.exports = async function compile(fileName, ctx, config = {}) {
 
     let isMain;
     if (!ctx) {
@@ -61,7 +61,7 @@ module.exports = async function compile(fileName, ctx, config) {
         l.fileName = relativeFileName;
         if (l.type == "include") {
             const fullFileNameI = path.resolve(fileDir, l.file);
-            await compile(fullFileNameI, ctx);
+            await compile(fullFileNameI, ctx, config);
             if (pendingCommands.length>0) error(l, "command not allowed before include");
             lastLineAllowsCommand = false;
         } else if (l.type == "var") {
@@ -105,8 +105,15 @@ module.exports = async function compile(fileName, ctx, config) {
                     appendOp(traceStep, processAssignmentIn(ctx, l.assignment.in, ctx.out.length));
                     appendOp(traceStep, processAssignmentOut(ctx, l.assignment.out));
                 }
+                let assignmentRequired = false;
                 for (let j=0; j< l.ops.length; j++) {
-                    appendOp(traceStep, l.ops[j])
+                    appendOp(traceStep, l.ops[j]);
+                    if (l.ops[j].JMP || l.ops[j].call || l.ops[j].return || l.ops[j].repeat) continue;
+                    assignmentRequired = true;
+                }
+
+                if (assignmentRequired && !l.assignment) {
+                    error(l, "Left assignment required");
                 }
 
                 if (traceStep.JMPC && !traceStep.bin) {
@@ -125,7 +132,9 @@ module.exports = async function compile(fileName, ctx, config) {
             lastLineAllowsCommand = !(traceStep.JMP || traceStep.JMPC || traceStep.JMPN || traceStep.JMPC || traceStep.call || traceStep.return);
         } else if (l.type == "label") {
             const id = l.identifier
-            if (ctx.definedLabels[id]) error(l, `RedefinedLabel: ${id}` );
+            if (ctx.definedLabels[id]) {
+                optionalError(config.allowOverwriteLabels, l, `RedefinedLabel: ${id}`);
+            }
             ctx.definedLabels[id] = ctx.out.length;
             if (pendingCommands.length>0) error(l, "command not allowed before label")
             lastLineAllowsCommand = false;
@@ -148,38 +157,42 @@ module.exports = async function compile(fileName, ctx, config) {
             if ((typeof ctx.out[i].offset !== "undefined") && (isNaN(ctx.out[i].offset))) {
                 if (!ctx.out[i].useJmpAddr && (ctx.out[i].JMP || ctx.out[i].JMPC || ctx.out[i].JMPN || ctx.out[i].JMPZ || ctx.out[i].call)) {
                     const codeAddr = getCodeAddress(ctx.out[i].offset, i);
+
                     if (codeAddr === false) {
-                        error(ctx.out[i].line, `Label: ${ctx.out[i].offset} not defined.`);
+                        optionalError(config.allowUndefinedLabels, ctx.out[i].line,  `Label: ${ctx.out[i].offset} not defined.`);
                     }
                     ctx.out[i].offsetLabel = ctx.out[i].offset;
                     ctx.out[i].offset = codeAddr;
                 } else {
                     ctx.out[i].offsetLabel = ctx.out[i].offset;
                     if (typeof ctx.vars[ctx.out[i].offset] === "undefined") {
-                        error(ctx.out[i].line, `Variable: ${ctx.out[i].offset} not defined.`);
+                        optionalError(config.allowUndefinedVariables, ctx.out[i].line,  `Variable: ${ctx.out[i].offset} not defined.`);
+                        ctx.out[i].offset = 0;
                     }
-                    if (ctx.vars[ctx.out[i].offset].scope === 'CTX') {
-                        ctx.out[i].useCTX = 1;
-                    } else if (ctx.vars[ctx.out[i].offset].scope === 'GLOBAL') {
-                        ctx.out[i].useCTX = 0;
-                    } else {
-                        error(ctx.out[i].line, `Invalid variable scpoe: ${ctx.out[i].offset} not defined.`);
+                    else {
+                        if (ctx.vars[ctx.out[i].offset].scope === 'CTX') {
+                            ctx.out[i].useCTX = 1;
+                        } else if (ctx.vars[ctx.out[i].offset].scope === 'GLOBAL') {
+                            ctx.out[i].useCTX = 0;
+                        } else {
+                            error(ctx.out[i].line, `Invalid variable scope: ${ctx.out[i].offset} not defined.`);
+                        }
+                        ctx.out[i].offset = ctx.vars[ctx.out[i].offset].offset;
                     }
-                    ctx.out[i].offset = ctx.vars[ctx.out[i].offset].offset;
                 }
             }
             if ((typeof ctx.out[i].jmpAddr !== "undefined") && (isNaN(ctx.out[i].jmpAddr))) {
                 const codeAddr = getCodeAddress(ctx.out[i].jmpAddr, i);
-                if (codeAddr === "undefined") {
-                    error(ctx.out[i].line, `Label: ${ctx.out[i].jmpAddr} not defined.`);
+                if (codeAddr === false) {
+                    optionalError(config.allowUndefinedLabels, ctx.out[i].line,  `Label: ${ctx.out[i].jmpAddr} not defined.`);
                 }
                 ctx.out[i].jmpAddrLabel = ctx.out[i].jmpAddr;
                 ctx.out[i].jmpAddr = codeAddr;
             }
             if ((typeof ctx.out[i].elseAddr !== "undefined") && (isNaN(ctx.out[i].elseAddr))) {
                 const codeAddr = getCodeAddress(ctx.out[i].elseAddr, i);
-                if (codeAddr === "undefined") {
-                    error(ctx.out[i].line, `Label: ${ctx.out[i].elseAddr} not defined.`);
+                if (codeAddr === false) {
+                    optionalError(config.allowUndefinedLabels, ctx.out[i].line,  `Label: ${ctx.out[i].elseAddr} not defined.`);
                 }
                 ctx.out[i].elseAddrLabel = ctx.out[i].elseAddr;
                 ctx.out[i].elseAddr = codeAddr;
@@ -269,15 +282,24 @@ module.exports = async function compile(fileName, ctx, config) {
 function defineConstant(ctx, name, ctype, value) {
     const l = ctx.currentLine;
 
-    if (ctx.config && ctx.config.defines && typeof ctx.config.defines[name] !== 'undefined') {
-        console.log(`NOTICE: Ignore constant definition ${name} on ${l.fileName}:${l.line} because it was defined by command line`);
-        return;
-    }
-
     if (typeof ctx.constants[name] !== 'undefined') {
         throw error(l, `Redefinition of constant ${name} previously defined on `+
                        `${ctx.constants[name].fileName}:${ctx.constants[name].line}`);
     }
+
+    if (ctx.config && ctx.config.defines && typeof ctx.config.defines[name] !== 'undefined') {
+        console.log(`NOTICE: Ignore constant definition ${name} on ${l.fileName}:${l.line} because it was defined by command line`);
+        ctx.constants[name] = {
+            value: ctx.config.defines[name].value,
+            type: ctx.config.defines[name].type,
+            originalValue: value,
+            originalType: ctype,
+            defines: true,
+            line: l.line,
+            fileName: l.fileName};
+        return;
+    }
+
     if (ctype == 'CONSTL') {
         if (value > maxConstl || value < minConstl) {
             throw error(l, `Constant ${name} out of range, value ${value} must be in range [${minConstl},${maxConstl}]`);
@@ -299,6 +321,13 @@ function defineConstant(ctx, name, ctype, value) {
 
 function getConstant(ctx, name, throwIfNotExists = true) {
     if (ctx.config && ctx.config.defines && typeof ctx.config.defines[name] !== 'undefined') {
+        if (typeof ctx.constants[name] == 'undefined') {
+            ctx.constants[name] = {
+                value: ctx.config.defines[name].value,
+                type: ctx.config.defines[name].type,
+                defines: true
+            };
+        }
         return [ctx.config.defines[name].value, ctx.config.defines[name].type];
     }
 
@@ -337,20 +366,30 @@ function processAssignmentIn(ctx, input, currentLine) {
     }
     if (input.type == "CONST") {
         res.CONST = BigInt(input.const);
+        checkConstRange(ctx, res);
         return res;
     }
     if (input.type == "CONSTL") {
         res.CONSTL = BigInt(input.const);
+        checkConstRange(ctx, res);
         return res;
     }
     if (input.type == 'CONSTID') {
         const [value, ctype] = getConstant(ctx, input.identifier);
         res[ctype] = value;
+        checkConstRange(ctx, res);
         return res;
     }
 
+    if (input.type == "expl") {
+        res.CONSTL = BigInt(input.values[0])**BigInt(input.values[1]);
+        checkConstRange(ctx, res);
+        return res;
+    }
     if (input.type == "exp") {
-        res.CONST = BigInt(input.values[0])**BigInt(input.values[1]);
+        const value = BigInt(input.values[0])**BigInt(input.values[1]);
+        res.CONST = value;
+        checkConstRange(ctx, res);
         return res;
     }
     if ((input.type == "add") || (input.type == "sub") || (input.type == "neg") || (input.type == "mul")) {
@@ -360,7 +399,16 @@ function processAssignmentIn(ctx, input, currentLine) {
         E2 = processAssignmentIn(ctx, input.values[1], currentLine);
     }
     if (input.type == "mul") {
-        if (isConstant(E1)) {
+        if (typeof E1.CONSTL !== 'undefined' && typeof E2.CONSTL !== 'undefined') {
+            res.CONSTL = BigInt(E1.CONSTL) * BigInt(E2.CONSTL);
+            checkConstRange(ctx, res);
+            return res;
+        }
+        else if (typeof E1.CONST !== 'undefined' && typeof E2.CONST !== 'undefined') {
+            res.CONST = BigInt(E1.CONST) * BigInt(E2.CONST);
+            checkConstRange(ctx, res);
+            return res;
+        } else if (isConstant(E1)) {
             if (typeof E2.CONSTL !== 'undefined') {
                 throw new Error("Not allowed CONST and CONSTL in same operation");
             }
@@ -510,6 +558,15 @@ function appendOp(step, op) {
     });
 }
 
+function optionalError(allowed, l, msg) {
+    if (allowed) warning(l, msg);
+    else error(l, msg);
+}
+
+function warning(l, msg) {
+    console.log(`WARNING ${l.fileName}:${l.line}: ${msg}`);
+}
+
 function error(l, err) {
     if (err instanceof Error) {
         err.message = `ERROR ${l.fileName}:${l.line}: ${err.message}`
@@ -517,5 +574,31 @@ function error(l, err) {
     } else {
         const msg = `ERROR ${l.fileName}:${l.line}: ${err}`;
         throw new Error(msg);
+    }
+}
+
+function checkConstRange(ctx, value, isLongValue) {
+    const l = ctx.currentLine;
+
+    if (typeof isLongValue == 'undefined') {
+        if (typeof value.CONSTL !== 'undefined') {
+            isLongValue = true;
+            value = value.CONSTL;
+        }
+        else if (typeof value.CONST !== 'undefined') {
+            isLongValue = false;
+            value = value.CONST;
+        }
+        else {
+            throw error(l, `Constant value ${value} undefined type on checkConstRange`);
+        }
+    }
+
+    if (!isLongValue && (value > maxConst || value < minConst)) {
+        throw error(l, `Constant value ${value} out of range [${minConst},${maxConst}]`);
+    }
+
+    if (isLongValue && (value > maxConstl || value < minConstl)) {
+        throw error(l, `Long-constant value ${value} out of range [${minConstl},${maxConstl}]`);
     }
 }
