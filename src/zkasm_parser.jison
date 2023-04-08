@@ -6,6 +6,7 @@
 ((0x[0-9A-Fa-f][0-9A-Fa-f_]*)|([0-9][0-9_]*))n          { yytext = BigInt(yytext.replace(/[\_n]/g, "")); return 'NUMBERL'; }
 (0x[0-9A-Fa-f][0-9A-Fa-f_]*)|([0-9][0-9_]*)          { yytext = Number(yytext.replace(/\_/g, "")); return 'NUMBER'; }
 \$\$\{[^\}]*\}          { yytext = yytext.slice(3, -1); return "COMMAND"; }
+(\$0(\{[^\}]*\})?)      { yytext = yytext.length == 2 ? "" : yytext.slice(3, -1); return 'TAG0'; }
 (\$(\{[^\}]*\})?)       { yytext = yytext.length == 1 ? "" : yytext.slice(2, -1); return 'TAG'; }
 [\r\n]+                 { return "LF";}
 [ \t]+                  { /* console.log("Empty spaces"); */ }
@@ -423,6 +424,10 @@ inReg
     : TAG
         {
             $$ = {type: 'TAG' , tag: $1}
+        }
+    | TAG0
+        {
+            $$ = {type: 'TAG0' , tag: $1}
         }
     | reg
         {

@@ -1,0 +1,18 @@
+start:
+        STEP => A
+        0   :ASSERT
+
+        0x102030405060708090n => A
+        $${dump(GAS)}
+        ${A * 2} => B
+        0x20406080A0C0E10120n :ASSERT
+
+        $0{A * 2} => B
+        0x0C0E10120n :ASSERT
+
+        0 => A,B,C,D,E,CTX, SP, PC, SR
+finalWait:
+        ${beforeLast()}  : JMPN(finalWait)
+
+                         : JMP(start)
+opINVALID:

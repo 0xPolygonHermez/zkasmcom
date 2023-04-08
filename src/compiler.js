@@ -345,9 +345,13 @@ function getConstantValue(ctx, name, throwIfNotExists = true) {
 function processAssignmentIn(ctx, input, currentLine) {
     const res = {};
     let E1, E2;
-    if (input.type == "TAG") {
+    if (input.type == "TAG" || input.type == "TAG0") {
         res.freeInTag = input.tag ? command_parser.parse(input.tag) : { op: ""};
-        res.inFREE = 1n;
+        if (input.type == "TAG") {
+            res.inFREE = 1n;
+        } else {
+            res.inFREE0 = 1n;
+        }
         return res;
     }
     if (input.type == "REG") {
