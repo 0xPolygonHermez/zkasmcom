@@ -1,6 +1,7 @@
 /* lexical grammar */
 %lex
 %%
+\#macro[ \t]+[a-zA-Z_][a-zA-Z_0-9]*([^\#]|\#(?!endmacro\b))*\#endmacro\b { return 'MACRO_DEFINITION' }
 \;[^\n\r]*              { /* console.log("COMMENT: "+yytext) */ }
 \/\*([^*]|[\r\n]|(\*+([^*/]|[\r\n])))*\*+\/ { /* console.log("MULTILINE COMMENT: "+yytext); */  }
 ((0x[0-9A-Fa-f][0-9A-Fa-f_]*)|([0-9][0-9_]*))n          { yytext = BigInt(yytext.replace(/[\_n]/g, "")); return 'NUMBERL'; }
@@ -76,7 +77,10 @@ CTX                     { return 'CTX' }
 CONST                   { return 'CONST' }
 CONSTL                  { return 'CONSTL' }
 REPEAT                  { return 'REPEAT' }
+MACRO                   { return 'BEGIN_MACRO' }
+END_MACRO               { return 'END_MACRO' }
 \"[^"]+\"               { yytext = yytext.slice(1,-1); return 'STRING'; }
+\#[a-zA-Z_][a-zA-Z$_0-9]* { return 'MACRO'; }
 [a-zA-Z_][a-zA-Z$_0-9]*   { return 'IDENTIFIER'; }
 \%[a-zA-Z_][a-zA-Z$_0-9]* { yytext = yytext.slice(1); return 'CONSTID'; }
 \@[a-zA-Z_][a-zA-Z$_0-9]* { yytext = yytext.slice(1); return 'REFERENCE'; }
@@ -195,6 +199,18 @@ statment
         {
             $$ = null;
         }
+    | macros
+        {
+            $$ = $1;
+        }
+    | macroCall
+        {
+            $$ = $1;
+        }
+    | macroDef
+        {
+            $$ = $1;
+        }
     ;
 
 step
@@ -221,6 +237,58 @@ label
             $$ = {type: "label", identifier: $1};
             setLine($$, @1)
         }
+    ;
+
+macroDef
+    : BEGIN_MACRO IDENTIFIER params ':'
+        {
+            $$ = {type: "macrodef", identifier: $2, params: $3};
+            setLine($$, @1)
+        }
+    ;
+
+paramListItem
+    : IDENTIFIER { $$ = $1 }
+    | reg { $$ = $1 }
+    ;
+
+paramList
+    : paramListItem { $$ = [$1] }
+    | paramList ',' paramListItem { $$ = $1.slice(); $$.push($3) }
+    ;
+
+params
+    : '(' ')' { $$ = [] }
+    | '(' paramList ')' { $$ = $2 }
+    ;
+
+macroCall
+    : MACRO
+        {
+            $$ = {type: "macrocall", name: $1, params: []};
+            setLine($$, @1);
+        }
+    | MACRO '(' macroParams ')'
+        {
+            $$ = {type: "macrocall", name: $1, params: $2};
+            setLine($$, @1);
+        }
+    ;
+
+macroParam
+    : IDENTIFIER { $$ = $1 }
+    | reg { $$ = $1 }
+    | CONSTID { $$ = $1 }
+    | REFERENCE { $$ = $1 }
+    | counter { $$ = $1 }
+    | NUMBER { $$ = $1 }
+    | NUMBERL { $$ = $1 }
+    | specific_addr { $$ = $1 }
+    ;
+
+macroParams
+    : macroParam { $$ = [$1] }
+    | macroParams ',' macroParam { $$ = $1.slice(); $$.push($3)}
     ;
 
 varDef
@@ -251,6 +319,13 @@ command
     : COMMAND
         {
             $$ = {type: "command", cmd: $1}
+        }
+    ;
+
+macros
+    : MACRO_DEFINITION
+        {
+            $$ = {type: "macro", macro: $1}
         }
     ;
 
@@ -304,7 +379,7 @@ nexpr
         {
             $$ = {type: $2, values: [$1, $3]}
         }
-      | nexpr '/' nexpr
+    | nexpr '/' nexpr
         {
             $$ = {type: $2, values: [$1, $3]}
         }
@@ -731,6 +806,7 @@ reg
     | HASHPOS
     | ROTL_C
     | RCX
+    | P_REG
     ;
 
 
@@ -739,7 +815,18 @@ addr
         {
             $$ = { isStack: 1, isMem:0, ind:0, indRR: 0, incStack:0, offset: 0, useCTX: 1}
         }
-    | SP '+' NUMBER
+    | IDENTIFIER
+        {
+            $$ = { offset: $1 }
+        }
+    | specific_addr
+        {
+            $$ = $1
+        }
+    ;
+
+specific_addr
+    : SP '+' NUMBER
         {
             $$ = { isStack: 1, isMem:0, ind:0, indRR: 0, incStack: 0, offset: $3, useCTX: 1}}
         }
@@ -790,10 +877,6 @@ addr
     | STACK ':' E
         {
             $$ = { isStack: 1, ind:1, indRR: 0, incStack: 0, offset: 0, useCTX: 1}
-        }
-    | IDENTIFIER
-        {
-            $$ = { offset: $1 }
         }
     | IDENTIFIER '+' RR
         {

@@ -138,6 +138,10 @@ module.exports = async function compile(fileName, ctx, config = {}) {
             ctx.definedLabels[id] = ctx.out.length;
             if (pendingCommands.length>0) error(l, "command not allowed before label")
             lastLineAllowsCommand = false;
+        } else if (l.type == "macrodef") {
+            console.log(l);
+        } else if (l.type == "macro") {
+            console.log(l);
         } else if (l.type == "command") {
             if (lastLineAllowsCommand) {
                 if (typeof ctx.out[ctx.out.length-1].cmdAfter === "undefined")

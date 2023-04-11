@@ -1,0 +1,73 @@
+CONSTL %KAKA = 20
+
+start:
+        STEP => A
+        0   :ASSERT
+
+#macro pepe
+        $arg1 => A
+        $arg2 => B
+#ifreg $arg1
+        $arg3 =>
+#endif
+        :EQ
+#endmacro
+
+#macro pepe(arg1, arg2, arg3)
+        $arg1 => A
+        $arg2 => B
+        $arg3 =>
+        :EQ
+#endmacro
+
+#macro pepe (arg1)
+        $arg1 => A
+        $arg2 => B
+        $arg3 =>
+        :EQ
+#endmacro
+
+#macro save_registers(reg1,reg2,reg3,reg4,reg5,reg6,reg7)
+    $reg1 :MSTORE(tmp1)
+    #ifdef reg2
+    $reg2 :MSTORE(tmp2)
+    #ifdef reg3
+    $reg3 :MSTORE(tmp3)
+    #ifdef reg4
+    $reg4 :MSTORE(tmp4)
+    #ifdef reg5
+    $reg5 :MSTORE(tmp5)
+    #ifdef reg6
+    $reg5 :MSTORE(tmp6)
+    #ifdef reg7
+    $reg5 :MSTORE(tmp7)
+    #endif
+    #endif
+    #endif
+    #endif
+    #endif
+    #endif
+#endmacro
+
+        0x101112131415161718191A1B1C1D1E1F202122232425262728292A2B2C2D2E2Fn => C
+        ROTL_C => A
+        0x1415161718191A1B1C1D1E1F202122232425262728292A2B2C2D2E2F10111213n: ASSERT
+
+        #pepe(E,D)
+        #pepe(10)
+        #pepe(10n)
+        #pepe(%KAKA)
+        #pepe
+
+; #define pepe(x,b,x) {
+;
+; }
+
+end:
+       0 => A,B,C,D,E, SP, PC, SR
+
+finalWait:
+        ${beforeLast()}  : JMPN(finalWait)
+
+                         : JMP(start)
+opINVALID:
