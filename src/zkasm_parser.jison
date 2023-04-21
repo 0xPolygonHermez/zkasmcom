@@ -49,6 +49,7 @@ SSTORE                  { return 'SSTORE' }
 ARITH                   { return 'ARITH' }
 ARITH_ECADD_DIFFERENT   { return 'ARITH_ECADD_DIFFERENT' }
 ARITH_ECADD_SAME        { return 'ARITH_ECADD_SAME' }
+ARITH_FP_CMUL           { return 'ARITH_FP_CMUL' }
 ADD                     { return 'ADD' }
 SUB                     { return 'SUB' }
 LT                      { return 'LT' }
@@ -633,15 +634,19 @@ op
         }
     | ARITH
         {
-            $$ = { arithEq0: 1, arithEq1: 0, arithEq2: 0}
+            $$ = { arithEq0: 1, arithEq1: 0, arithEq2: 0, arithEq3: 0}
         }
     | ARITH_ECADD_DIFFERENT
         {
-            $$ = { arithEq0: 0, arithEq1: 1, arithEq2: 0}
+            $$ = { arithEq0: 0, arithEq1: 1, arithEq2: 0, arithEq3: 0}
         }
     | ARITH_ECADD_SAME
         {
-            $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 1}
+            $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 0}
+        }
+    | ARITH_FP_CMUL
+        {
+            $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 1}
         }
     | ADD
         {
