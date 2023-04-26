@@ -49,7 +49,7 @@ SSTORE                  { return 'SSTORE' }
 ARITH                   { return 'ARITH' }
 ARITH_ECADD_DIFFERENT   { return 'ARITH_ECADD_DIFFERENT' }
 ARITH_ECADD_SAME        { return 'ARITH_ECADD_SAME' }
-ARITH_FP_CMUL           { return 'ARITH_FP_CMUL' }
+ARITH_BN254_MULFP2      { return 'ARITH_BN254_MULFP2' }
 ADD                     { return 'ADD' }
 SUB                     { return 'SUB' }
 LT                      { return 'LT' }
@@ -644,7 +644,7 @@ op
         {
             $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 0}
         }
-    | ARITH_FP_CMUL
+    | ARITH_BN254_MULFP2
         {
             $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 1}
         }
