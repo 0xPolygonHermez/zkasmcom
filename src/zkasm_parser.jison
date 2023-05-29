@@ -50,6 +50,7 @@ ARITH                   { return 'ARITH' }
 ARITH_ECADD_DIFFERENT   { return 'ARITH_ECADD_DIFFERENT' }
 ARITH_ECADD_SAME        { return 'ARITH_ECADD_SAME' }
 ARITH_BN254_ADDFP2      { return 'ARITH_BN254_ADDFP2' }
+ARITH_BN254_SUBFP2      { return 'ARITH_BN254_SUBFP2' }
 ARITH_BN254_MULFP2      { return 'ARITH_BN254_MULFP2' }
 ADD                     { return 'ADD' }
 SUB                     { return 'SUB' }
