@@ -635,23 +635,27 @@ op
         }
     | ARITH
         {
-            $$ = { arithEq0: 1, arithEq1: 0, arithEq2: 0, arithEq3: 0, arithEq4: 0 }
+            $$ = { arithEq0: 1, arithEq1: 0, arithEq2: 0, arithEq3: 0, arithEq4: 0, arithEq5: 0 }
         }
     | ARITH_ECADD_DIFFERENT
         {
-            $$ = { arithEq0: 0, arithEq1: 1, arithEq2: 0, arithEq3: 0, arithEq4: 0 }
+            $$ = { arithEq0: 0, arithEq1: 1, arithEq2: 0, arithEq3: 0, arithEq4: 0, arithEq5: 0 }
         }
     | ARITH_ECADD_SAME
         {
-            $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 0, arithEq4: 0 }
+            $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 0, arithEq4: 0, arithEq5: 0 }
         }
     | ARITH_BN254_MULFP2
         {
-            $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 1, arithEq4: 0 }
+            $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 1, arithEq4: 0, arithEq5: 0 }
         }
     | ARITH_BN254_ADDFP2
         {
-            $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 0, arithEq4: 1 }
+            $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 0, arithEq4: 1, arithEq5: 0 }
+        }
+    | ARITH_BN254_SUBFP2
+        {
+            $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 0, arithEq4: 0, arithEq5: 1 }
         }
     | ADD
         {
