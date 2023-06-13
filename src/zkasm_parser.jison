@@ -35,6 +35,7 @@ HASHPLEN                { return 'HASHPLEN' }
 HASHPDIGEST             { return 'HASHPDIGEST' }
 HASHP1                  { return 'HASHP1' }
 HASHP                   { return 'HASHP' }
+POSEIDON                { return 'POSEIDON' }
 JMP                     { return 'JMP' }
 JMPC                    { return 'JMPC' }
 JMPZ                    { return 'JMPZ' }
@@ -524,6 +525,10 @@ op
         {
             $$ = $3;
             $$.hashP1 = 1;
+        }
+    | POSEIDON
+        {
+            $$ = {poseidon: 1}
         }
     | HASHPLEN '(' hashId ')'
         {
