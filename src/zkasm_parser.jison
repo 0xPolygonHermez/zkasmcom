@@ -35,7 +35,7 @@ HASHPLEN                { return 'HASHPLEN' }
 HASHPDIGEST             { return 'HASHPDIGEST' }
 HASHP1                  { return 'HASHP1' }
 HASHP                   { return 'HASHP' }
-POSEIDON                { return 'POSEIDON' }
+HASHP_FE12              { return 'HASHP_FE12' }
 JMP                     { return 'JMP' }
 JMPC                    { return 'JMPC' }
 JMPZ                    { return 'JMPZ' }
@@ -526,9 +526,9 @@ op
             $$ = $3;
             $$.hashP1 = 1;
         }
-    | POSEIDON
+    | HASHP_FE12
         {
-            $$ = {poseidon: 1}
+            $$ = {hashP_fe12: 1}
         }
     | HASHPLEN '(' hashId ')'
         {
