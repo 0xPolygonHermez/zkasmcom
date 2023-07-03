@@ -11,10 +11,39 @@ start:
         2   :MSTORE(b)
         3   :MSTORE(c)
         4   :MSTORE(d)
-        @a => A
-        @b => A
-        @c => A
-        @d => A
+
+        0 => RCX,E
+loopA:
+        E + 1 => E :MSTORE(a + E)
+        ${dump(E)}
+        E - RCX - 100 :JMPN(loopA)
+setB:
+        E + 1 => E :MSTORE(b)
+
+        0 => RCX,E
+loopC:
+        E + 1 => E
+        E + 1000 :MSTORE(c + E)
+        ${dump(E)}
+        E - RCX - 300 :JMPN(loopC)
+setD:
+        E + 1 => E :MSTORE(d)
+
+        1 => A
+        ${mem.a} :ASSERT
+
+        1 => A
+        ${mem.a[0]} :ASSERT
+
+        2 => A
+        ${mem.a[1]} :ASSERT
+
+        3 => A
+        ${mem.a[2]} :ASSERT
+
+        1001 => A
+        ${mem.c[1]} :ASSERT
+
 
 end:
        0 => A,B,C,D,E,CTX, SP, PC, GAS, SR
