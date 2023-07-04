@@ -55,6 +55,8 @@ var                     { return 'VAR'; }
 \:                      { return ':'}
 \.\.                    { return RANGE_DOTS }
 \.                      { return '.'}
+\[                      { return '[' }
+\]                      { return ']' }
 <<EOF>>                 { return 'EOF'; }
 .                       { /* console.log("INVALID: " + yytext); */ return 'INVALID'; }
 
@@ -255,7 +257,11 @@ e0
         }
     | IDENTIFIER '.' IDENTIFIER
         {
-            $$ = {op: "getData", module: $1, offset: $3}
+            $$ = {op: "getData", module: $1, offset: $3, arrayOffset: 0}
+        }
+    | IDENTIFIER '.' IDENTIFIER '[' NUMBER ']'
+        {
+            $$ = {op: "getData", module: $1, offset: $3, arrayOffset: $5}
         }
     ;
 

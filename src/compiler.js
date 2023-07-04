@@ -248,7 +248,7 @@ module.exports = async function compile(fileName, ctx, config = {}) {
                     error(ctx.out[i].line, `Not found reference ${cmd.module}.${name}`);
                 }
                 cmd.op = 'getMemValue'
-                cmd.offset = ctx.vars[name].offset;
+                cmd.offset = ctx.vars[name].offset + Number(cmd.arrayOffset ?? 0)
                 cmd.offsetLabel = name;
                 return;
             }
