@@ -44,6 +44,11 @@ setD:
         1001 => A
         ${mem.c[1]} :ASSERT
 
+        102 => A
+        ${addr.c[1]} :ASSERT
+
+        401 => A
+        ${addr.d} :ASSERT
 
 end:
        0 => A,B,C,D,E,CTX, SP, PC, GAS, SR

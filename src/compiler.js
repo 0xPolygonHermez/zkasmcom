@@ -252,6 +252,17 @@ module.exports = async function compile(fileName, ctx, config = {}) {
                 cmd.offsetLabel = name;
                 return;
             }
+            else if (cmd.module === 'addr' && typeof cmd.offsetLabel === 'undefined') {
+                const name = cmd.offset;
+                if (typeof ctx.vars[name] === 'undefined') {
+                    error(ctx.out[i].line, `Not found reference ${cmd.module}.${name}`);
+                }
+                cmd.op = 'number'
+                cmd.num = ctx.vars[name].offset + Number(cmd.arrayOffset ?? 0)
+                cmd.offsetLabel = name;
+                delete cmd.offset;
+                return;
+            }
             else if (cmd.module === 'const' && typeof cmd.offsetLabel === 'undefined') {
                 const name = cmd.offset;
                 cmd.op = 'number'
