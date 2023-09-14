@@ -1,5 +1,6 @@
 const path = require("path");
 const fs = require("fs");
+const util = require('util');
 const { config } = require("process");
 const zkasm_parser = require("../build/zkasm_parser.js").parser;
 const command_parser = require("../build/command_parser.js").parser;
@@ -177,7 +178,7 @@ module.exports = async function compile(fileName, ctx, config = {}) {
                         } else {
                             error(ctx.out[i].line, `Invalid variable scope: ${ctx.out[i].offset} not defined.`);
                         }
-                        ctx.out[i].offset = ctx.vars[ctx.out[i].offset].offset;
+                        ctx.out[i].offset = ctx.vars[ctx.out[i].offset].offset + (ctx.out[i].extraOffset ?? 0);
                     }
                 }
             }
@@ -248,7 +249,21 @@ module.exports = async function compile(fileName, ctx, config = {}) {
                     error(ctx.out[i].line, `Not found reference ${cmd.module}.${name}`);
                 }
                 cmd.op = 'getMemValue'
-                cmd.offset = ctx.vars[name].offset + Number(cmd.arrayOffset ?? 0)
+                cmd.offset = ctx.vars[name].offset;
+                if (cmd.arrayOffset) {
+                    if (cmd.arrayOffset.op === 'number') {
+                        cmd.offset += Number(cmd.arrayOffset.num);
+                    } else {
+                        cmd.op = 'getMemValueByAddress';
+                        cmd.params = [cmd.arrayOffset];
+                        if (cmd.offset) {
+                            cmd.params = [{ op: 'add', values: [cmd.params[0], {op: 'number', num: BigInt(cmd.offset)}]}];
+                        }
+                        delete cmd.offset;
+                        delete cmd.arrayOffset;
+                        return;
+                    }
+                }
                 cmd.offsetLabel = name;
                 return;
             }
@@ -258,7 +273,10 @@ module.exports = async function compile(fileName, ctx, config = {}) {
                     error(ctx.out[i].line, `Not found reference ${cmd.module}.${name}`);
                 }
                 cmd.op = 'number'
-                cmd.num = ctx.vars[name].offset + Number(cmd.arrayOffset ?? 0)
+                cmd.num = ctx.vars[name].offset;
+                if (cmd.arrayOffset) {
+                    cmd.num += Number(cmd.arrayOffset.num ?? 0);
+                }
                 cmd.offsetLabel = name;
                 delete cmd.offset;
                 return;

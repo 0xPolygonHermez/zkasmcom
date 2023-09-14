@@ -818,6 +818,26 @@ addr
         {
             $$ = { offset: $1, ind: 1, indRR: 0 }
         }
+    | IDENTIFIER '[' E ']'
+        {
+            $$ = { offset: $1, ind: 1, indRR: 0 }
+        }
+    | IDENTIFIER '[' E '-' NUMBER ']'
+        {
+            $$ = { offset: $1, extraOffset: -$5, ind: 1, indRR: 0 }
+        }
+    | IDENTIFIER '[' E '+' NUMBER ']'
+        {
+            $$ = { offset: $1, extraOffset: $5, ind: 1, indRR: 0 }
+        }
+    | IDENTIFIER '+' NUMBER
+        {
+            $$ = { offset: $1, extraOffset: $3 }
+        }
+    | IDENTIFIER '[' NUMBER ']'
+        {
+            $$ = { offset: $1, extraOffset: $3 }
+        }
     ;
 
 hashId
