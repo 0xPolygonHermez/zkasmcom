@@ -259,7 +259,7 @@ e0
         {
             $$ = {op: "getData", module: $1, offset: $3, arrayOffset: 0}
         }
-    | IDENTIFIER '.' IDENTIFIER '[' NUMBER ']'
+    | IDENTIFIER '.' IDENTIFIER '[' expression ']'
         {
             $$ = {op: "getData", module: $1, offset: $3, arrayOffset: $5}
         }

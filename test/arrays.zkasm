@@ -12,10 +12,20 @@ start:
         3   :MSTORE(c)
         4   :MSTORE(d)
 
+        13 => E
+               0 :MLOAD(a[23])
+               0 :MLOAD(a[E + 10])
+        0x1FE223 :MSTORE(a[23])
+        0x1FE223 :MLOAD(a[23])
+        0x1FE223 :MLOAD(a[E + 10])
+        0x1FE223 => A
+        ${mem.a[23]}    :ASSERT
+        ${mem.a[E+10]}  :ASSERT
+        ${getMemValueByAddress(addr.a+E+10)} :ASSERT
+
         0 => RCX,E
 loopA:
-        E + 1 => E :MSTORE(a + E)
-        ${dump(E)}
+        E + 1 => E :MSTORE(a[E])
         E - RCX - 100 :JMPN(loopA)
 setB:
         E + 1 => E :MSTORE(b)
@@ -24,7 +34,6 @@ setB:
 loopC:
         E + 1 => E
         E + 1000 :MSTORE(c + E)
-        ${dump(E)}
         E - RCX - 300 :JMPN(loopC)
 setD:
         E + 1 => E :MSTORE(d)
@@ -44,6 +53,11 @@ setD:
         1001 => A
         ${mem.c[1]} :ASSERT
 
+        102 => A
+        ${addr.c[1]} :ASSERT
+
+        401 => A
+        ${addr.d} :ASSERT
 
 end:
        0 => A,B,C,D,E,CTX, SP, PC, GAS, SR
