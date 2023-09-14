@@ -15,7 +15,6 @@ C                       { return 'C'; }
 D                       { return 'D'; }
 E                       { return 'E'; }
 RCX                     { return 'RCX'; }
-SR                      { return 'SR'; }
 CTX                     { return 'CTX'; }
 SP                      { return 'SP'; }
 PC                      { return 'PC'; }
@@ -31,10 +30,6 @@ HASHKLEN                { return 'HASHKLEN' }
 HASHKDIGEST             { return 'HASHKDIGEST' }
 HASHK1                  { return 'HASHK1' }
 HASHK                   { return 'HASHK' }
-HASHPLEN                { return 'HASHPLEN' }
-HASHPDIGEST             { return 'HASHPDIGEST' }
-HASHP1                  { return 'HASHP1' }
-HASHP                   { return 'HASHP' }
 JMP                     { return 'JMP' }
 JMPC                    { return 'JMPC' }
 JMPZ                    { return 'JMPZ' }
@@ -44,14 +39,7 @@ JMPN                    { return 'JMPN' }
 CALL                    { return 'CALL' }
 RETURN                  { return 'RETURN' }
 ASSERT                  { return 'ASSERT' }
-SLOAD                   { return 'SLOAD' }
-SSTORE                  { return 'SSTORE' }
 ARITH                   { return 'ARITH' }
-ARITH_ECADD_DIFFERENT   { return 'ARITH_ECADD_DIFFERENT' }
-ARITH_ECADD_SAME        { return 'ARITH_ECADD_SAME' }
-ARITH_BN254_ADDFP2      { return 'ARITH_BN254_ADDFP2' }
-ARITH_BN254_SUBFP2      { return 'ARITH_BN254_SUBFP2' }
-ARITH_BN254_MULFP2      { return 'ARITH_BN254_MULFP2' }
 ADD                     { return 'ADD' }
 SUB                     { return 'SUB' }
 LT                      { return 'LT' }
@@ -64,8 +52,6 @@ CNT_ARITH               { return 'CNT_ARITH' }
 CNT_BINARY              { return 'CNT_BINARY' }
 CNT_KECCAK_F            { return 'CNT_KECCAK_F' }
 CNT_MEM_ALIGN           { return 'CNT_MEM_ALIGN' }
-CNT_PADDING_PG          { return 'CNT_PADDING_PG' }
-CNT_POSEIDON_G          { return 'CNT_POSEIDON_G' }
 MEM_ALIGN_WR8           { return 'MEM_ALIGN_WR8' }
 MEM_ALIGN_RD            { return 'MEM_ALIGN_RD' }
 MEM_ALIGN_WR            { return 'MEM_ALIGN_WR' }
@@ -518,26 +504,6 @@ op
             $$ = $3;
             $$.hashKDigest = 1;
         }
-    | HASHP '(' hashId ')'
-        {
-            $$ = $3;
-            $$.hashP = 1;
-        }
-    | HASHP1 '(' hashId ')'
-        {
-            $$ = $3;
-            $$.hashP1 = 1;
-        }
-    | HASHPLEN '(' hashId ')'
-        {
-            $$ = $3;
-            $$.hashPLen = 1;
-        }
-    | HASHPDIGEST '(' hashId ')'
-        {
-            $$ = $3;
-            $$.hashPDigest = 1;
-        }
     | JMP '(' IDENTIFIER ')'
         {
             $$ = { [$1]: 1, useJmpAddr: 1, jmpAddr: $3 }
@@ -626,37 +592,9 @@ op
         {
             $$ = {assert: 1}
         }
-    | SLOAD
-        {
-            $$ = {sRD: 1}
-        }
-    | SSTORE
-        {
-            $$ = {sWR: 1}
-        }
     | ARITH
         {
-            $$ = { arithEq0: 1, arithEq1: 0, arithEq2: 0, arithEq3: 0, arithEq4: 0, arithEq5: 0 }
-        }
-    | ARITH_ECADD_DIFFERENT
-        {
-            $$ = { arithEq0: 0, arithEq1: 1, arithEq2: 0, arithEq3: 0, arithEq4: 0, arithEq5: 0 }
-        }
-    | ARITH_ECADD_SAME
-        {
-            $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 0, arithEq4: 0, arithEq5: 0 }
-        }
-    | ARITH_BN254_MULFP2
-        {
-            $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 1, arithEq4: 0, arithEq5: 0 }
-        }
-    | ARITH_BN254_ADDFP2
-        {
-            $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 0, arithEq4: 1, arithEq5: 0 }
-        }
-    | ARITH_BN254_SUBFP2
-        {
-            $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 0, arithEq4: 0, arithEq5: 1 }
+            $$ = { arith: 1 }
         }
     | ADD
         {
@@ -725,8 +663,6 @@ counter
     | CNT_BINARY        { $$ = 'cntBinary' }
     | CNT_KECCAK_F      { $$ = 'cntKeccakF' }
     | CNT_MEM_ALIGN     { $$ = 'cntMemAlign' }
-    | CNT_PADDING_PG    { $$ = 'cntPaddingPG' }
-    | CNT_POSEIDON_G    { $$ = 'cntPoseidonG' }
     ;
 
 reg
@@ -735,7 +671,6 @@ reg
     | C
     | D
     | E
-    | SR
     | CTX
     | SP
     | PC

@@ -8,7 +8,7 @@ const stringifyBigInts = require("ffjavascript").utils.stringifyBigInts;
 
 const maxConst = (1n << 32n) - 1n;
 const minConst = -(1n << 31n);
-const maxConstl = (1n << 256n) - 1n;
+const maxConstl = (1n << 64n) - 1n;
 const minConstl = 0n;
 const readOnlyRegisters = ['STEP', 'ROTL_C'];
 
