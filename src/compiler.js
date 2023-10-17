@@ -250,6 +250,12 @@ module.exports = async function compile(fileName, ctx, config = {}) {
                 }
                 cmd.op = 'getMemValue'
                 cmd.offset = ctx.vars[name].offset;
+                // set useCTX
+                if (ctx.vars[name].scope === 'CTX') {
+                    cmd.useCTX = 1;
+                } else if (ctx.vars[name].scope === 'GLOBAL') {
+                    cmd.useCTX = 0;
+                }
                 if (cmd.arrayOffset) {
                     if (cmd.arrayOffset.op === 'number') {
                         cmd.offset += Number(cmd.arrayOffset.num);
