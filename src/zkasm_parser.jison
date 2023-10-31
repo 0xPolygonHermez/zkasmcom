@@ -49,6 +49,9 @@ SSTORE                  { return 'SSTORE' }
 ARITH                   { return 'ARITH' }
 ARITH_ECADD_DIFFERENT   { return 'ARITH_ECADD_DIFFERENT' }
 ARITH_ECADD_SAME        { return 'ARITH_ECADD_SAME' }
+ARITH_BN254_ADDFP2      { return 'ARITH_BN254_ADDFP2' }
+ARITH_BN254_SUBFP2      { return 'ARITH_BN254_SUBFP2' }
+ARITH_BN254_MULFP2      { return 'ARITH_BN254_MULFP2' }
 ADD                     { return 'ADD' }
 SUB                     { return 'SUB' }
 LT                      { return 'LT' }
@@ -633,15 +636,27 @@ op
         }
     | ARITH
         {
-            $$ = { arithEq0: 1, arithEq1: 0, arithEq2: 0}
+            $$ = { arithEq0: 1, arithEq1: 0, arithEq2: 0, arithEq3: 0, arithEq4: 0, arithEq5: 0 }
         }
     | ARITH_ECADD_DIFFERENT
         {
-            $$ = { arithEq0: 0, arithEq1: 1, arithEq2: 0}
+            $$ = { arithEq0: 0, arithEq1: 1, arithEq2: 0, arithEq3: 0, arithEq4: 0, arithEq5: 0 }
         }
     | ARITH_ECADD_SAME
         {
-            $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 1}
+            $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 0, arithEq4: 0, arithEq5: 0 }
+        }
+    | ARITH_BN254_MULFP2
+        {
+            $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 1, arithEq4: 0, arithEq5: 0 }
+        }
+    | ARITH_BN254_ADDFP2
+        {
+            $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 0, arithEq4: 1, arithEq5: 0 }
+        }
+    | ARITH_BN254_SUBFP2
+        {
+            $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 0, arithEq4: 0, arithEq5: 1 }
         }
     | ADD
         {
@@ -802,6 +817,26 @@ addr
     | IDENTIFIER '+' E
         {
             $$ = { offset: $1, ind: 1, indRR: 0 }
+        }
+    | IDENTIFIER '[' E ']'
+        {
+            $$ = { offset: $1, ind: 1, indRR: 0 }
+        }
+    | IDENTIFIER '[' E '-' NUMBER ']'
+        {
+            $$ = { offset: $1, extraOffset: -$5, ind: 1, indRR: 0 }
+        }
+    | IDENTIFIER '[' E '+' NUMBER ']'
+        {
+            $$ = { offset: $1, extraOffset: $5, ind: 1, indRR: 0 }
+        }
+    | IDENTIFIER '+' NUMBER
+        {
+            $$ = { offset: $1, extraOffset: $3 }
+        }
+    | IDENTIFIER '[' NUMBER ']'
+        {
+            $$ = { offset: $1, extraOffset: $3 }
         }
     ;
 
