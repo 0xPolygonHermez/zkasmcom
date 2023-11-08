@@ -48,6 +48,25 @@ hashK[hashId].len = op
 
 hashK[hashId].digest = op
 
+### HASHS(hashId)
+
+hashS[hashId][HASHPOS..HASHPOS+D-1] = op[0..D-1]
+HASHPOS := HASHPOS + D
+hashId = number | E
+
+### HASHS1(hashId)
+
+hashS1[hashId][HASHPOS] = op[0]
+HASHPOS := HASHPOS + 1
+
+### HASHSLEN(hashId)
+
+hashS[hashId].len = op
+
+### HASHSDIGEST(hashId)
+
+hashS[hashId].digest = op
+
 ### HASHP(hashId)
 
 hashP[hashId][HASHPOS..HASHPOS+D-1] = op[0..D-1]
