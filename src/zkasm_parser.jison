@@ -31,6 +31,10 @@ HASHKLEN                { return 'HASHKLEN' }
 HASHKDIGEST             { return 'HASHKDIGEST' }
 HASHK1                  { return 'HASHK1' }
 HASHK                   { return 'HASHK' }
+HASHSLEN                { return 'HASHSLEN' }
+HASHSDIGEST             { return 'HASHSDIGEST' }
+HASHS1                  { return 'HASHS1' }
+HASHS                   { return 'HASHS' }
 HASHPLEN                { return 'HASHPLEN' }
 HASHPDIGEST             { return 'HASHPDIGEST' }
 HASHP1                  { return 'HASHP1' }
@@ -517,6 +521,26 @@ op
         {
             $$ = $3;
             $$.hashKDigest = 1;
+        }
+    | HASHS '(' hashId ')'
+        {
+            $$ = $3;
+            $$.hashS = 1;
+        }
+    | HASHS1 '(' hashId ')'
+        {
+            $$ = $3;
+            $$.hashS1 = 1;
+        }
+    | HASHSLEN '(' hashId ')'
+        {
+            $$ = $3;
+            $$.hashSLen = 1;
+        }
+    | HASHSDIGEST '(' hashId ')'
+        {
+            $$ = $3;
+            $$.hashSDigest = 1;
         }
     | HASHP '(' hashId ')'
         {
