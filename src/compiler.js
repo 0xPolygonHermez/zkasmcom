@@ -279,9 +279,9 @@ module.exports = async function compile(fileName, ctx, config = {}) {
                     error(ctx.out[i].line, `Not found reference ${cmd.module}.${name}`);
                 }
                 cmd.op = 'number'
-                cmd.num = ctx.vars[name].offset;
+                cmd.num = ctx.vars[name].offset.toString();
                 if (cmd.arrayOffset) {
-                    cmd.num += Number(cmd.arrayOffset.num ?? 0);
+                    cmd.num += Number(cmd.arrayOffset.num ?? 0).toString();
                 }
                 cmd.offsetLabel = name;
                 delete cmd.offset;
