@@ -67,6 +67,7 @@ XOR                     { return 'XOR' }
 CNT_ARITH               { return 'CNT_ARITH' }
 CNT_BINARY              { return 'CNT_BINARY' }
 CNT_KECCAK_F            { return 'CNT_KECCAK_F' }
+CNT_SHA256_F            { return 'CNT_SHA256_F' }
 CNT_MEM_ALIGN           { return 'CNT_MEM_ALIGN' }
 CNT_PADDING_PG          { return 'CNT_PADDING_PG' }
 CNT_POSEIDON_G          { return 'CNT_POSEIDON_G' }
@@ -748,6 +749,7 @@ counter
     : CNT_ARITH         { $$ = 'cntArith' }
     | CNT_BINARY        { $$ = 'cntBinary' }
     | CNT_KECCAK_F      { $$ = 'cntKeccakF' }
+    | CNT_SHA256_F      { $$ = 'cntSha256F' }
     | CNT_MEM_ALIGN     { $$ = 'cntMemAlign' }
     | CNT_PADDING_PG    { $$ = 'cntPaddingPG' }
     | CNT_POSEIDON_G    { $$ = 'cntPoseidonG' }

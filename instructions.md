@@ -162,7 +162,7 @@ RCX != 0 => RCX' = RCX - 1
 RCX != 0 => zkPC = zkPC
 REPEAT was executed at least one time
 
-### CNT_ARITH, CNT_BINARY, CNT_KECCAK_F, CNT_MEM_ALIGN, CNT_PADDING_PG, CNT_POSEIDON_G
+### CNT_ARITH, CNT_BINARY, CNT_KECCAK_F, CNT_SHA256_F, CNT_MEM_ALIGN, CNT_PADDING_PG, CNT_POSEIDON_G
 
 ReadOnly counters
 
@@ -237,6 +237,7 @@ constl set 8 registers (op0, op1, op2, ..,op7)
   - `CNT_ARITH`
   - `CNT_BINARY`
   - `CNT_KECCAK_F`
+  - `CNT_SHA256_F`
   - `CNT_MEM_ALIGN`
   - `CNT_PADDING_PG`
   - `CNT_POSEIDON_G`
