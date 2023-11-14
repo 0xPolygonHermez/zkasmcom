@@ -60,6 +60,7 @@ EQ                      { return 'EQ' }
 AND                     { return 'AND' }
 OR                      { return 'OR' }
 XOR                     { return 'XOR' }
+LT4                     { return 'LT4' }
 CNT_ARITH               { return 'CNT_ARITH' }
 CNT_BINARY              { return 'CNT_BINARY' }
 CNT_KECCAK_F            { return 'CNT_KECCAK_F' }
@@ -689,6 +690,10 @@ op
     | XOR
         {
             $$ = { bin: 1, binOpcode: 7}
+        }
+    | LT4
+        {
+            $$ = { bin: 1, binOpcode: 8}
         }
     | MEM_ALIGN_RD
         {
