@@ -48,6 +48,25 @@ hashK[hashId].len = op
 
 hashK[hashId].digest = op
 
+### HASHS(hashId)
+
+hashS[hashId][HASHPOS..HASHPOS+D-1] = op[0..D-1]
+HASHPOS := HASHPOS + D
+hashId = number | E
+
+### HASHS1(hashId)
+
+hashS1[hashId][HASHPOS] = op[0]
+HASHPOS := HASHPOS + 1
+
+### HASHSLEN(hashId)
+
+hashS[hashId].len = op
+
+### HASHSDIGEST(hashId)
+
+hashS[hashId].digest = op
+
 ### HASHP(hashId)
 
 hashP[hashId][HASHPOS..HASHPOS+D-1] = op[0..D-1]
@@ -143,7 +162,7 @@ RCX != 0 => RCX' = RCX - 1
 RCX != 0 => zkPC = zkPC
 REPEAT was executed at least one time
 
-### CNT_ARITH, CNT_BINARY, CNT_KECCAK_F, CNT_MEM_ALIGN, CNT_PADDING_PG, CNT_POSEIDON_G
+### CNT_ARITH, CNT_BINARY, CNT_KECCAK_F, CNT_SHA256_F, CNT_MEM_ALIGN, CNT_PADDING_PG, CNT_POSEIDON_G
 
 ReadOnly counters
 
@@ -218,6 +237,7 @@ constl set 8 registers (op0, op1, op2, ..,op7)
   - `CNT_ARITH`
   - `CNT_BINARY`
   - `CNT_KECCAK_F`
+  - `CNT_SHA256_F`
   - `CNT_MEM_ALIGN`
   - `CNT_PADDING_PG`
   - `CNT_POSEIDON_G`
