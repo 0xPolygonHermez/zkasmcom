@@ -102,9 +102,13 @@ Addition of two secp256k1 elliptic curve points (points are equals)
 
 A = op
 
-### ADD SUB LT SLT EQ AND OR XOR
+### ADD SUB LT SLT EQ AND OR XOR LT4
 
 op = A ~BinOp~ B
+
+LT4 = all 4 chuncks of 64 are LT one to one
+      (A7A6 A5A4 A3A2 A1A0) LT4 (B7B6 B5B4 B3B2 B1B0) =
+      (A7A6 < B7B6) AND (A5A4 < B5B4) AND (A3A2 < B3B2) AND (A1A0 < B1B0)
 
 ### MEM_ALIGN_RD
 
