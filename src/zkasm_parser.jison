@@ -31,6 +31,10 @@ HASHKLEN                { return 'HASHKLEN' }
 HASHKDIGEST             { return 'HASHKDIGEST' }
 HASHK1                  { return 'HASHK1' }
 HASHK                   { return 'HASHK' }
+HASHSLEN                { return 'HASHSLEN' }
+HASHSDIGEST             { return 'HASHSDIGEST' }
+HASHS1                  { return 'HASHS1' }
+HASHS                   { return 'HASHS' }
 HASHPLEN                { return 'HASHPLEN' }
 HASHPDIGEST             { return 'HASHPDIGEST' }
 HASHP1                  { return 'HASHP1' }
@@ -64,6 +68,7 @@ LT4                     { return 'LT4' }
 CNT_ARITH               { return 'CNT_ARITH' }
 CNT_BINARY              { return 'CNT_BINARY' }
 CNT_KECCAK_F            { return 'CNT_KECCAK_F' }
+CNT_SHA256_F            { return 'CNT_SHA256_F' }
 CNT_MEM_ALIGN           { return 'CNT_MEM_ALIGN' }
 CNT_PADDING_PG          { return 'CNT_PADDING_PG' }
 CNT_POSEIDON_G          { return 'CNT_POSEIDON_G' }
@@ -519,6 +524,26 @@ op
             $$ = $3;
             $$.hashKDigest = 1;
         }
+    | HASHS '(' hashId ')'
+        {
+            $$ = $3;
+            $$.hashS = 1;
+        }
+    | HASHS1 '(' hashId ')'
+        {
+            $$ = $3;
+            $$.hashS1 = 1;
+        }
+    | HASHSLEN '(' hashId ')'
+        {
+            $$ = $3;
+            $$.hashSLen = 1;
+        }
+    | HASHSDIGEST '(' hashId ')'
+        {
+            $$ = $3;
+            $$.hashSDigest = 1;
+        }
     | HASHP '(' hashId ')'
         {
             $$ = $3;
@@ -729,6 +754,7 @@ counter
     : CNT_ARITH         { $$ = 'cntArith' }
     | CNT_BINARY        { $$ = 'cntBinary' }
     | CNT_KECCAK_F      { $$ = 'cntKeccakF' }
+    | CNT_SHA256_F      { $$ = 'cntSha256F' }
     | CNT_MEM_ALIGN     { $$ = 'cntMemAlign' }
     | CNT_PADDING_PG    { $$ = 'cntPaddingPG' }
     | CNT_POSEIDON_G    { $$ = 'cntPoseidonG' }
