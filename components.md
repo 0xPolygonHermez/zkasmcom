@@ -1,5 +1,75 @@
 # zkASM Components
 
+## Registers
+- Each element is a Goldilocks prime Field number
+
+### A, B, C, D, E
+- generic purpose registers
+- Array of 8 elements `[V0, V1,..., V7]`
+
+### SR
+- Array of 8 elements `[V0, V1,..., V7]`
+- State root
+
+### CTX
+- 1 element
+- Context
+- Used to move through zkEVM memory
+
+### SP
+- 1 element
+- Stack Pointer
+- Used to move through zkEVM memory
+
+### PC
+- 1 element
+- Program Counter
+- Used to move through zkEVM memory
+
+### GAS
+- 1 element
+- Gas in a transaction
+
+### RR
+- 1 element
+- Return register
+- Saves origin `zkPC` in `RR` when a `CALL` instruction is performed
+  - `RETURN` will load `RR` into future `zkPC`
+
+### zkPC
+- 1 element
+- zk pogram counter
+
+### STEP
+- 1 element
+- number of instruction done
+
+### MAXMEM
+- 1 element
+- maximum memory
+
+### HASHPOS
+- 1 element
+- used to set/get bytes from poseidon/keccaks bytes
+
+### ROTL_C
+- Array of 8 elements `[V0, V1,..., V7]`. Each element is a Goldilocks prime Field number
+- Rotate Left Register: `ROTL_C = [C[7], C[0], ..., C[6]]`
+
+### RCX
+- 1 element
+- Used to repeat instructions
+
+### zk-counters
+- Keeps track of zk-counters
+  - `CNT_ARITH`
+  - `CNT_BINARY`
+  - `CNT_KECCAK_F`
+  - `CNT_SHA256_F`
+  - `CNT_MEM_ALIGN`
+  - `CNT_PADDING_PG`
+  - `CNT_POSEIDON_G`
+
 ## Instructions
 
 ### MLOAD(addr)
@@ -183,73 +253,3 @@ CONST, CONSTL %constname = expression
 define constants
 const set lsr (op0) and reset the rest (op1,....,op7)
 constl set 8 registers (op0, op1, op2, ..,op7)
-
-## Registers
-- Each element is a Goldilocks prime Field number
-
-### A, B, C, D, E
-- generic purpose registers
-- Array of 8 elements `[V0, V1,..., V7]`
-
-### SR
-- Array of 8 elements `[V0, V1,..., V7]`
-- State root
-
-### CTX
-- 1 element
-- Context
-- Used to move through zkEVM memory
-
-### SP
-- 1 element
-- Stack Pointer
-- Used to move through zkEVM memory
-
-### PC
-- 1 element
-- Program Counter
-- Used to move through zkEVM memory
-
-### GAS
-- 1 element
-- Gas in a transaction
-
-### RR
-- 1 element
-- Return register
-- Saves origin `zkPC` in `RR` when a `CALL` instruction is performed
-  - `RETURN` will load `RR` into future `zkPC`
-
-### zkPC
-- 1 element
-- zk pogram counter
-
-### STEP
-- 1 element
-- number of instruction done
-
-### MAXMEM
-- 1 element
-- maximum memory
-
-### HASHPOS
-- 1 element
-- used to set/get bytes from poseidon/keccaks bytes
-
-### ROTL_C
-- Array of 8 elements `[V0, V1,..., V7]`. Each element is a Goldilocks prime Field number
-- Rotate Left Register: `ROTL_C = [C[7], C[0], ..., C[6]]`
-
-### RCX
-- 1 element
-- Used to repeat instructions
-
-### zk-counters
-- Keeps track of zk-counters
-  - `CNT_ARITH`
-  - `CNT_BINARY`
-  - `CNT_KECCAK_F`
-  - `CNT_SHA256_F`
-  - `CNT_MEM_ALIGN`
-  - `CNT_PADDING_PG`
-  - `CNT_POSEIDON_G`
