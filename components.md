@@ -1,4 +1,6 @@
-# zkVM instructions
+# zkASM Components
+
+## Instructions
 
 ### MLOAD(addr)
 
@@ -104,11 +106,19 @@ A = op
 
 ### ADD SUB LT SLT EQ AND OR XOR LT4
 
-op = A ~BinOp~ B
+The operation is written `op = A BinOp B`, where `BinOp` is one of `ADD,SUB,LT,SLT,EQ,AND,OR,XOR,LT4`.
 
-LT4 = all 4 chuncks of 64 are LT one to one
-      (A7A6 A5A4 A3A2 A1A0) LT4 (B7B6 B5B4 B3B2 B1B0) =
-      (A7A6 < B7B6) AND (A5A4 < B5B4) AND (A3A2 < B3B2) AND (A1A0 < B1B0)
+Given two registers `A` and `B`, the instruction `LT4` works by checking whether the four chunks composing `A` are lower than those composing `B` one-to-one.
+
+For example, given `A0,...,A7,B0,...,B7` the following check:
+```
+(A7A6 A5A4 A3A2 A1A0) LT4 (B7B6 B5B4 B3B2 B1B0) 
+```
+is equivalent to:
+```
+(A7A6 < B7B6) AND (A5A4 < B5B4) AND (A3A2 < B3B2) AND (A1A0 < B1B0)
+```
+      
 
 ### MEM_ALIGN_RD
 
@@ -166,11 +176,9 @@ RCX != 0 => RCX' = RCX - 1
 RCX != 0 => zkPC = zkPC
 REPEAT was executed at least one time
 
-### CNT_ARITH, CNT_BINARY, CNT_KECCAK_F, CNT_SHA256_F, CNT_MEM_ALIGN, CNT_PADDING_PG, CNT_POSEIDON_G
+## Constants
 
-ReadOnly counters
-
-### CONST, CONSTL %constname = expression
+CONST, CONSTL %constname = expression
 
 define constants
 const set lsr (op0) and reset the rest (op1,....,op7)
