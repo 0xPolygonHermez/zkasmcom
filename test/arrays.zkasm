@@ -1,31 +1,36 @@
-VAR GLOBAL a[100]
+CONST %LEN1 = 100
+CONSTL %LEN2 = 300
+
+VAR GLOBAL a1[%LEN1]
+VAR GLOBAL a2[100]
 VAR GLOBAL b
-VAR GLOBAL c[300]
+VAR GLOBAL c1[%LEN2]
+VAR GLOBAL c2[300]
 VAR GLOBAL d
 
 start:
         STEP => A
         0   :ASSERT
 
-        1   :MSTORE(a)
+        1   :MSTORE(a1)
         2   :MSTORE(b)
-        3   :MSTORE(c)
+        3   :MSTORE(c1)
         4   :MSTORE(d)
 
         13 => E
-               0 :MLOAD(a[23])
-               0 :MLOAD(a[E + 10])
-        0x1FE223 :MSTORE(a[23])
-        0x1FE223 :MLOAD(a[23])
-        0x1FE223 :MLOAD(a[E + 10])
+        0 :MLOAD(a1[23])
+        0 :MLOAD(a1[E + 10])
+        0x1FE223 :MSTORE(a1[23])
+        0x1FE223 :MLOAD(a1[23])
+        0x1FE223 :MLOAD(a1[E + 10])
         0x1FE223 => A
-        ${mem.a[23]}    :ASSERT
-        ${mem.a[E+10]}  :ASSERT
-        ${getMemValueByAddress(addr.a+E+10)} :ASSERT
+        ${mem.a1[23]}    :ASSERT
+        ${mem.a1[E+10]}  :ASSERT
+        ${getMemValueByAddress(addr.a1+E+10)} :ASSERT
 
         0 => RCX,E
 loopA:
-        E + 1 => E :MSTORE(a[E])
+        E + 1 => E :MSTORE(a1[E])
         E - RCX - 100 :JMPN(loopA)
 setB:
         E + 1 => E :MSTORE(b)
@@ -33,28 +38,28 @@ setB:
         0 => RCX,E
 loopC:
         E + 1 => E
-        E + 1000 :MSTORE(c + E)
+        E + 1000 :MSTORE(c1 + E)
         E - RCX - 300 :JMPN(loopC)
 setD:
         E + 1 => E :MSTORE(d)
 
         1 => A
-        ${mem.a} :ASSERT
+        ${mem.a1} :ASSERT
 
         1 => A
-        ${mem.a[0]} :ASSERT
+        ${mem.a1[0]} :ASSERT
 
         2 => A
-        ${mem.a[1]} :ASSERT
+        ${mem.a1[1]} :ASSERT
 
         3 => A
-        ${mem.a[2]} :ASSERT
+        ${mem.a1[2]} :ASSERT
 
         1001 => A
-        ${mem.c[1]} :ASSERT
+        ${mem.c1[1]} :ASSERT
 
         102 => A
-        ${addr.c[1]} :ASSERT
+        ${addr.c1[1]} :ASSERT
 
         401 => A
         ${addr.d} :ASSERT

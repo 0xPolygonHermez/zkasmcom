@@ -241,6 +241,10 @@ varDef
         {
             $$ = {type: "var", scope: $2, name: $3, count: $5 }
         }
+    |  VAR scope IDENTIFIER '[' CONSTID ']'
+        {
+            $$ = {type: "var", scope: $2, name: $3, count: $5 }
+        }
     ;
 
 constDef
@@ -313,7 +317,7 @@ nexpr
         {
             $$ = {type: $2, values: [$1, $3]}
         }
-      | nexpr '/' nexpr
+    | nexpr '/' nexpr
         {
             $$ = {type: $2, values: [$1, $3]}
         }
@@ -787,19 +791,19 @@ addr
         }
     | SP '+' NUMBER
         {
-            $$ = { isStack: 1, isMem:0, ind:0, indRR: 0, incStack: 0, offset: $3, useCTX: 1}}
+            $$ = { isStack: 1, isMem:0, ind:0, indRR: 0, incStack: 0, offset: $3, useCTX: 1}
         }
     | SP '-' NUMBER
         {
-            $$ = { isStack: 1, isMem:0, ind:0, indRR: 0, incStack: 0, offset: -$3, useCTX: 1}}
+            $$ = { isStack: 1, isMem:0, ind:0, indRR: 0, incStack: 0, offset: -$3, useCTX: 1}
         }
     | SP '++'
         {
-            $$ = { isStack: 1, isMem:0, ind:0, indRR: 0, incStack: 1, offset: 0, useCTX: 1}}
+            $$ = { isStack: 1, isMem:0, ind:0, indRR: 0, incStack: 1, offset: 0, useCTX: 1}
         }
     | SP '--'
         {
-            $$ = { isStack: 1, isMem:0, ind:0, indRR: 0, incStack: -1, offset: 0, useCTX: 1}}
+            $$ = { isStack: 1, isMem:0, ind:0, indRR: 0, incStack: -1, offset: 0, useCTX: 1}
         }
     | SYS ':' E '+' NUMBER
         {
