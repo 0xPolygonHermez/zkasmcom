@@ -2,6 +2,7 @@ const path = require("path");
 const fs = require("fs");
 const util = require('util');
 const { config } = require("process");
+const { get } = require("http");
 const zkasm_parser = require("../build/zkasm_parser.js").parser;
 const command_parser = require("../build/command_parser.js").parser;
 const stringifyBigInts = require("ffjavascript").utils.stringifyBigInts;
@@ -72,11 +73,20 @@ module.exports = async function compile(fileName, ctx, config = {}) {
                     scope: "GLOBAL",
                     offset: ctx.lastGlobalVarAssigned + 1
                 }
-                ctx.lastGlobalVarAssigned += l.count;
+                if (typeof l.count === 'string') {
+                    ctx.lastGlobalVarAssigned += Number(getConstantValue(ctx, l.count));
+                } else {
+                    ctx.lastGlobalVarAssigned += l.count;
+                }
             } else if (l.scope == "CTX") {
                 ctx.vars[l.name] = {
                     scope: "CTX",
                     offset: ctx.lastLocalVarCtxAssigned + 1
+                }
+                if (typeof l.count === 'string') {
+                    ctx.lastGlobalVarAssigned += Number(getConstantValue(ctx, l.count));
+                } else {
+                    ctx.lastGlobalVarAssigned += l.count;
                 }
                 ctx.lastLocalVarCtxAssigned += l.count;
             } else {
