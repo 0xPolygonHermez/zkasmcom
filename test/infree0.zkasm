@@ -10,6 +10,18 @@ start:
         $0{C} => A
         0x2C2D2E2Fn  :ASSERT
 
+        ${0xffffffff} => A
+        0xffffffffn  :ASSERT
+
+        $0{0xffffffff} => A
+        0xffffffffn  :ASSERT
+
+        ${0x100000000} => A
+        0x100000000n  :ASSERT
+
+        $0{0x100000000} => A
+        0  :ASSERT
+
 end:
        0 => A,B,C,D,E, SP, PC, GAS, SR
 
