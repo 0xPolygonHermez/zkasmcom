@@ -1,0 +1,20 @@
+start:
+        STEP => A
+        0   :ASSERT
+
+        0x101112131415161718191A1B1C1D1E1F202122232425262728292A2B2C2D2E2Fn => C
+
+        ${C} => A
+        0x101112131415161718191A1B1C1D1E1F202122232425262728292A2B2C2D2E2Fn  :ASSERT
+
+        $0{C} => A
+        0x2C2D2E2Fn  :ASSERT
+
+end:
+       0 => A,B,C,D,E, SP, PC, GAS, SR
+
+finalWait:
+        ${beforeLast()}  : JMPN(finalWait)
+
+                         : JMP(start)
+opINVALID:
