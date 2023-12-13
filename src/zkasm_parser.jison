@@ -888,4 +888,16 @@ hashId
         {
             $$ = {ind: 1, indRR: 0, offset:0}
         }
+    | RR
+        {
+            $$ = {ind: 0, indRR: 1, offset:0}
+        }
+    | E '+' NUMBER
+        {
+            $$ = {ind: 1, indRR: 0, offset:$3}
+        }
+    | RR '+' NUMBER
+        {
+            $$ = {ind: 0, indRR: 1, offset:$3}
+        }
     ;
