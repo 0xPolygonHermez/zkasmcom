@@ -105,55 +105,113 @@ storage.set(oldRoot, key, newValue) -> newRoot
 
 hashK[hashId][HASHPOS..HASHPOS+D-1] = op[0..D-1]
 HASHPOS := HASHPOS + D
-hashId = number | E
+hashId = number | E | RR | E + number | RR + number
 
-### HASHK1(hashId)
+example:
+        0x010203    :HASHK(E)
 
-hashK1[hashId][HASHPOS] = op[0]
-HASHPOS := HASHPOS + 1
+### HASHKn(hashId)
+
+n=1..32
+hashK[hashId][HASHPOS] = op[0..n-1]
+HASHPOS := HASHPOS + n
+hashId = number | E | RR | E + number | RR + number
+
+examples:
+        A       :HASHK1(E)
+        A       :HASHK32(E)
 
 ### HASHKLEN(hashId)
 
 hashK[hashId].len = op
+hashId = number | E | RR | E + number | RR + number
+
+examples:
+        HASPOS  :HASHKLEN(E)
 
 ### HASHKDIGEST(hashId)
 
 hashK[hashId].digest = op
+hashId = number | E | RR | E + number | RR + number
+example:
+        $ => A   :HASHKDIGEST(E)
 
 ### HASHS(hashId)
 
 hashS[hashId][HASHPOS..HASHPOS+D-1] = op[0..D-1]
 HASHPOS := HASHPOS + D
-hashId = number | E
+hashId = number | E | RR | E + number | RR + number
 
-### HASHS1(hashId)
+example:
+        32 => D
+        A       :HASHS(E)
 
-hashS1[hashId][HASHPOS] = op[0]
-HASHPOS := HASHPOS + 1
+### HASHSn(hashId)
+
+n=1..32
+hashS[hashId][HASHPOS] = op[0..n-1]
+HASHPOS := HASHPOS + n
+hashId = number | E | RR | E + number | RR + number
+
+examples:
+        A       :HASHS1(E)
+        B       :HASHS16(E)
+        C       :HASHS32(E)
 
 ### HASHSLEN(hashId)
 
 hashS[hashId].len = op
+hashId = number | E | RR | E + number | RR + number
+
+examples:
+        HASPOS  :HASHSLEN(E)
 
 ### HASHSDIGEST(hashId)
 
 hashS[hashId].digest = op
+hashId = number | E | RR | E + number | RR + number
+
+example:
+        $ => B    :HASHSDIGEST(E)
 
 ### HASHP(hashId)
 
 hashP[hashId][HASHPOS..HASHPOS+D-1] = op[0..D-1]
+HASPOS := HASHPOS + D[0]
+hashId = number | E | RR | E + number | RR + number
 
-### HASHP1(hashId)
+examples:
+        1 => D
+        A       :HASHP(E)
+        32 => D
+        B       :HASHP(E)
 
-hashP[hashId][HASHPOS] = op[0]
+### HASHPn(hashId)
+
+n=1..32
+hashP[hashId][HASHPOS] = op[0..n-1]
+HASPOS := HASHPOS + n
+hashId = number | E | RR | E + number | RR + number
+
+examples:
+        A       :HASHP1(E)
+        B       :HASHP32(E)
 
 ### HASHPLEN(hashId)
 
 hashP[hashId].len = op
+hashId = number | E | RR | E + number | RR + number
+
+example:
+        HASPOS  :HASHPLEN(E)
 
 ### HASHPDIGEST(hashId)
 
 hashP[hashId].digest = op
+hashId = number | E | RR | E + number | RR + number
+
+example:
+        $ => B  :HASHPDIGEST(E)
 
 ### ARITH
 
@@ -182,13 +240,13 @@ Given two registers `A` and `B`, the instruction `LT4` works by checking whether
 
 For example, given `A0,...,A7,B0,...,B7` the following check:
 ```
-(A7A6 A5A4 A3A2 A1A0) LT4 (B7B6 B5B4 B3B2 B1B0) 
+(A7A6 A5A4 A3A2 A1A0) LT4 (B7B6 B5B4 B3B2 B1B0)
 ```
 is equivalent to:
 ```
 (A7A6 < B7B6) AND (A5A4 < B5B4) AND (A3A2 < B3B2) AND (A1A0 < B1B0)
 ```
-      
+
 
 ### MEM_ALIGN_RD
 

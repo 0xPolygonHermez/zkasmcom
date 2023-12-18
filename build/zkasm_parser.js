@@ -75,8 +75,8 @@ var zkasm_parser = (function(){
 var o=function(k,v,o,l){for(o=o||{},l=k.length;l--;o[k[l]]=v);return o},$V0=[1,10],$V1=[1,12],$V2=[1,13],$V3=[1,14],$V4=[1,27],$V5=[1,29],$V6=[1,15],$V7=[1,16],$V8=[1,18],$V9=[1,37],$Va=[1,17],$Vb=[1,28],$Vc=[1,20],$Vd=[1,23],$Ve=[1,24],$Vf=[1,30],$Vg=[1,41],$Vh=[1,35],$Vi=[1,46],$Vj=[1,47],$Vk=[1,48],$Vl=[1,49],$Vm=[1,50],$Vn=[1,51],$Vo=[1,52],$Vp=[1,53],$Vq=[1,31],$Vr=[1,32],$Vs=[1,33],$Vt=[1,34],$Vu=[1,36],$Vv=[1,38],$Vw=[1,39],$Vx=[1,40],$Vy=[1,42],$Vz=[1,43],$VA=[1,44],$VB=[1,45],$VC=[5,13,15,17,18,21,23,24,27,28,30,31,33,36,63,64,67,89,90,115,121,122,123,124,125,126,127,128,129,130,131,132,133,134,135,136,137,138,139],$VD=[1,60],$VE=[1,61],$VF=[1,62],$VG=[1,63],$VH=[1,64],$VI=[1,65],$VJ=[1,66],$VK=[1,67],$VL=[1,68],$VM=[1,69],$VN=[1,70],$VO=[1,71],$VP=[1,72],$VQ=[1,73],$VR=[1,74],$VS=[1,77],$VT=[1,78],$VU=[1,79],$VV=[1,80],$VW=[1,81],$VX=[1,82],$VY=[1,83],$VZ=[1,84],$V_=[1,85],$V$=[1,86],$V01=[1,87],$V11=[1,88],$V21=[1,89],$V31=[1,90],$V41=[1,91],$V51=[1,92],$V61=[1,93],$V71=[1,94],$V81=[1,95],$V91=[1,96],$Va1=[1,97],$Vb1=[1,98],$Vc1=[1,99],$Vd1=[1,100],$Ve1=[1,101],$Vf1=[1,102],$Vg1=[1,103],$Vh1=[1,104],$Vi1=[1,105],$Vj1=[13,15],$Vk1=[13,15,35,36,59],$Vl1=[1,117],$Vm1=[13,15,35,36,37,59],$Vn1=[13,15,35,36,37,59,68],$Vo1=[1,122],$Vp1=[13,68],$Vq1=[1,159],$Vr1=[1,155],$Vs1=[1,156],$Vt1=[1,157],$Vu1=[1,158],$Vv1=[1,162],$Vw1=[1,164],$Vx1=[1,163],$Vy1=[1,190],$Vz1=[1,192],$VA1=[1,191],$VB1=[1,193],$VC1=[1,194],$VD1=[1,195],$VE1=[13,15,68],$VF1=[5,13,15,17,18,21,23,24,27,28,30,31,33,63,64,67,89,90,115,121,122,123,124,125,126,127,128,129,130,131,132,133,134,135,136,137,138,139],$VG1=[1,241],$VH1=[1,242],$VI1=[1,243],$VJ1=[1,244],$VK1=[1,245],$VL1=[1,246],$VM1=[1,247],$VN1=[1,248],$VO1=[1,249],$VP1=[1,250],$VQ1=[1,251],$VR1=[1,252],$VS1=[1,253],$VT1=[1,254],$VU1=[1,255],$VV1=[1,256],$VW1=[1,257],$VX1=[1,258],$VY1=[1,259],$VZ1=[1,260],$V_1=[5,13,15,17,18,21,23,24,27,28,30,31,33,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,55,57,63,64,67,89,90,115,121,122,123,124,125,126,127,128,129,130,131,132,133,134,135,136,137,138,139],$V$1=[5,13,15,17,18,21,23,24,27,28,30,31,33,35,36,41,42,43,44,45,46,47,48,49,50,51,52,53,55,57,63,64,67,89,90,115,121,122,123,124,125,126,127,128,129,130,131,132,133,134,135,136,137,138,139],$V02=[5,13,15,17,18,21,23,24,27,28,30,31,33,41,42,43,44,45,46,47,48,49,50,51,52,53,55,57,63,64,67,89,90,115,121,122,123,124,125,126,127,128,129,130,131,132,133,134,135,136,137,138,139],$V12=[5,13,15,17,18,21,23,24,27,28,30,31,33,43,44,45,46,47,48,49,50,51,52,53,55,57,63,64,67,89,90,115,121,122,123,124,125,126,127,128,129,130,131,132,133,134,135,136,137,138,139],$V22=[5,13,15,17,18,21,23,24,27,28,30,31,33,43,44,45,50,51,52,53,55,57,63,64,67,89,90,115,121,122,123,124,125,126,127,128,129,130,131,132,133,134,135,136,137,138,139];
 var parser = {trace: function trace () { },
 yy: {},
-symbols_: {"error":2,"allStatments":3,"statmentList":4,"EOF":5,"statment":6,"step":7,"label":8,"varDef":9,"constDef":10,"include":11,"command":12,"LF":13,"assignment":14,":":15,"opList":16,"IDENTIFIER":17,"VAR":18,"scope":19,"[":20,"NUMBER":21,"]":22,"CONSTID":23,"CONST":24,"=":25,"nexpr":26,"CONSTL":27,"COMMAND":28,"GLOBAL":29,"CTX":30,"INCLUDE":31,"STRING":32,"NUMBERL":33,"??":34,"+":35,"-":36,"*":37,"**":38,"%":39,"/":40,"<<":41,">>":42,"|":43,"&":44,"^":45,"<":46,">":47,"<=":48,">=":49,"==":50,"!=":51,"&&":52,"||":53,"!":54,"?":55,"(":56,")":57,"inRegsSum":58,"=>":59,"regsList":60,"inRegP":61,"inReg":62,"TAG":63,"TAG_0":64,"reg":65,"counter":66,"REFERENCE":67,",":68,"op":69,"MLOAD":70,"addr":71,"MSTORE":72,"HASHK":73,"hashId":74,"HASHK1":75,"HASHKLEN":76,"HASHKDIGEST":77,"HASHS":78,"HASHS1":79,"HASHSLEN":80,"HASHSDIGEST":81,"HASHP":82,"HASHP1":83,"HASHPLEN":84,"HASHPDIGEST":85,"JMP":86,"jmpCond":87,"jmpNotCond":88,"RR":89,"E":90,"CALL":91,"RETURN":92,"ASSERT":93,"SLOAD":94,"SSTORE":95,"ARITH":96,"ARITH_ECADD_DIFFERENT":97,"ARITH_ECADD_SAME":98,"ARITH_BN254_MULFP2":99,"ARITH_BN254_ADDFP2":100,"ARITH_BN254_SUBFP2":101,"ADD":102,"SUB":103,"LT":104,"SLT":105,"EQ":106,"AND":107,"OR":108,"XOR":109,"LT4":110,"MEM_ALIGN_RD":111,"MEM_ALIGN_WR":112,"MEM_ALIGN_WR8":113,"REPEAT":114,"RCX":115,"JMPN":116,"JMPC":117,"JMPZ":118,"JMPNC":119,"JMPNZ":120,"CNT_ARITH":121,"CNT_BINARY":122,"CNT_KECCAK_F":123,"CNT_SHA256_F":124,"CNT_MEM_ALIGN":125,"CNT_PADDING_PG":126,"CNT_POSEIDON_G":127,"A":128,"B":129,"C":130,"D":131,"SR":132,"SP":133,"PC":134,"GAS":135,"zkPC":136,"STEP":137,"HASHPOS":138,"ROTL_C":139,"++":140,"--":141,"SYS":142,"MEM":143,"STACK":144,"$accept":0,"$end":1},
-terminals_: {2:"error",5:"EOF",13:"LF",15:":",17:"IDENTIFIER",18:"VAR",20:"[",21:"NUMBER",22:"]",23:"CONSTID",24:"CONST",25:"=",27:"CONSTL",28:"COMMAND",29:"GLOBAL",30:"CTX",31:"INCLUDE",32:"STRING",33:"NUMBERL",34:"??",35:"+",36:"-",37:"*",38:"**",39:"%",40:"/",41:"<<",42:">>",43:"|",44:"&",45:"^",46:"<",47:">",48:"<=",49:">=",50:"==",51:"!=",52:"&&",53:"||",54:"!",55:"?",56:"(",57:")",59:"=>",63:"TAG",64:"TAG_0",67:"REFERENCE",68:",",70:"MLOAD",72:"MSTORE",73:"HASHK",75:"HASHK1",76:"HASHKLEN",77:"HASHKDIGEST",78:"HASHS",79:"HASHS1",80:"HASHSLEN",81:"HASHSDIGEST",82:"HASHP",83:"HASHP1",84:"HASHPLEN",85:"HASHPDIGEST",86:"JMP",89:"RR",90:"E",91:"CALL",92:"RETURN",93:"ASSERT",94:"SLOAD",95:"SSTORE",96:"ARITH",97:"ARITH_ECADD_DIFFERENT",98:"ARITH_ECADD_SAME",99:"ARITH_BN254_MULFP2",100:"ARITH_BN254_ADDFP2",101:"ARITH_BN254_SUBFP2",102:"ADD",103:"SUB",104:"LT",105:"SLT",106:"EQ",107:"AND",108:"OR",109:"XOR",110:"LT4",111:"MEM_ALIGN_RD",112:"MEM_ALIGN_WR",113:"MEM_ALIGN_WR8",114:"REPEAT",115:"RCX",116:"JMPN",117:"JMPC",118:"JMPZ",119:"JMPNC",120:"JMPNZ",121:"CNT_ARITH",122:"CNT_BINARY",123:"CNT_KECCAK_F",124:"CNT_SHA256_F",125:"CNT_MEM_ALIGN",126:"CNT_PADDING_PG",127:"CNT_POSEIDON_G",128:"A",129:"B",130:"C",131:"D",132:"SR",133:"SP",134:"PC",135:"GAS",136:"zkPC",137:"STEP",138:"HASHPOS",139:"ROTL_C",140:"++",141:"--",142:"SYS",143:"MEM",144:"STACK"},
+symbols_: {"error":2,"allStatments":3,"statmentList":4,"EOF":5,"statment":6,"step":7,"label":8,"varDef":9,"constDef":10,"include":11,"command":12,"LF":13,"assignment":14,":":15,"opList":16,"IDENTIFIER":17,"VAR":18,"scope":19,"[":20,"NUMBER":21,"]":22,"CONSTID":23,"CONST":24,"=":25,"nexpr":26,"CONSTL":27,"COMMAND":28,"GLOBAL":29,"CTX":30,"INCLUDE":31,"STRING":32,"NUMBERL":33,"??":34,"+":35,"-":36,"*":37,"**":38,"%":39,"/":40,"<<":41,">>":42,"|":43,"&":44,"^":45,"<":46,">":47,"<=":48,">=":49,"==":50,"!=":51,"&&":52,"||":53,"!":54,"?":55,"(":56,")":57,"inRegsSum":58,"=>":59,"regsList":60,"inRegP":61,"inReg":62,"TAG":63,"TAG_0":64,"reg":65,"counter":66,"REFERENCE":67,",":68,"op":69,"MLOAD":70,"addr":71,"MSTORE":72,"HASHK":73,"hashId":74,"HASHKn":75,"HASHKLEN":76,"HASHKDIGEST":77,"HASHS":78,"HASHSn":79,"HASHSLEN":80,"HASHSDIGEST":81,"HASHP":82,"HASHPn":83,"HASHPLEN":84,"HASHPDIGEST":85,"JMP":86,"jmpCond":87,"jmpNotCond":88,"RR":89,"E":90,"CALL":91,"RETURN":92,"ASSERT":93,"SLOAD":94,"SSTORE":95,"ARITH":96,"ARITH_ECADD_DIFFERENT":97,"ARITH_ECADD_SAME":98,"ARITH_BN254_MULFP2":99,"ARITH_BN254_ADDFP2":100,"ARITH_BN254_SUBFP2":101,"ADD":102,"SUB":103,"LT":104,"SLT":105,"EQ":106,"AND":107,"OR":108,"XOR":109,"LT4":110,"MEM_ALIGN_RD":111,"MEM_ALIGN_WR":112,"MEM_ALIGN_WR8":113,"REPEAT":114,"RCX":115,"JMPN":116,"JMPC":117,"JMPZ":118,"JMPNC":119,"JMPNZ":120,"CNT_ARITH":121,"CNT_BINARY":122,"CNT_KECCAK_F":123,"CNT_SHA256_F":124,"CNT_MEM_ALIGN":125,"CNT_PADDING_PG":126,"CNT_POSEIDON_G":127,"A":128,"B":129,"C":130,"D":131,"SR":132,"SP":133,"PC":134,"GAS":135,"zkPC":136,"STEP":137,"HASHPOS":138,"ROTL_C":139,"++":140,"--":141,"SYS":142,"MEM":143,"STACK":144,"$accept":0,"$end":1},
+terminals_: {2:"error",5:"EOF",13:"LF",15:":",17:"IDENTIFIER",18:"VAR",20:"[",21:"NUMBER",22:"]",23:"CONSTID",24:"CONST",25:"=",27:"CONSTL",28:"COMMAND",29:"GLOBAL",30:"CTX",31:"INCLUDE",32:"STRING",33:"NUMBERL",34:"??",35:"+",36:"-",37:"*",38:"**",39:"%",40:"/",41:"<<",42:">>",43:"|",44:"&",45:"^",46:"<",47:">",48:"<=",49:">=",50:"==",51:"!=",52:"&&",53:"||",54:"!",55:"?",56:"(",57:")",59:"=>",63:"TAG",64:"TAG_0",67:"REFERENCE",68:",",70:"MLOAD",72:"MSTORE",73:"HASHK",75:"HASHKn",76:"HASHKLEN",77:"HASHKDIGEST",78:"HASHS",79:"HASHSn",80:"HASHSLEN",81:"HASHSDIGEST",82:"HASHP",83:"HASHPn",84:"HASHPLEN",85:"HASHPDIGEST",86:"JMP",89:"RR",90:"E",91:"CALL",92:"RETURN",93:"ASSERT",94:"SLOAD",95:"SSTORE",96:"ARITH",97:"ARITH_ECADD_DIFFERENT",98:"ARITH_ECADD_SAME",99:"ARITH_BN254_MULFP2",100:"ARITH_BN254_ADDFP2",101:"ARITH_BN254_SUBFP2",102:"ADD",103:"SUB",104:"LT",105:"SLT",106:"EQ",107:"AND",108:"OR",109:"XOR",110:"LT4",111:"MEM_ALIGN_RD",112:"MEM_ALIGN_WR",113:"MEM_ALIGN_WR8",114:"REPEAT",115:"RCX",116:"JMPN",117:"JMPC",118:"JMPZ",119:"JMPNC",120:"JMPNZ",121:"CNT_ARITH",122:"CNT_BINARY",123:"CNT_KECCAK_F",124:"CNT_SHA256_F",125:"CNT_MEM_ALIGN",126:"CNT_PADDING_PG",127:"CNT_POSEIDON_G",128:"A",129:"B",130:"C",131:"D",132:"SR",133:"SP",134:"PC",135:"GAS",136:"zkPC",137:"STEP",138:"HASHPOS",139:"ROTL_C",140:"++",141:"--",142:"SYS",143:"MEM",144:"STACK"},
 productions_: [0,[3,2],[4,2],[4,1],[6,1],[6,1],[6,1],[6,1],[6,1],[6,1],[6,1],[7,4],[7,2],[7,3],[8,2],[9,3],[9,6],[9,6],[10,4],[10,4],[12,1],[19,1],[19,1],[11,2],[26,1],[26,1],[26,1],[26,3],[26,3],[26,3],[26,3],[26,3],[26,3],[26,3],[26,2],[26,3],[26,3],[26,3],[26,3],[26,3],[26,3],[26,3],[26,3],[26,3],[26,3],[26,3],[26,3],[26,3],[26,2],[26,5],[26,3],[14,3],[14,1],[58,3],[58,3],[58,2],[58,1],[61,3],[61,1],[62,1],[62,1],[62,1],[62,1],[62,3],[62,3],[62,1],[62,1],[62,1],[62,1],[60,3],[60,1],[16,3],[16,1],[69,4],[69,4],[69,4],[69,4],[69,4],[69,4],[69,4],[69,4],[69,4],[69,4],[69,4],[69,4],[69,4],[69,4],[69,4],[69,4],[69,6],[69,4],[69,6],[69,4],[69,4],[69,6],[69,6],[69,4],[69,4],[69,6],[69,6],[69,6],[69,6],[69,8],[69,8],[69,4],[69,6],[69,6],[69,1],[69,1],[69,1],[69,1],[69,1],[69,1],[69,1],[69,1],[69,1],[69,1],[69,1],[69,1],[69,1],[69,1],[69,1],[69,1],[69,1],[69,1],[69,1],[69,1],[69,1],[69,1],[69,4],[87,1],[87,1],[87,1],[88,1],[88,1],[66,1],[66,1],[66,1],[66,1],[66,1],[66,1],[66,1],[65,1],[65,1],[65,1],[65,1],[65,1],[65,1],[65,1],[65,1],[65,1],[65,1],[65,1],[65,1],[65,1],[65,1],[65,1],[65,1],[71,1],[71,3],[71,3],[71,2],[71,2],[71,5],[71,5],[71,3],[71,5],[71,5],[71,3],[71,5],[71,5],[71,3],[71,1],[71,3],[71,3],[71,4],[71,6],[71,6],[71,3],[71,4],[74,1],[74,1],[74,1],[74,3],[74,3]],
 performAction: function anonymous(yytext, yyleng, yylineno, yy, yystate /* action[1] */, $$ /* vstack */, _$ /* lstack */) {
 /* this == yyval */
@@ -319,72 +319,114 @@ break;
 case 75:
 
             this.$ = $$[$0-1];
+            this.$.hashS = 0;
+            this.$.hashP = 0;
             this.$.hashK = 1;
+            this.$.hashBytesInD = 1;
+            this.$.hashBytes = 0;
         
 break;
 case 76:
 
             this.$ = $$[$0-1];
-            this.$.hashK1 = 1;
+            this.$.hashS = 0;
+            this.$.hashP = 0;
+            this.$.hashK = 1;
+            this.$.hashBytesInD = 0;
+            this.$.hashBytes = Number($$[$0-3]);
         
 break;
 case 77:
 
             this.$ = $$[$0-1];
+            this.$.hashS = 0;
+            this.$.hashP = 0;
+            this.$.hashK = 0;
             this.$.hashKLen = 1;
         
 break;
 case 78:
 
             this.$ = $$[$0-1];
+            this.$.hashS = 0;
+            this.$.hashP = 0;
+            this.$.hashK = 0;
             this.$.hashKDigest = 1;
         
 break;
 case 79:
 
             this.$ = $$[$0-1];
+            this.$.hashP = 0;
+            this.$.hashK = 0;
             this.$.hashS = 1;
+            this.$.hashBytesInD = 1;
+            this.$.hashBytes = 0;
         
 break;
 case 80:
 
             this.$ = $$[$0-1];
-            this.$.hashS1 = 1;
+            this.$.hashP = 0;
+            this.$.hashK = 0;
+            this.$.hashS = 1;
+            this.$.hashBytesInD = 0;
+            this.$.hashBytes = Number($$[$0-3]);
         
 break;
 case 81:
 
             this.$ = $$[$0-1];
+            this.$.hashS = 0;
+            this.$.hashP = 0;
+            this.$.hashK = 0;
             this.$.hashSLen = 1;
         
 break;
 case 82:
 
             this.$ = $$[$0-1];
+            this.$.hashS = 0;
+            this.$.hashP = 0;
+            this.$.hashK = 0;
             this.$.hashSDigest = 1;
         
 break;
 case 83:
 
             this.$ = $$[$0-1];
+            this.$.hashS = 0;
+            this.$.hashK = 0;
             this.$.hashP = 1;
+            this.$.hashBytesInD = 1;
+            this.$.hashBytes = 0;
         
 break;
 case 84:
 
             this.$ = $$[$0-1];
-            this.$.hashP1 = 1;
+            this.$.hashS = 0;
+            this.$.hashK = 0;
+            this.$.hashP = 1;
+            this.$.hashBytesInD = 0;
+            this.$.hashBytes = Number($$[$0-3]);
         
 break;
 case 85:
 
             this.$ = $$[$0-1];
+            this.$.hashS = 0;
+            this.$.hashP = 0;
+            this.$.hashK = 0;
             this.$.hashPLen = 1;
         
 break;
 case 86:
 
             this.$ = $$[$0-1];
+            this.$.hashS = 0;
+            this.$.hashP = 0;
+            this.$.hashK = 0;
             this.$.hashPDigest = 1;
         
 break;
@@ -1305,7 +1347,7 @@ case 27: return 76
 break;
 case 28: return 77 
 break;
-case 29: return 75 
+case 29: yy_.yytext = yy_.yytext.slice(5); return 75 
 break;
 case 30: return 73 
 break;
@@ -1313,7 +1355,7 @@ case 31: return 80
 break;
 case 32: return 81 
 break;
-case 33: return 79 
+case 33: yy_.yytext = yy_.yytext.slice(5); return 79 
 break;
 case 34: return 78 
 break;
@@ -1321,7 +1363,7 @@ case 35: return 84
 break;
 case 36: return 85 
 break;
-case 37: return 83 
+case 37: yy_.yytext = yy_.yytext.slice(5); return 83 
 break;
 case 38: return 82 
 break;
@@ -1495,7 +1537,7 @@ case 122: /* console.log("INVALID: " + yy_.yytext); */ return 'INVALID';
 break;
 }
 },
-rules: [/^(?:;[^\n\r]*)/,/^(?:\/\*([^*]|[\r\n]|(\*+([^*/]|[\r\n])))*\*+\/)/,/^(?:((0x[0-9A-Fa-f][0-9A-Fa-f_]*)|([0-9][0-9_]*))n\b)/,/^(?:(0x[0-9A-Fa-f][0-9A-Fa-f_]*)|([0-9][0-9_]*))/,/^(?:\$\$\{[^\}]*\})/,/^(?:\$0\{[^\}]*\})/,/^(?:(\$(\{[^\}]*\})?))/,/^(?:[\r\n]+)/,/^(?:[ \t]+)/,/^(?:A\b)/,/^(?:B\b)/,/^(?:C\b)/,/^(?:D\b)/,/^(?:E\b)/,/^(?:RCX\b)/,/^(?:SR\b)/,/^(?:CTX\b)/,/^(?:SP\b)/,/^(?:PC\b)/,/^(?:GAS\b)/,/^(?:zkPC\b)/,/^(?:RR\b)/,/^(?:STEP\b)/,/^(?:ROTL_C\b)/,/^(?:HASHPOS\b)/,/^(?:MLOAD\b)/,/^(?:MSTORE\b)/,/^(?:HASHKLEN\b)/,/^(?:HASHKDIGEST\b)/,/^(?:HASHK1\b)/,/^(?:HASHK\b)/,/^(?:HASHSLEN\b)/,/^(?:HASHSDIGEST\b)/,/^(?:HASHS1\b)/,/^(?:HASHS\b)/,/^(?:HASHPLEN\b)/,/^(?:HASHPDIGEST\b)/,/^(?:HASHP1\b)/,/^(?:HASHP\b)/,/^(?:JMP\b)/,/^(?:JMPC\b)/,/^(?:JMPZ\b)/,/^(?:JMPNZ\b)/,/^(?:JMPNC\b)/,/^(?:JMPN\b)/,/^(?:CALL\b)/,/^(?:RETURN\b)/,/^(?:ASSERT\b)/,/^(?:SLOAD\b)/,/^(?:SSTORE\b)/,/^(?:ARITH\b)/,/^(?:ARITH_ECADD_DIFFERENT\b)/,/^(?:ARITH_ECADD_SAME\b)/,/^(?:ARITH_BN254_ADDFP2\b)/,/^(?:ARITH_BN254_SUBFP2\b)/,/^(?:ARITH_BN254_MULFP2\b)/,/^(?:ADD\b)/,/^(?:SUB\b)/,/^(?:LT\b)/,/^(?:SLT\b)/,/^(?:EQ\b)/,/^(?:AND\b)/,/^(?:OR\b)/,/^(?:XOR\b)/,/^(?:LT4\b)/,/^(?:CNT_ARITH\b)/,/^(?:CNT_BINARY\b)/,/^(?:CNT_KECCAK_F\b)/,/^(?:CNT_SHA256_F\b)/,/^(?:CNT_MEM_ALIGN\b)/,/^(?:CNT_PADDING_PG\b)/,/^(?:CNT_POSEIDON_G\b)/,/^(?:MEM_ALIGN_WR8\b)/,/^(?:MEM_ALIGN_RD\b)/,/^(?:MEM_ALIGN_WR\b)/,/^(?:SYS\b)/,/^(?:MEM\b)/,/^(?:STACK\b)/,/^(?:INCLUDE\b)/,/^(?:VAR\b)/,/^(?:GLOBAL\b)/,/^(?:CTX\b)/,/^(?:CONST\b)/,/^(?:CONSTL\b)/,/^(?:REPEAT\b)/,/^(?:"[^"]+")/,/^(?:[a-zA-Z_][a-zA-Z$_0-9]*)/,/^(?:%[a-zA-Z_][a-zA-Z$_0-9]*)/,/^(?:@[a-zA-Z_][a-zA-Z$_0-9]*)/,/^(?::)/,/^(?:,)/,/^(?:\()/,/^(?:\))/,/^(?:\+\+)/,/^(?:--)/,/^(?:\+)/,/^(?:-)/,/^(?:\/)/,/^(?:\*\*)/,/^(?:\*)/,/^(?:%)/,/^(?:=>)/,/^(?:<<)/,/^(?:>>)/,/^(?:\^)/,/^(?:\|\|)/,/^(?:&&)/,/^(?:&)/,/^(?:\|)/,/^(?:==)/,/^(?:!=)/,/^(?:<=)/,/^(?:>=)/,/^(?:>)/,/^(?:<)/,/^(?:=)/,/^(?:!)/,/^(?:\?\?)/,/^(?:\?)/,/^(?:\[)/,/^(?:\])/,/^(?:$)/,/^(?:.)/],
+rules: [/^(?:;[^\n\r]*)/,/^(?:\/\*([^*]|[\r\n]|(\*+([^*/]|[\r\n])))*\*+\/)/,/^(?:((0x[0-9A-Fa-f][0-9A-Fa-f_]*)|([0-9][0-9_]*))n\b)/,/^(?:(0x[0-9A-Fa-f][0-9A-Fa-f_]*)|([0-9][0-9_]*))/,/^(?:\$\$\{[^\}]*\})/,/^(?:\$0\{[^\}]*\})/,/^(?:(\$(\{[^\}]*\})?))/,/^(?:[\r\n]+)/,/^(?:[ \t]+)/,/^(?:A\b)/,/^(?:B\b)/,/^(?:C\b)/,/^(?:D\b)/,/^(?:E\b)/,/^(?:RCX\b)/,/^(?:SR\b)/,/^(?:CTX\b)/,/^(?:SP\b)/,/^(?:PC\b)/,/^(?:GAS\b)/,/^(?:zkPC\b)/,/^(?:RR\b)/,/^(?:STEP\b)/,/^(?:ROTL_C\b)/,/^(?:HASHPOS\b)/,/^(?:MLOAD\b)/,/^(?:MSTORE\b)/,/^(?:HASHKLEN\b)/,/^(?:HASHKDIGEST\b)/,/^(?:HASHK((1[0-9])|(2[0-9])|(3[0-2])|[1-9]))/,/^(?:HASHK\b)/,/^(?:HASHSLEN\b)/,/^(?:HASHSDIGEST\b)/,/^(?:HASHS((1[0-9])|(2[0-9])|(3[0-2])|[1-9]))/,/^(?:HASHS\b)/,/^(?:HASHPLEN\b)/,/^(?:HASHPDIGEST\b)/,/^(?:HASHP((1[0-9])|(2[0-9])|(3[0-2])|[1-9]))/,/^(?:HASHP\b)/,/^(?:JMP\b)/,/^(?:JMPC\b)/,/^(?:JMPZ\b)/,/^(?:JMPNZ\b)/,/^(?:JMPNC\b)/,/^(?:JMPN\b)/,/^(?:CALL\b)/,/^(?:RETURN\b)/,/^(?:ASSERT\b)/,/^(?:SLOAD\b)/,/^(?:SSTORE\b)/,/^(?:ARITH\b)/,/^(?:ARITH_ECADD_DIFFERENT\b)/,/^(?:ARITH_ECADD_SAME\b)/,/^(?:ARITH_BN254_ADDFP2\b)/,/^(?:ARITH_BN254_SUBFP2\b)/,/^(?:ARITH_BN254_MULFP2\b)/,/^(?:ADD\b)/,/^(?:SUB\b)/,/^(?:LT\b)/,/^(?:SLT\b)/,/^(?:EQ\b)/,/^(?:AND\b)/,/^(?:OR\b)/,/^(?:XOR\b)/,/^(?:LT4\b)/,/^(?:CNT_ARITH\b)/,/^(?:CNT_BINARY\b)/,/^(?:CNT_KECCAK_F\b)/,/^(?:CNT_SHA256_F\b)/,/^(?:CNT_MEM_ALIGN\b)/,/^(?:CNT_PADDING_PG\b)/,/^(?:CNT_POSEIDON_G\b)/,/^(?:MEM_ALIGN_WR8\b)/,/^(?:MEM_ALIGN_RD\b)/,/^(?:MEM_ALIGN_WR\b)/,/^(?:SYS\b)/,/^(?:MEM\b)/,/^(?:STACK\b)/,/^(?:INCLUDE\b)/,/^(?:VAR\b)/,/^(?:GLOBAL\b)/,/^(?:CTX\b)/,/^(?:CONST\b)/,/^(?:CONSTL\b)/,/^(?:REPEAT\b)/,/^(?:"[^"]+")/,/^(?:[a-zA-Z_][a-zA-Z$_0-9]*)/,/^(?:%[a-zA-Z_][a-zA-Z$_0-9]*)/,/^(?:@[a-zA-Z_][a-zA-Z$_0-9]*)/,/^(?::)/,/^(?:,)/,/^(?:\()/,/^(?:\))/,/^(?:\+\+)/,/^(?:--)/,/^(?:\+)/,/^(?:-)/,/^(?:\/)/,/^(?:\*\*)/,/^(?:\*)/,/^(?:%)/,/^(?:=>)/,/^(?:<<)/,/^(?:>>)/,/^(?:\^)/,/^(?:\|\|)/,/^(?:&&)/,/^(?:&)/,/^(?:\|)/,/^(?:==)/,/^(?:!=)/,/^(?:<=)/,/^(?:>=)/,/^(?:>)/,/^(?:<)/,/^(?:=)/,/^(?:!)/,/^(?:\?\?)/,/^(?:\?)/,/^(?:\[)/,/^(?:\])/,/^(?:$)/,/^(?:.)/],
 conditions: {"INITIAL":{"rules":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122],"inclusive":true}}
 });
 return lexer;

@@ -27,8 +27,10 @@
     "url": "https://github.com/0xpolygonhermez/zkasmcom.git"
   },
   "dependencies": {
+    "chai": "^4.3.10",
     "ffjavascript": "^0.2.46",
     "jison": "^0.4.18",
+    "mocha": "^10.2.0",
     "yargs": "^17.1.1"
   }
 }
