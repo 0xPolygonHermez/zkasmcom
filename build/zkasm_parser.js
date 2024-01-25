@@ -231,7 +231,7 @@ case 55:
             this.$ = {type: 'neg', values: [$$[$0]]}
         
 break;
-case 56: case 58:
+case 56: case 58: case 172:
 
             this.$ = $$[$0]
         
@@ -390,364 +390,322 @@ case 86:
 break;
 case 87:
 
-            this.$ = { [$$[$0-3]]: 1, useJmpAddr: 1, jmpAddr: $$[$0-1] }
+            this.$ = { ...$$[$0-3], useJmpAddrRel: $$[$0-1].useAddrRel, ...$$[$0-1].indirections, jmpAddr: $$[$0-1].addr }
         
 break;
 case 88:
 
-            this.$ = { [$$[$0-3]]: 1, useJmpAddr: 1, jmpAddr: $$[$0-1], useElseAddr: 1, elseAddr: 'next' }
+            this.$ = { ...$$[$0-3], useElseAddrRel: $$[$0-1].useAddrRel, ...$$[$0-1].indirections, elseAddr: $$[$0-1].addr, useJmpAddrRel: 0, jmpAddr: 'next' }
         
 break;
 case 89:
 
-            this.$ = { [$$[$0-5]]: 1, useJmpAddr: 1, jmpAddr: $$[$0-3], useElseAddr: 1, elseAddr: $$[$0-1] }
+            // TODO: validate $$[$0-3].useAddrRel !== $$[$0-1].useAddrRel || $$[$0-3].indirections === $$[$0-1].indirections
+            this.$ = { ...$$[$0-5], useElseAddrRel: $$[$0-3].useAddrRel, ...$$[$0-3].indirections, elseAddr: $$[$0-3].addr, useJmpAddrRel: $$[$0-1].useAddrRel, jmpAddr: $$[$0-1], ...$$[$0-1].indirections }
         
 break;
 case 90:
 
-            this.$ = { [$$[$0-3]]: 1, useJmpAddr: 1, jmpAddr: 'next', useElseAddr: 1, elseAddr: $$[$0-1] }
+            this.$ = { ...$$[$0-3], useJmpAddrRel: $$[$0-1].useAddrRel, ...$$[$0-1].indirections, jmpAddr: $$[$0-1].addr, useElseAddrRel: 0, elseAddr: 'next' }
         
 break;
 case 91:
 
-            this.$ = { [$$[$0-5]]: 1, useJmpAddr: 1, jmpAddr:  $$[$0-1], useElseAddr: 1, elseAddr: $$[$0-3] }
+            // TODO: validate $$[$0-3].useAddrRel !== $$[$0-1].useAddrRel || $$[$0-3].indirections === $$[$0-1].indirections
+            this.$ = { ...$$[$0-5], useJmpAddrRel: $$[$0-3].useAddrRel, ...$$[$0-3].indirections, jmpAddr: $$[$0-3].addr, useElseAddrRel: $$[$0-1].useAddrRel, elseAddr: $$[$0-1].addr, ...$$[$0-1].indirections }
         
 break;
 case 92:
 
-            this.$ = { [$$[$0-3]]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: 0 }
+            this.$ = {JMP: 0,  JMPC: 0, JMPN: 0, useJmpAddrRel: $$[$0-1].useAddrRel, jmpAddr: $$[$0-1].addr, ...$$[$0-1].indirections, call: 1 }
         
 break;
 case 93:
 
-            this.$ = { [$$[$0-3]]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: 0 }
+            this.$ = {JMP: 0, JMPC: 0, JMPN: 0,  call: 0, return: 1}
         
 break;
 case 94:
 
-            this.$ = { [$$[$0-5]]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: $$[$0-3] }
+            this.$ = {assert: 1}
         
 break;
 case 95:
 
-            this.$ = { [$$[$0-5]]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: $$[$0-3] }
+            this.$ = {sRD: 1}
         
 break;
 case 96:
 
-            this.$ = { [$$[$0-3]]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: 0, useElseAddr: 1, elseAddr: 'next' }
+            this.$ = {sWR: 1}
         
 break;
 case 97:
 
-            this.$ = { [$$[$0-3]]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: 0, useElseAddr: 1, elseAddr: 'next' }
+            this.$ = { arithEq0: 1, arithEq1: 0, arithEq2: 0, arithEq3: 0, arithEq4: 0, arithEq5: 0 }
         
 break;
 case 98:
 
-            this.$ = { [$$[$0-5]]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: $$[$0-3], useElseAddr: 1, elseAddr: 'next' }
+            this.$ = { arithEq0: 0, arithEq1: 1, arithEq2: 0, arithEq3: 0, arithEq4: 0, arithEq5: 0 }
         
 break;
 case 99:
 
-            this.$ = { [$$[$0-5]]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: $$[$0-3], useElseAddr: 1, elseAddr: 'next' }
+            this.$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 0, arithEq4: 0, arithEq5: 0 }
         
 break;
 case 100:
 
-            this.$ = { [$$[$0-5]]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: 0, useElseAddr: 1, elseAddr: $$[$0-1] }
+            this.$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 1, arithEq4: 0, arithEq5: 0 }
         
 break;
 case 101:
 
-            this.$ = { [$$[$0-5]]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: 0, useElseAddr: 1, elseAddr: $$[$0-1] }
+            this.$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 0, arithEq4: 1, arithEq5: 0 }
         
 break;
 case 102:
 
-            this.$ = { [$$[$0-7]]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: $$[$0-5], useElseAddr: 1, elseAddr: $$[$0-1] }
+            this.$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 0, arithEq4: 0, arithEq5: 1 }
         
 break;
 case 103:
 
-            this.$ = { [$$[$0-7]]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: $$[$0-5], useElseAddr: 1, elseAddr: $$[$0-1] }
+            this.$ = { bin: 1, binOpcode: 0}
         
 break;
 case 104:
 
-            this.$ = {JMP: 0,  JMPC: 0, JMPN: 0, useJmpAddr:1, jmpAddr: $$[$0-1], call: 1}
+            this.$ = { bin: 1, binOpcode: 1}
         
 break;
 case 105:
 
-            this.$ = {JMP: 0,  JMPC: 0, JMPN: 0, offset: $$[$0-3], ind: 0, indRR: 1, return: 0, call: 1}
+            this.$ = { bin: 1, binOpcode: 2}
         
 break;
 case 106:
 
-            this.$ = {JMP: 0,  JMPC: 0, JMPN: 0, offset: $$[$0-3], ind: 1, indRR: 0, return: 0, call: 1}
+            this.$ = { bin: 1, binOpcode: 3}
         
 break;
 case 107:
 
-            this.$ = {JMP: 0, JMPC: 0, JMPN: 0,  call: 0, return: 1}
+            this.$ = { bin: 1, binOpcode: 4}
         
 break;
 case 108:
 
-            this.$ = {assert: 1}
+            this.$ = { bin: 1, binOpcode: 5}
         
 break;
 case 109:
 
-            this.$ = {sRD: 1}
+            this.$ = { bin: 1, binOpcode: 6}
         
 break;
 case 110:
 
-            this.$ = {sWR: 1}
+            this.$ = { bin: 1, binOpcode: 7}
         
 break;
 case 111:
 
-            this.$ = { arithEq0: 1, arithEq1: 0, arithEq2: 0, arithEq3: 0, arithEq4: 0, arithEq5: 0 }
+            this.$ = { bin: 1, binOpcode: 8}
         
 break;
 case 112:
 
-            this.$ = { arithEq0: 0, arithEq1: 1, arithEq2: 0, arithEq3: 0, arithEq4: 0, arithEq5: 0 }
+            this.$ = { memAlignRD: 1, memAlignWR: 0, memAlignWR8: 0}
         
 break;
 case 113:
 
-            this.$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 0, arithEq4: 0, arithEq5: 0 }
+            this.$ = { memAlignRD: 0, memAlignWR: 1, memAlignWR8: 0}
         
 break;
 case 114:
 
-            this.$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 1, arithEq4: 0, arithEq5: 0 }
+            this.$ = { memAlignRD: 0, memAlignWR: 0, memAlignWR8: 1}
         
 break;
 case 115:
 
-            this.$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 0, arithEq4: 1, arithEq5: 0 }
+            this.$ = { repeat: 1 }
         
 break;
 case 116:
 
-            this.$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 0, arithEq4: 0, arithEq5: 1 }
+            this.$ = { useAddrRel: 0, ind: 0, indRR: 1, addr: $$[$02] }
         
 break;
-case 117:
+case 117: case 118:
 
-            this.$ = { bin: 1, binOpcode: 0}
-        
-break;
-case 118:
-
-            this.$ = { bin: 1, binOpcode: 1}
-        
-break;
-case 119:
-
-            this.$ = { bin: 1, binOpcode: 2}
-        
-break;
-case 120:
-
-            this.$ = { bin: 1, binOpcode: 3}
-        
-break;
-case 121:
-
-            this.$ = { bin: 1, binOpcode: 4}
+            this.$ = { useAddrRel: 1, ind: 0, indRR: 1, addr: $$[$0] }
         
 break;
 case 122:
-
-            this.$ = { bin: 1, binOpcode: 5}
-        
-break;
-case 123:
-
-            this.$ = { bin: 1, binOpcode: 6}
-        
-break;
-case 124:
-
-            this.$ = { bin: 1, binOpcode: 7}
-        
-break;
-case 125:
-
-            this.$ = { bin: 1, binOpcode: 8}
-        
-break;
-case 126:
-
-            this.$ = { memAlignRD: 1, memAlignWR: 0, memAlignWR8: 0}
-        
-break;
-case 127:
-
-            this.$ = { memAlignRD: 0, memAlignWR: 1, memAlignWR8: 0}
-        
-break;
-case 128:
-
-            this.$ = { memAlignRD: 0, memAlignWR: 0, memAlignWR8: 1}
-        
-break;
-case 129:
-
-            this.$ = { repeat: 1 }
-        
-break;
-case 133:
  this.$ = 'JMPC' 
 break;
-case 134:
+case 123:
  this.$ = 'JMPZ' 
 break;
-case 135:
+case 124:
  this.$ = 'cntArith' 
 break;
-case 136:
+case 125:
  this.$ = 'cntBinary' 
 break;
-case 137:
+case 126:
  this.$ = 'cntKeccakF' 
 break;
-case 138:
+case 127:
  this.$ = 'cntSha256F' 
 break;
-case 139:
+case 128:
  this.$ = 'cntMemAlign' 
 break;
-case 140:
+case 129:
  this.$ = 'cntPaddingPG' 
 break;
-case 141:
+case 130:
  this.$ = 'cntPoseidonG' 
 break;
-case 158:
+case 147: case 148:
+ 
+            this.$ = $$[$0]
+        
+break;
+case 149:
+ 
+            this.$ = { reg: 'ind' } 
+        
+break;
+case 150:
+ 
+            this.$ = { reg: 'indRR' } 
+        
+break;
+case 151:
+ 
+            this.$ = { ...$$[$0], indReg: 1 }
+        
+break;
+case 152: case 153:
 
-            this.$ = { isStack: 1, isMem:0, ind:0, indRR: 0, incStack:0, offset: 0, useCTX: 1}
+            this.$ = { ...$$[$0], indReg: $$[$0-2] }
+        
+break;
+case 154: case 155: case 156:
+ 
+            this.$ = $$[$0] 
+        
+break;
+case 157:
+   
+            this.$ = $$[$0] 
+        
+break;
+case 158:
+ 
+            this.$ = $$[$0-2] 
         
 break;
 case 159:
-
-            this.$ = { isStack: 1, isMem:0, ind:0, indRR: 0, incStack: 0, offset: $$[$0], useCTX: 1}
+   
+            this.$ = $$[$0-2] 
         
 break;
 case 160:
 
-            this.$ = { isStack: 1, isMem:0, ind:0, indRR: 0, incStack: 0, offset: -$$[$0], useCTX: 1}
+            this.$ = { [$$[$0].reg]: $$[$0].indReg } 
         
 break;
 case 161:
 
-            this.$ = { isStack: 1, isMem:0, ind:0, indRR: 0, incStack: 1, offset: 0, useCTX: 1}
+            this.$ = { [$$[$0-2].reg]: $$[$0-2].indReg, extraOffset: applySign($$[$0-1], $$[$0])};            
         
 break;
 case 162:
 
-            this.$ = { isStack: 1, isMem:0, ind:0, indRR: 0, incStack: -1, offset: 0, useCTX: 1}
+            this.$ = { [$$[$0-4].reg]: $$[$0-4].indReg, [$$[$0-2].reg] = applySign($$[$0-3], $$[$0-2].indReg), extraOffset: applySign($$[$0-1], $$[$0]) }
+            checkAddrRel(this.$);
         
 break;
 case 163:
 
-            this.$ = { isStack: 0, isMem:0, ind:1, indRR: 0, incStack: 0, offset: $$[$0]}
+            this.$ = { [$$[$0-2].reg]: $$[$0-2].indReg, [$$[$0].reg] = applySign($$[$0-1], $$[$0].indReg) }
         
 break;
 case 164:
 
-            this.$ = { isStack: 0, isMem:0, ind:1, indRR: 0, incStack: 0, offset: -$$[$0]}
+            this.$ = { isStack: 1, isMem:0, ind:0, indRR: 0, incStack:0, offset: 0, useCTX: 1}
         
 break;
 case 165:
 
-            this.$ = { isStack: 0, isMem:0, ind:1, indRR: 0, incStack: 0, offset: 0}
+            this.$ = { isStack: 1, isMem:0, ind:0, indRR: 0, incStack: 0, offset: $$[$0], useCTX: 1}
         
 break;
 case 166:
 
-            this.$ = { isStack: 0, isMem: 1, ind:1, indRR: 0, incStack: 0, offset: $$[$0], useCTX: 1}
+            this.$ = { isStack: 1, isMem:0, ind:0, indRR: 0, incStack: 0, offset: -$$[$0], useCTX: 1}
         
 break;
 case 167:
 
-            this.$ = { isStack: 0, isMem: 1, ind:1, indRR: 0, incStack: 0, offset: -$$[$0], useCTX: 1}
+            this.$ = { isStack: 1, isMem:0, ind:0, indRR: 0, incStack: 1, offset: 0, useCTX: 1}
         
 break;
 case 168:
 
-            this.$ = { isStack: 0, isMem: 1, ind:1, indRR: 0, incStack: 0, offset: 0, useCTX: 1}
+            this.$ = { isStack: 1, isMem:0, ind:0, indRR: 0, incStack: -1, offset: 0, useCTX: 1}
         
 break;
 case 169:
 
-            this.$ = { isStack: 1, ind:1, indRR: 0, incStack: 0, offset: $$[$0], useCTX: 1}
+            this.$ = { isStack: 0, isMem:0, ind:1, indRR: 0, incStack: 0, offset: $$[$02]}
         
 break;
 case 170:
 
-            this.$ = { isStack: 1, ind:1, indRR: 0, incStack: 0, offset: -$$[$0], useCTX: 1}
+            this.$ = { isStack: 0, isMem: 1, ind:1, indRR: 0, incStack: 0, offset: $$[$02], useCTX: 1}
         
 break;
 case 171:
 
-            this.$ = { isStack: 1, ind:1, indRR: 0, incStack: 0, offset: 0, useCTX: 1}
-        
-break;
-case 172:
-
-            this.$ = { offset: $$[$0] }
+            this.$ = { isStack: 1, ind:1, indRR: 0, incStack: 0, offset: $$[$02], useCTX: 1}
         
 break;
 case 173:
 
-            this.$ = { offset: $$[$0-2], ind: 0, indRR: 1 }
+            this.$ = { offset: $$[$0] }
         
 break;
 case 174:
 
-            this.$ = { offset: $$[$0-2], ind: 1, indRR: 0 }
+            this.$ = {  ...$$[$0], offset: $$[$0-2] }
         
 break;
 case 175:
 
-            this.$ = { offset: $$[$0-3], ind: 1, indRR: 0 }
+            this.$ = {  ...$$[$0-1], offset: $$[$0-3] }
         
 break;
-case 176:
-
-            this.$ = { offset: $$[$0-5], extraOffset: -$$[$0-1], ind: 1, indRR: 0 }
-        
-break;
-case 177:
-
-            this.$ = { offset: $$[$0-5], extraOffset: $$[$0-1], ind: 1, indRR: 0 }
-        
-break;
-case 178:
+case 176: case 177:
 
             this.$ = { offset: $$[$0-2], extraOffset: $$[$0] }
         
 break;
+case 178:
+
+            this.$ = { ind: 0, indRR: 0, offset:$$[$0] }
+        
+break;
 case 179:
 
-            this.$ = { offset: $$[$0-3], extraOffset: $$[$0-1] }
-        
-break;
-case 180:
-
-            this.$ = {ind: 0, indRR: 0, offset:$$[$0]}
-        
-break;
-case 181:
-
-            this.$ = {ind: 1, indRR: 0, offset:0}
+            this.$ = { ind: 1, indRR: 0, offset:0 }
         
 break;
 case 182:
@@ -918,6 +876,20 @@ parse: function parse(input) {
 
 function setLine(dst, first) {
     dst.line = first.first_line;
+}
+function negate(value) {
+    if (typeof value === 'number' | typeof value === 'bigint') {
+        return -value;
+    }
+    if (typeof value === 'string') {
+        return value.startsWith('-') ? value.substring(1) : '-'+value;
+    }
+    throw new Error(`ERROR: couldn't negate value ${value} (${typeof value})`);
+}
+function applySign(sign, value) {
+    if (sign === '+') return value;
+    if (sign === '-') return negate(value);
+    throw new Error(`ERROR: invalid sign ${sign} with value ${value} (${typeof value})`);
 }
 /* generated by jison-lex 0.3.4 */
 var lexer = (function(){
@@ -1273,29 +1245,29 @@ case 11: return 130;
 break;
 case 12: return 131; 
 break;
-case 13: return 90; 
+case 13: return 132; 
 break;
-case 14: return 115; 
+case 14: return 114; 
 break;
-case 15: return 132; 
+case 15: return 133; 
 break;
 case 16: return 30; 
 break;
-case 17: return 133; 
+case 17: return 134; 
 break;
-case 18: return 134; 
+case 18: return 135; 
 break;
-case 19: return 135; 
+case 19: return 136; 
 break;
-case 20: return 136; 
+case 20: return 138; 
 break;
-case 21: return 89; 
+case 21: return 137; 
 break;
-case 22: return 137; 
+case 22: return 139; 
 break;
-case 23: return 139; 
+case 23: return 141; 
 break;
-case 24: return 138; 
+case 24: return 140; 
 break;
 case 25: return 70 
 break;
@@ -1337,45 +1309,45 @@ case 43: return 119
 break;
 case 44: return 116 
 break;
-case 45: return 91 
+case 45: return 90 
 break;
-case 46: return 92 
+case 46: return 91 
 break;
-case 47: return 93 
+case 47: return 92 
 break;
-case 48: return 94 
+case 48: return 93 
 break;
-case 49: return 95 
+case 49: return 94 
 break;
-case 50: return 96 
+case 50: return 95 
 break;
-case 51: return 97 
+case 51: return 96 
 break;
-case 52: return 98 
+case 52: return 97 
 break;
-case 53: return 100 
+case 53: return 99 
 break;
-case 54: return 101 
+case 54: return 100 
 break;
-case 55: return 99 
+case 55: return 98 
 break;
-case 56: return 102 
+case 56: return 101 
 break;
-case 57: return 103 
+case 57: return 102 
 break;
-case 58: return 104 
+case 58: return 103 
 break;
-case 59: return 105 
+case 59: return 104 
 break;
-case 60: return 106 
+case 60: return 105 
 break;
-case 61: return 107 
+case 61: return 106 
 break;
-case 62: return 108 
+case 62: return 107 
 break;
-case 63: return 109 
+case 63: return 108 
 break;
-case 64: return 110 
+case 64: return 109 
 break;
 case 65: return 121 
 break;
@@ -1391,17 +1363,17 @@ case 70: return 126
 break;
 case 71: return 127 
 break;
-case 72: return 113 
+case 72: return 112 
 break;
-case 73: return 111 
+case 73: return 110 
 break;
-case 74: return 112 
+case 74: return 111 
 break;
-case 75: return 142 
+case 75: return 149 
 break;
-case 76: return 143 
+case 76: return 150 
 break;
-case 77: return 144 
+case 77: return 151 
 break;
 case 78: return 31 
 break;
@@ -1415,7 +1387,7 @@ case 82: return 24
 break;
 case 83: return 27 
 break;
-case 84: return 114 
+case 84: return 113 
 break;
 case 85: yy_.yytext = yy_.yytext.slice(1,-1); return 32; 
 break;
@@ -1433,9 +1405,9 @@ case 91: return 56
 break;
 case 92: return 57
 break;
-case 93: return 140
+case 93: return 147
 break;
-case 94: return 141
+case 94: return 148
 break;
 case 95: return 35
 break;
