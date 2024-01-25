@@ -832,12 +832,12 @@ addrRel
         }
     | indReg2 addrRelOp indReg2 addrRelOp addrOffset
         {
-            $$ = { [$1.reg]: $1.indReg, [$3.reg] = applySign($2, $3.indReg), extraOffset: applySign($4, $5) }
+            $$ = { [$1.reg]: $1.indReg, [$3.reg]: applySign($2, $3.indReg), extraOffset: applySign($4, $5) }
             checkAddrRel($$);
         }
     | indReg2 addrRelOp indReg2
         {
-            $$ = { [$1.reg]: $1.indReg, [$3.reg] = applySign($2, $3.indReg) }
+            $$ = { [$1.reg]: $1.indReg, [$3.reg]: applySign($2, $3.indReg) }
         }
     ;
 
