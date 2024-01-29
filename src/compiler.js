@@ -119,10 +119,15 @@ module.exports = async function compile(fileName, ctx, config = {}) {
                 let assignmentRequired = false;
                 for (let j=0; j< l.ops.length; j++) {
                     appendOp(traceStep, l.ops[j]);
-                    if (l.ops[j].JMP || l.ops[j].call || l.ops[j].return || l.ops[j].repeat) continue;
+                    if (l.ops[j].save) {
+                        if (l.assignment) {
+                            error(l, "assignment on save not allowed");
+                        }
+                        continue;
+                    }
+                    if (l.ops[j].JMP || l.ops[j].call || l.ops[j].return || l.ops[j].repeat|| l.ops[j].restore) continue;
                     assignmentRequired = true;
                 }
-
                 if (assignmentRequired && !l.assignment) {
                     error(l, "Left assignment required");
                 }
@@ -207,6 +212,26 @@ module.exports = async function compile(fileName, ctx, config = {}) {
                 }
                 ctx.out[i].elseAddrLabel = ctx.out[i].elseAddr;
                 ctx.out[i].elseAddr = codeAddr;
+            }
+
+            if (ctx.out[i].save || ctx.out[i].restore) {
+                const regs = ctx.out[i].regs ?? ctx.out[i].regs;
+                ['B','C','D','RR','RCX'].forEach(x => {
+                    if (regs.includes(x) === false) { 
+                        error(l, `the register ${x} must be included in save/restore`);
+                    }
+                });
+                ['A','E','HASHPOS'].forEach(x => {
+                    if (regs.includes(x)) { 
+                        if (ctx.out[i].save) ctx.out[i]['in'+x] = 1;
+                        else ctx.out[i]['restore'+x] = 1;
+                    }
+                });
+                regs.forEach(x => {
+                    if (['A','B','C','D','E','RR','RCX','HASHPOS'].includes(x) === false) { 
+                        error(l, `the register ${x} not allowed to be included in save/restore`);                        }
+                });
+                delete ctx.out[i].regs;
             }
 
             try {
