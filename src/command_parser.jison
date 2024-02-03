@@ -19,6 +19,7 @@ STEP                    { return 'STEP'; }
 CNT_ARITH               { return 'CNT_ARITH' }
 CNT_BINARY              { return 'CNT_BINARY' }
 CNT_KECCAK_F            { return 'CNT_KECCAK_F' }
+CNT_SHA256_F            { return 'CNT_SHA256_F' }
 CNT_MEM_ALIGN           { return 'CNT_MEM_ALIGN' }
 CNT_PADDING_PG          { return 'CNT_PADDING_PG' }
 CNT_POSEIDON_G          { return 'CNT_POSEIDON_G' }
@@ -55,6 +56,8 @@ var                     { return 'VAR'; }
 \:                      { return ':'}
 \.\.                    { return RANGE_DOTS }
 \.                      { return '.'}
+\[                      { return '[' }
+\]                      { return ']' }
 <<EOF>>                 { return 'EOF'; }
 .                       { /* console.log("INVALID: " + yytext); */ return 'INVALID'; }
 
@@ -255,7 +258,11 @@ e0
         }
     | IDENTIFIER '.' IDENTIFIER
         {
-            $$ = {op: "getData", module: $1, offset: $3}
+            $$ = {op: "getData", module: $1, offset: $3, arrayOffset: 0}
+        }
+    | IDENTIFIER '.' IDENTIFIER '[' expression ']'
+        {
+            $$ = {op: "getData", module: $1, offset: $3, arrayOffset: $5}
         }
     ;
 
@@ -292,6 +299,7 @@ counter
     : CNT_ARITH
     | CNT_BINARY
     | CNT_KECCAK_F
+    | CNT_SHA256_F
     | CNT_MEM_ALIGN
     | CNT_PADDING_PG
     | CNT_POSEIDON_G
