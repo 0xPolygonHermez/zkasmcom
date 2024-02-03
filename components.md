@@ -41,10 +41,6 @@ A **register** is a location available to the zkEVM that is manipulated through 
 - Represents the number of instructions performed within the program.
 - Array of 1 element `[V]`.
 
-### MAXMEM
-- Represents the maximum memory.
-- Array of 1 element `[V]`.
-
 ### HASHPOS
 - It is used to set/get bytes from Poseidon/Keccak bytes.
 - Array of 1 element `[V]`.
