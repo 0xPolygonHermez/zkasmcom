@@ -1,8 +1,6 @@
 const path = require("path");
 const fs = require("fs");
-const util = require('util');
 const { config } = require("process");
-const { get } = require("http");
 const zkasm_parser = require("../build/zkasm_parser.js").parser;
 const command_parser = require("../build/command_parser.js").parser;
 const stringifyBigInts = require("ffjavascript").utils.stringifyBigInts;
