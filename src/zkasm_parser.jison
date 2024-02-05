@@ -6,6 +6,7 @@
 ((0x[0-9A-Fa-f][0-9A-Fa-f_]*)|([0-9][0-9_]*))n          { yytext = BigInt(yytext.replace(/[\_n]/g, "")); return 'NUMBERL'; }
 (0x[0-9A-Fa-f][0-9A-Fa-f_]*)|([0-9][0-9_]*)          { yytext = Number(yytext.replace(/\_/g, "")); return 'NUMBER'; }
 \$\$\{[^\}]*\}          { yytext = yytext.slice(3, -1); return "COMMAND"; }
+\$0\{[^\}]*\}          { yytext = yytext.slice(3, -1); return 'TAG_0'; }
 (\$(\{[^\}]*\})?)       { yytext = yytext.length == 1 ? "" : yytext.slice(2, -1); return 'TAG'; }
 [\r\n]+                 { return "LF";}
 [ \t]+                  { /* console.log("Empty spaces"); */ }
@@ -31,6 +32,10 @@ HASHKLEN                { return 'HASHKLEN' }
 HASHKDIGEST             { return 'HASHKDIGEST' }
 HASHK1                  { return 'HASHK1' }
 HASHK                   { return 'HASHK' }
+HASHSLEN                { return 'HASHSLEN' }
+HASHSDIGEST             { return 'HASHSDIGEST' }
+HASHS1                  { return 'HASHS1' }
+HASHS                   { return 'HASHS' }
 HASHPLEN                { return 'HASHPLEN' }
 HASHPDIGEST             { return 'HASHPDIGEST' }
 HASHP1                  { return 'HASHP1' }
@@ -49,6 +54,9 @@ SSTORE                  { return 'SSTORE' }
 ARITH                   { return 'ARITH' }
 ARITH_ECADD_DIFFERENT   { return 'ARITH_ECADD_DIFFERENT' }
 ARITH_ECADD_SAME        { return 'ARITH_ECADD_SAME' }
+ARITH_BN254_ADDFP2      { return 'ARITH_BN254_ADDFP2' }
+ARITH_BN254_SUBFP2      { return 'ARITH_BN254_SUBFP2' }
+ARITH_BN254_MULFP2      { return 'ARITH_BN254_MULFP2' }
 ADD                     { return 'ADD' }
 SUB                     { return 'SUB' }
 LT                      { return 'LT' }
@@ -57,9 +65,11 @@ EQ                      { return 'EQ' }
 AND                     { return 'AND' }
 OR                      { return 'OR' }
 XOR                     { return 'XOR' }
+LT4                     { return 'LT4' }
 CNT_ARITH               { return 'CNT_ARITH' }
 CNT_BINARY              { return 'CNT_BINARY' }
 CNT_KECCAK_F            { return 'CNT_KECCAK_F' }
+CNT_SHA256_F            { return 'CNT_SHA256_F' }
 CNT_MEM_ALIGN           { return 'CNT_MEM_ALIGN' }
 CNT_PADDING_PG          { return 'CNT_PADDING_PG' }
 CNT_POSEIDON_G          { return 'CNT_POSEIDON_G' }
@@ -232,6 +242,10 @@ varDef
         {
             $$ = {type: "var", scope: $2, name: $3, count: $5 }
         }
+    |  VAR scope IDENTIFIER '[' CONSTID ']'
+        {
+            $$ = {type: "var", scope: $2, name: $3, count: $5 }
+        }
     ;
 
 constDef
@@ -253,7 +267,6 @@ command
             $$ = {type: "command", cmd: $1}
         }
     ;
-
 
 scope
     : GLOBAL
@@ -304,7 +317,7 @@ nexpr
         {
             $$ = {type: $2, values: [$1, $3]}
         }
-      | nexpr '/' nexpr
+    | nexpr '/' nexpr
         {
             $$ = {type: $2, values: [$1, $3]}
         }
@@ -424,6 +437,10 @@ inReg
         {
             $$ = {type: 'TAG' , tag: $1}
         }
+    | TAG_0
+        {
+            $$ = {type: 'TAG_0' , tag: $1}
+        }
     | reg
         {
             $$ = {type: 'REG' , reg: $1}
@@ -514,6 +531,26 @@ op
         {
             $$ = $3;
             $$.hashKDigest = 1;
+        }
+    | HASHS '(' hashId ')'
+        {
+            $$ = $3;
+            $$.hashS = 1;
+        }
+    | HASHS1 '(' hashId ')'
+        {
+            $$ = $3;
+            $$.hashS1 = 1;
+        }
+    | HASHSLEN '(' hashId ')'
+        {
+            $$ = $3;
+            $$.hashSLen = 1;
+        }
+    | HASHSDIGEST '(' hashId ')'
+        {
+            $$ = $3;
+            $$.hashSDigest = 1;
         }
     | HASHP '(' hashId ')'
         {
@@ -633,15 +670,27 @@ op
         }
     | ARITH
         {
-            $$ = { arithEq0: 1, arithEq1: 0, arithEq2: 0}
+            $$ = { arithEq0: 1, arithEq1: 0, arithEq2: 0, arithEq3: 0, arithEq4: 0, arithEq5: 0 }
         }
     | ARITH_ECADD_DIFFERENT
         {
-            $$ = { arithEq0: 0, arithEq1: 1, arithEq2: 0}
+            $$ = { arithEq0: 0, arithEq1: 1, arithEq2: 0, arithEq3: 0, arithEq4: 0, arithEq5: 0 }
         }
     | ARITH_ECADD_SAME
         {
-            $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 1}
+            $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 0, arithEq4: 0, arithEq5: 0 }
+        }
+    | ARITH_BN254_MULFP2
+        {
+            $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 1, arithEq4: 0, arithEq5: 0 }
+        }
+    | ARITH_BN254_ADDFP2
+        {
+            $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 0, arithEq4: 1, arithEq5: 0 }
+        }
+    | ARITH_BN254_SUBFP2
+        {
+            $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 0, arithEq4: 0, arithEq5: 1 }
         }
     | ADD
         {
@@ -674,6 +723,10 @@ op
     | XOR
         {
             $$ = { bin: 1, binOpcode: 7}
+        }
+    | LT4
+        {
+            $$ = { bin: 1, binOpcode: 8}
         }
     | MEM_ALIGN_RD
         {
@@ -709,6 +762,7 @@ counter
     : CNT_ARITH         { $$ = 'cntArith' }
     | CNT_BINARY        { $$ = 'cntBinary' }
     | CNT_KECCAK_F      { $$ = 'cntKeccakF' }
+    | CNT_SHA256_F      { $$ = 'cntSha256F' }
     | CNT_MEM_ALIGN     { $$ = 'cntMemAlign' }
     | CNT_PADDING_PG    { $$ = 'cntPaddingPG' }
     | CNT_POSEIDON_G    { $$ = 'cntPoseidonG' }
@@ -741,19 +795,19 @@ addr
         }
     | SP '+' NUMBER
         {
-            $$ = { isStack: 1, isMem:0, ind:0, indRR: 0, incStack: 0, offset: $3, useCTX: 1}}
+            $$ = { isStack: 1, isMem:0, ind:0, indRR: 0, incStack: 0, offset: $3, useCTX: 1}
         }
     | SP '-' NUMBER
         {
-            $$ = { isStack: 1, isMem:0, ind:0, indRR: 0, incStack: 0, offset: -$3, useCTX: 1}}
+            $$ = { isStack: 1, isMem:0, ind:0, indRR: 0, incStack: 0, offset: -$3, useCTX: 1}
         }
     | SP '++'
         {
-            $$ = { isStack: 1, isMem:0, ind:0, indRR: 0, incStack: 1, offset: 0, useCTX: 1}}
+            $$ = { isStack: 1, isMem:0, ind:0, indRR: 0, incStack: 1, offset: 0, useCTX: 1}
         }
     | SP '--'
         {
-            $$ = { isStack: 1, isMem:0, ind:0, indRR: 0, incStack: -1, offset: 0, useCTX: 1}}
+            $$ = { isStack: 1, isMem:0, ind:0, indRR: 0, incStack: -1, offset: 0, useCTX: 1}
         }
     | SYS ':' E '+' NUMBER
         {
@@ -803,6 +857,26 @@ addr
         {
             $$ = { offset: $1, ind: 1, indRR: 0 }
         }
+    | IDENTIFIER '[' E ']'
+        {
+            $$ = { offset: $1, ind: 1, indRR: 0 }
+        }
+    | IDENTIFIER '[' E '-' NUMBER ']'
+        {
+            $$ = { offset: $1, extraOffset: -$5, ind: 1, indRR: 0 }
+        }
+    | IDENTIFIER '[' E '+' NUMBER ']'
+        {
+            $$ = { offset: $1, extraOffset: $5, ind: 1, indRR: 0 }
+        }
+    | IDENTIFIER '+' NUMBER
+        {
+            $$ = { offset: $1, extraOffset: $3 }
+        }
+    | IDENTIFIER '[' NUMBER ']'
+        {
+            $$ = { offset: $1, extraOffset: $3 }
+        }
     ;
 
 hashId
@@ -813,5 +887,17 @@ hashId
     | E
         {
             $$ = {ind: 1, indRR: 0, offset:0}
+        }
+    | RR
+        {
+            $$ = {ind: 0, indRR: 1, offset:0}
+        }
+    | E '+' NUMBER
+        {
+            $$ = {ind: 1, indRR: 0, offset:$3}
+        }
+    | RR '+' NUMBER
+        {
+            $$ = {ind: 0, indRR: 1, offset:$3}
         }
     ;

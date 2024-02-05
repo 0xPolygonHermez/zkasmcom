@@ -71,11 +71,20 @@ module.exports = async function compile(fileName, ctx, config = {}) {
                     scope: "GLOBAL",
                     offset: ctx.lastGlobalVarAssigned + 1
                 }
-                ctx.lastGlobalVarAssigned += l.count;
+                if (typeof l.count === 'string') {
+                    ctx.lastGlobalVarAssigned += Number(getConstantValue(ctx, l.count));
+                } else {
+                    ctx.lastGlobalVarAssigned += l.count;
+                }
             } else if (l.scope == "CTX") {
                 ctx.vars[l.name] = {
                     scope: "CTX",
                     offset: ctx.lastLocalVarCtxAssigned + 1
+                }
+                if (typeof l.count === 'string') {
+                    ctx.lastGlobalVarAssigned += Number(getConstantValue(ctx, l.count));
+                } else {
+                    ctx.lastGlobalVarAssigned += l.count;
                 }
                 ctx.lastLocalVarCtxAssigned += l.count;
             } else {
@@ -177,7 +186,7 @@ module.exports = async function compile(fileName, ctx, config = {}) {
                         } else {
                             error(ctx.out[i].line, `Invalid variable scope: ${ctx.out[i].offset} not defined.`);
                         }
-                        ctx.out[i].offset = ctx.vars[ctx.out[i].offset].offset;
+                        ctx.out[i].offset = ctx.vars[ctx.out[i].offset].offset + (ctx.out[i].extraOffset ?? 0);
                     }
                 }
             }
@@ -249,7 +258,41 @@ module.exports = async function compile(fileName, ctx, config = {}) {
                 }
                 cmd.op = 'getMemValue'
                 cmd.offset = ctx.vars[name].offset;
+                // set useCTX
+                if (ctx.vars[name].scope === 'CTX') {
+                    cmd.useCTX = 1;
+                } else if (ctx.vars[name].scope === 'GLOBAL') {
+                    cmd.useCTX = 0;
+                }
+                if (cmd.arrayOffset) {
+                    if (cmd.arrayOffset.op === 'number') {
+                        cmd.offset += Number(cmd.arrayOffset.num);
+                    } else {
+                        cmd.op = 'getMemValueByAddress';
+                        cmd.params = [cmd.arrayOffset];
+                        if (cmd.offset) {
+                            cmd.params = [{ op: 'add', values: [cmd.params[0], {op: 'number', num: BigInt(cmd.offset)}]}];
+                        }
+                        delete cmd.offset;
+                        delete cmd.arrayOffset;
+                        return;
+                    }
+                }
                 cmd.offsetLabel = name;
+                return;
+            }
+            else if (cmd.module === 'addr' && typeof cmd.offsetLabel === 'undefined') {
+                const name = cmd.offset;
+                if (typeof ctx.vars[name] === 'undefined') {
+                    error(ctx.out[i].line, `Not found reference ${cmd.module}.${name}`);
+                }
+                cmd.op = 'number'
+                cmd.num = ctx.vars[name].offset.toString();
+                if (cmd.arrayOffset) {
+                    cmd.num += Number(cmd.arrayOffset.num ?? 0).toString();
+                }
+                cmd.offsetLabel = name;
+                delete cmd.offset;
                 return;
             }
             else if (cmd.module === 'const' && typeof cmd.offsetLabel === 'undefined') {
@@ -345,9 +388,10 @@ function getConstantValue(ctx, name, throwIfNotExists = true) {
 function processAssignmentIn(ctx, input, currentLine) {
     const res = {};
     let E1, E2;
-    if (input.type == "TAG") {
+    if (input.type == "TAG" || input.type == 'TAG_0') {
         res.freeInTag = input.tag ? command_parser.parse(input.tag) : { op: ""};
-        res.inFREE = 1n;
+        res.inFREE = input.type == 'TAG_0' ? 0n : 1n;
+        res.inFREE0 = input.type == 'TAG_0' ? 1n : 0n;
         return res;
     }
     if (input.type == "REG") {
