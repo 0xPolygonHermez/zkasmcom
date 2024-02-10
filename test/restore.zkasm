@@ -1,16 +1,116 @@
+VAR GLOBAL tmpRR
+VAR GLOBAL tmpCTX
+VAR GLOBAL tmpHASHPOS
+VAR GLOBAL currentRID
+
+
 start:
         STEP => A
         0   :ASSERT
+            
+        CTX                 :MSTORE(tmpCTX)
+        RR                  :MSTORE(tmpRR)
+        HASHPOS             :MSTORE(tmpHASHPOS)
+        
+        100 => A
+        101 => B
+        102 => C
+        103 => D
+        104 => E
+        105 => SR
+        106 => RR
+        107 => RCX
+        108 => HASHPOS
+        109 => SP
+        110 => PC
+        
+                            :SAVE(A,B,C,D,RR,RCX)
+        200 => A
+        201 => B
+        202 => C
+        203 => D
+        204 => E
+        205 => SR
+        206 => RR
+        207 => RCX
+        208 => HASHPOS
+        209 => SP
+        210 => PC
+                            :RESTORE(A,B,C,D,RR,RCX)
+        100                 :ASSERT
+        0 => A
+        B - 101             :ASSERT
+        C - 102             :ASSERT
+        D - 103             :ASSERT
+        E - 204             :ASSERT
+        SR - 205            :ASSERT
+        RR - 106            :ASSERT
+        RCX - 107           :ASSERT
+        HASHPOS - 208       :ASSERT
+        SP - 209            :ASSERT
+        PC - 210            :ASSERT
+
+                            :CALL(f1)
+        500                 :ASSERT
+        0 => A
+        B - 401             :ASSERT
+        C - 402             :ASSERT
+        D - 403             :ASSERT
+        E - 404             :ASSERT
+        SR - 405            :ASSERT
+        RCX - 407           :ASSERT
+        HASHPOS - 408       :ASSERT
+        SP - 409            :ASSERT
+        PC - 410            :ASSERT
+
+                            :SAVE(B,C,D)
+                            :JMP(clean_stage)
+
+f1:
+        400 => A
+        401 => B
+        402 => C
+        403 => D
+        404 => E
+        405 => SR
+        407 => RCX
+        408 => HASHPOS
+        409 => SP
+        410 => PC
+
+        :SAVE(B,C,D,E,SR,RR,RCX,HASHPOS,SP,PC)
+        500 => A
+        501 => B
+        502 => C
+        503 => D
+        504 => E
+        505 => SR
+        506 => RR
+        507 => RCX
+        508 => HASHPOS
+        509 => SP
+        510 => PC
+        :RESTORE,RETURN
 
 
-        :RETURN
-        :SAVE(A,B,C,D,RR,RCX)
-        0x101112131415161718191A1B1C1D1E1F202122232425262728292A2B2C2D2E2Fn => C
-        ROTL_C => A
-        0x1415161718191A1B1C1D1E1F202122232425262728292A2B2C2D2E2F10111213n: ASSERT
-        :RESTORE(A,B,C,D,RR,RCX)
+
+clean_stage:
+
+        
+                                            :SAVE(A,B,C,D,E,SR,RR,RCX,HASHPOS,SP,PC)
+        RID                                 :MSTORE(currentRID)
+clean_restore_loop:
+        ${getRID(mem.currentRID)} => RID    :JMPN(clean_restore_end)    
+                                            :RESTORE,JMP(clean_restore_loop)
+clean_restore_end:
+        $ => RID                            :MLOAD(currentRID)                                                  
+                                            :RESTORE
+
 end:
-       0 => A,B,C,D,E,CTX, SP, PC, GAS, SR
+        0 => A,B,C,D,E,CTX, RCX, SP, PC, GAS, SR, RID
+        $ => CTX            :MLOAD(tmpCTX)
+        $ => RR             :MLOAD(tmpRR)
+        $ => HASHPOS        :MLOAD(tmpHASHPOS)
 
 finalWait:
         ${beforeLast()}  : JMPN(finalWait)
