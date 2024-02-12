@@ -11,6 +11,8 @@ const maxConstl = (1n << 256n) - 1n;
 const minConstl = 0n;
 const readOnlyRegisters = ['STEP', 'ROTL_C'];
 
+const MAX_GLOBAL_VAR = 0x10000;
+
 module.exports = async function compile(fileName, ctx, config = {}) {
 
     let isMain;
@@ -67,26 +69,23 @@ module.exports = async function compile(fileName, ctx, config = {}) {
         } else if (l.type == "var") {
             if (typeof ctx.vars[l.name] !== "undefined") error(l, `Variable ${l.name} already defined`);
             if (l.scope == "GLOBAL") {
+                const count = typeof l.count === 'string' ? Number(getConstantValue(ctx, l.count)) : l.count;
                 ctx.vars[l.name] = {
                     scope: "GLOBAL",
+                    count,
                     offset: ctx.lastGlobalVarAssigned + 1
                 }
-                if (typeof l.count === 'string') {
-                    ctx.lastGlobalVarAssigned += Number(getConstantValue(ctx, l.count));
-                } else {
-                    ctx.lastGlobalVarAssigned += l.count;
-                }
+                ctx.lastGlobalVarAssigned += count;
             } else if (l.scope == "CTX") {
+                const count = typeof l.count === 'string' ? Number(getConstantValue(ctx, l.count)) : l.count;
                 ctx.vars[l.name] = {
                     scope: "CTX",
+                    count,
                     offset: ctx.lastLocalVarCtxAssigned + 1
                 }
-                if (typeof l.count === 'string') {
-                    ctx.lastGlobalVarAssigned += Number(getConstantValue(ctx, l.count));
-                } else {
-                    ctx.lastGlobalVarAssigned += l.count;
-                }
-                ctx.lastLocalVarCtxAssigned += l.count;
+                // ???
+                ctx.lastGlobalVarAssigned += count;
+                ctx.lastLocalVarCtxAssigned += count;
             } else {
                 throw error(l, `Invalid scope ${l.scope}`);
             }
@@ -179,14 +178,21 @@ module.exports = async function compile(fileName, ctx, config = {}) {
                         ctx.out[i].offset = 0;
                     }
                     else {
-                        if (ctx.vars[ctx.out[i].offset].scope === 'CTX') {
+                        const label = ctx.out[i].offset; 
+                        if (ctx.vars[label].scope === 'CTX') {
                             ctx.out[i].useCTX = 1;
-                        } else if (ctx.vars[ctx.out[i].offset].scope === 'GLOBAL') {
+                        } else if (ctx.vars[label].scope === 'GLOBAL') {
                             ctx.out[i].useCTX = 0;
                         } else {
-                            error(ctx.out[i].line, `Invalid variable scope: ${ctx.out[i].offset} not defined.`);
+                            error(ctx.out[i].line, `Invalid variable scope: ${label} not defined.`);
                         }
-                        ctx.out[i].offset = ctx.vars[ctx.out[i].offset].offset + (ctx.out[i].extraOffset ?? 0);
+                    
+                        ctx.out[i].offset = ctx.vars[label].offset + (ctx.out[i].extraOffset ?? 0);
+                        if (ctx.vars[label].count > 1) {
+                            ctx.out[i].maxInd = (ctx.vars[label].offset + ctx.vars[label].count - 1) - ctx.out[i].offset;
+                            ctx.out[i].baseLabel = ctx.vars[label].offset;
+                            ctx.out[i].sizeLabel = ctx.vars[label].count;
+                        }
                     }
                 }
             }
@@ -226,6 +232,12 @@ module.exports = async function compile(fileName, ctx, config = {}) {
             constants: stringifyBigInts(ctx.constants)
         }
 
+        console.log(`GLOBAL memory: \x1B[1;35m${ctx.lastGlobalVarAssigned} ${(ctx.lastGlobalVarAssigned * 100.0/MAX_GLOBAL_VAR).toFixed(2)}%\x1B[0m`);
+        console.log(`LOCAL  memory: ${ctx.lastLocalVarCtxAssigned}`);
+
+        if (ctx.lastGlobalVarAssigned >= MAX_GLOBAL_VAR) {
+            throw new Error(`GLOBAL memory is too big ${ctx.lastGlobalVarAssigned} x 256-bit`);
+        }
         return res;
     }
 
