@@ -83,7 +83,6 @@ module.exports = async function compile(fileName, ctx, config = {}) {
                     count,
                     offset: ctx.lastLocalVarCtxAssigned + 1
                 }
-                // ???
                 ctx.lastGlobalVarAssigned += count;
                 ctx.lastLocalVarCtxAssigned += count;
             } else {
@@ -232,11 +231,11 @@ module.exports = async function compile(fileName, ctx, config = {}) {
             constants: stringifyBigInts(ctx.constants)
         }
 
-        console.log(`GLOBAL memory: \x1B[1;35m${ctx.lastGlobalVarAssigned} ${(ctx.lastGlobalVarAssigned * 100.0/MAX_GLOBAL_VAR).toFixed(2)}%\x1B[0m`);
-        console.log(`LOCAL  memory: ${ctx.lastLocalVarCtxAssigned}`);
+        console.log(`GLOBAL memory: \x1B[1;35m${ctx.lastGlobalVarAssigned+1} ${((ctx.lastGlobalVarAssigned+1) * 100.0/MAX_GLOBAL_VAR).toFixed(2)}%\x1B[0m`);
+        console.log(`LOCAL  memory: ${ctx.lastLocalVarCtxAssigned+1}`);
 
-        if (ctx.lastGlobalVarAssigned >= MAX_GLOBAL_VAR) {
-            throw new Error(`GLOBAL memory is too big ${ctx.lastGlobalVarAssigned} x 256-bit`);
+        if (ctx.lastGlobalVarAssigned > MAX_GLOBAL_VAR) {
+            throw new Error(`GLOBAL memory is too big ${ctx.lastGlobalVarAssigned+1} x 256-bit`);
         }
         return res;
     }
