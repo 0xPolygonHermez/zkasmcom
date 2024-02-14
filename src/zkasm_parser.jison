@@ -638,7 +638,7 @@ op
         }
     | ARITH_ECADD_SAME
         {
-            $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 0, arithEq4: 0, arithEq5: 0 }
+            $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 1, arithEq3: 0, arithEq4: 0, arithEq5: 0 }
         }
     | ARITH_BN254_MULFP2
         {
