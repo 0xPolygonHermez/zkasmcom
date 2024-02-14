@@ -145,6 +145,20 @@ REPEAT                  { return 'REPEAT' }
 function setLine(dst, first) {
     dst.line = first.first_line;
 }
+function negate(value) {
+    if (typeof value === 'number' | typeof value === 'bigint') {
+        return -value;
+    }
+    if (typeof value === 'string') {
+        return value.startsWith('-') ? value.substring(1) : '-'+value;
+    }
+    throw new Error(`ERROR: couldn't negate value ${value} (${typeof value})`);
+}
+function applySign(sign, value) {
+    if (sign === '+') return value;
+    if (sign === '-') return negate(value);
+    throw new Error(`ERROR: invalid sign ${sign} with value ${value} (${typeof value})`);
+}
 %}
 
 %start allStatments
@@ -572,85 +586,31 @@ op
             $$ = $3;
             $$.hashPDigest = 1;
         }
-    | JMP '(' IDENTIFIER ')'
+    | JMP '(' jmpDestination ')'
         {
-            $$ = { [$1]: 1, useJmpAddr: 1, jmpAddr: $3 }
+            $$ = { ...$1, useJmpAddrRel: $3.useAddrRel, ...$3.indirections, jmpAddr: $3.addr }
         }
-    | jmpCond '(' IDENTIFIER ')'
+    | jmpNotCond '(' jmpDestination ')'
         {
-            $$ = { [$1]: 1, useJmpAddr: 1, jmpAddr: $3, useElseAddr: 1, elseAddr: 'next' }
+            $$ = { ...$1, useElseAddrRel: $3.useAddrRel, ...$3.indirections, elseAddr: $3.addr, useJmpAddrRel: 0, jmpAddr: 'next' }
         }
-    | jmpCond '(' IDENTIFIER ',' IDENTIFIER ')'
+    | jmpNotCond '(' jmpDestination ',' jmpDestination ')'
         {
-            $$ = { [$1]: 1, useJmpAddr: 1, jmpAddr: $3, useElseAddr: 1, elseAddr: $5 }
+            // TODO: validate $3.useAddrRel !== $5.useAddrRel || $3.indirections === $5.indirections
+            $$ = { ...$1, useElseAddrRel: $3.useAddrRel, ...$3.indirections, elseAddr: $3.addr, useJmpAddrRel: $5.useAddrRel, jmpAddr: $5, ...$5.indirections }
         }
-    | jmpNotCond '(' IDENTIFIER ')'
+    | jmpCond '(' jmpDestination ')'
         {
-            $$ = { [$1]: 1, useJmpAddr: 1, jmpAddr: 'next', useElseAddr: 1, elseAddr: $3 }
+            $$ = { ...$1, useJmpAddrRel: $3.useAddrRel, ...$3.indirections, jmpAddr: $3.addr, useElseAddrRel: 0, elseAddr: 'next' }
         }
-    | jmpNotCond '(' IDENTIFIER ',' IDENTIFIER ')'
+    | jmpCond '(' jmpDestination ',' jmpDestination')'
         {
-            $$ = { [$1]: 1, useJmpAddr: 1, jmpAddr:  $5, useElseAddr: 1, elseAddr: $3 }
+            // TODO: validate $3.useAddrRel !== $5.useAddrRel || $3.indirections === $5.indirections
+            $$ = { ...$1, useJmpAddrRel: $3.useAddrRel, ...$3.indirections, jmpAddr: $3.addr, useElseAddrRel: $5.useAddrRel, elseAddr: $5.addr, ...$5.indirections }
         }
-    | JMP '(' RR ')'
+    | CALL '(' jmpDestination ')'
         {
-            $$ = { [$1]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: 0 }
-        }
-    | JMP '(' E ')'
-        {
-            $$ = { [$1]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: 0 }
-        }
-    | JMP '(' REFERENCE '+' RR ')'
-        {
-            $$ = { [$1]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: $3 }
-        }
-    | JMP '(' REFERENCE '+' E ')'
-        {
-            $$ = { [$1]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: $3 }
-        }
-    | jmpCond '(' RR ')'
-        {
-            $$ = { [$1]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: 0, useElseAddr: 1, elseAddr: 'next' }
-        }
-    | jmpCond '(' E ')'
-        {
-            $$ = { [$1]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: 0, useElseAddr: 1, elseAddr: 'next' }
-        }
-    | jmpCond '(' REFERENCE '+' RR ')'
-        {
-            $$ = { [$1]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: $3, useElseAddr: 1, elseAddr: 'next' }
-        }
-    | jmpCond '(' REFERENCE '+' E ')'
-        {
-            $$ = { [$1]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: $3, useElseAddr: 1, elseAddr: 'next' }
-        }
-    | jmpCond '(' RR ',' IDENTIFIER ')'
-        {
-            $$ = { [$1]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: 0, useElseAddr: 1, elseAddr: $5 }
-        }
-    | jmpCond '(' E ',' IDENTIFIER ')'
-        {
-            $$ = { [$1]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: 0, useElseAddr: 1, elseAddr: $5 }
-        }
-    | jmpCond '(' REFERENCE '+' RR ',' IDENTIFIER ')'
-        {
-            $$ = { [$1]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: $3, useElseAddr: 1, elseAddr: $7 }
-        }
-    | jmpCond '(' REFERENCE '+' E ',' IDENTIFIER')'
-        {
-            $$ = { [$1]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: $3, useElseAddr: 1, elseAddr: $7 }
-        }
-    | CALL '(' IDENTIFIER ')'
-        {
-            $$ = {JMP: 0,  JMPC: 0, JMPN: 0, useJmpAddr:1, jmpAddr: $3, call: 1}
-        }
-    | CALL '(' REFERENCE '+' RR ')'
-        {
-            $$ = {JMP: 0,  JMPC: 0, JMPN: 0, offset: $3, ind: 0, indRR: 1, return: 0, call: 1}
-        }
-    | CALL '(' REFERENCE '+' E ')'
-        {
-            $$ = {JMP: 0,  JMPC: 0, JMPN: 0, offset: $3, ind: 1, indRR: 0, return: 0, call: 1}
+            $$ = {JMP: 0,  JMPC: 0, JMPN: 0, useJmpAddrRel: $3.useAddrRel, jmpAddr: $3.addr, ...$3.indirections, call: 1 }
         }
     | RETURN
         {
@@ -746,6 +706,21 @@ op
         }
     ;
 
+jmpDestination
+    : IDENTIFIER
+        {
+            $$ = { useAddrRel: 0, jmpAddr: $3 }
+        }
+    | REFERENCE '+' addrRel
+        {
+            $$ = { useAddrRel: $1, ind: 0, indRR: 1, addr: $3 }
+        }
+    | REFERENCE '-' addrRel
+        {
+            $$ = { useAddrRel: 1, ind: 0, indRR: 1, addr: $3 }
+        }
+    ;
+
 jmpCond
     : JMPN
     | JMPC
@@ -787,6 +762,84 @@ reg
     | RCX
     ;
 
+indRegMul
+    : NUMBER
+        { 
+            $$ = $1
+        }
+    | CONSTID
+        { 
+            $$ = $1
+        }
+    ;
+
+indReg
+    : E
+        { 
+            $$ = { reg: 'ind' } 
+        }
+    | RR
+        { 
+            $$ = { reg: 'indRR' } 
+        }
+    ;
+
+indReg2
+    : indReg
+        { 
+            $$ = { ...$1, indReg: 1 }
+        }
+    | NUMBER '*' indReg
+        {
+            $$ = { ...$3, indReg: $1 }
+        }
+    | CONSTID '*' indReg
+        {
+            $$ = { ...$3, indReg: $1 }
+        }
+    ;
+
+addrRelOp
+    : '+'
+        { 
+            $$ = $1 
+        }
+    | '-'
+        { 
+            $$ = $1 
+        }
+    ;
+
+addrOffset
+    : NUMBER
+        { 
+            $$ = $1 
+        }
+    | CONSTID
+        {   
+            $$ = $1 
+        }
+    ;
+
+addrRel
+    : indReg2
+        {
+            $$ = { [$1.reg]: $1.indReg } 
+        }
+    | indReg2 addrRelOp addrOffset
+        {
+            $$ = { [$1.reg]: $1.indReg, extraOffset: applySign($2, $3)};            
+        }
+    | indReg2 addrRelOp indReg2 addrRelOp addrOffset
+        {
+            $$ = { [$1.reg]: $1.indReg, [$3.reg]: applySign($2, $3.indReg), extraOffset: applySign($4, $5) }
+            checkAddrRel($$);
+        }
+    | indReg2 addrRelOp indReg2
+        {
+            $$ = { [$1.reg]: $1.indReg, [$3.reg]: applySign($2, $3.indReg) }
+        }
+    ;
 
 addr
     : SP
@@ -809,71 +862,35 @@ addr
         {
             $$ = { isStack: 1, isMem:0, ind:0, indRR: 0, incStack: -1, offset: 0, useCTX: 1}
         }
-    | SYS ':' E '+' NUMBER
+    | SYS ':' addrRel
         {
             $$ = { isStack: 0, isMem:0, ind:1, indRR: 0, incStack: 0, offset: $5}
         }
-    | SYS ':' E '-' NUMBER
-        {
-            $$ = { isStack: 0, isMem:0, ind:1, indRR: 0, incStack: 0, offset: -$5}
-        }
-    | SYS ':' E
-        {
-            $$ = { isStack: 0, isMem:0, ind:1, indRR: 0, incStack: 0, offset: 0}
-        }
-    | MEM ':' E '+' NUMBER
+    | MEM ':' addrRel
         {
             $$ = { isStack: 0, isMem: 1, ind:1, indRR: 0, incStack: 0, offset: $5, useCTX: 1}
         }
-    | MEM ':' E '-' NUMBER
-        {
-            $$ = { isStack: 0, isMem: 1, ind:1, indRR: 0, incStack: 0, offset: -$5, useCTX: 1}
-        }
-    | MEM ':' E
-        {
-            $$ = { isStack: 0, isMem: 1, ind:1, indRR: 0, incStack: 0, offset: 0, useCTX: 1}
-        }
-    | STACK ':' E '+' NUMBER
+    | STACK ':' addrRel
         {
             $$ = { isStack: 1, ind:1, indRR: 0, incStack: 0, offset: $5, useCTX: 1}
         }
-    | STACK ':' E '-' NUMBER
+    | addrRel
         {
-            $$ = { isStack: 1, ind:1, indRR: 0, incStack: 0, offset: -$5, useCTX: 1}
-        }
-    | STACK ':' E
-        {
-            $$ = { isStack: 1, ind:1, indRR: 0, incStack: 0, offset: 0, useCTX: 1}
+            $$ = $1
         }
     | IDENTIFIER
         {
             $$ = { offset: $1 }
         }
-    | IDENTIFIER '+' RR
+    | IDENTIFIER '+' addrRel
         {
-            $$ = { offset: $1, ind: 0, indRR: 1 }
+            $$ = {  ...$3, offset: $1 }
         }
-    | IDENTIFIER '+' E
+    | IDENTIFIER '[' addrRel ']'
         {
-            $$ = { offset: $1, ind: 1, indRR: 0 }
+            $$ = {  ...$3, offset: $1 }
         }
-    | IDENTIFIER '[' E ']'
-        {
-            $$ = { offset: $1, ind: 1, indRR: 0 }
-        }
-    | IDENTIFIER '[' E '-' NUMBER ']'
-        {
-            $$ = { offset: $1, extraOffset: -$5, ind: 1, indRR: 0 }
-        }
-    | IDENTIFIER '[' E '+' NUMBER ']'
-        {
-            $$ = { offset: $1, extraOffset: $5, ind: 1, indRR: 0 }
-        }
-    | IDENTIFIER '+' NUMBER
-        {
-            $$ = { offset: $1, extraOffset: $3 }
-        }
-    | IDENTIFIER '[' NUMBER ']'
+    | IDENTIFIER '+' addrOffset
         {
             $$ = { offset: $1, extraOffset: $3 }
         }
@@ -882,11 +899,11 @@ addr
 hashId
     : NUMBER
         {
-            $$ = {ind: 0, indRR: 0, offset:$1}
+            $$ = { ind: 0, indRR: 0, offset:$1 }
         }
     | E
         {
-            $$ = {ind: 1, indRR: 0, offset:0}
+            $$ = { ind: 1, indRR: 0, offset:0 }
         }
     | RR
         {
