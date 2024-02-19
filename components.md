@@ -180,6 +180,21 @@ Multiplication of two $\mathbb{F}_{p^2} = \mathbb{F}_p[u]/(u^2 + 1)$ elements ov
 (A + B·u) * (C + D·u) = E + op·u
 ```
 
+### ARITH_MOD
+
+Arithmetic modulo register D. One can check whether the arithmetic operation `A*B + C` is equal to `op` modulo `D`.
+```
+A*B + C = op (mod D)
+```
+
+```
+17741 => A
+901868 => B
+536729 => C
+355064 => D
+327885   :ARITH_MOD
+```
+
 ### ASSERT
 
 A = op

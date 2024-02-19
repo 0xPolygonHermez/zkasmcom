@@ -21,7 +21,7 @@ For test purposes (partial inclusion of files):
 node src/zkasm.js <input.zkasm> -o <output.json> -t allowUndefinedLabels -t allowOverwriteLabels -t allowUndefinedVariables
 ```
 
-## Instructions
+## Components
 
-In this [link](instructions.md) found more information about instructions.
+In this [link](components.md), there can be found more information about the different components of the language.
 

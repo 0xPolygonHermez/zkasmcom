@@ -177,7 +177,7 @@ module.exports = async function compile(fileName, ctx, config = {}) {
                         ctx.out[i].offset = 0;
                     }
                     else {
-                        const label = ctx.out[i].offset; 
+                        const label = ctx.out[i].offset;
                         if (ctx.vars[label].scope === 'CTX') {
                             ctx.out[i].useCTX = 1;
                         } else if (ctx.vars[label].scope === 'GLOBAL') {
@@ -185,7 +185,7 @@ module.exports = async function compile(fileName, ctx, config = {}) {
                         } else {
                             error(ctx.out[i].line, `Invalid variable scope: ${label} not defined.`);
                         }
-                    
+
                         ctx.out[i].offset = ctx.vars[label].offset + (ctx.out[i].extraOffset ?? 0);
                         if (ctx.vars[label].count > 1) {
                             ctx.out[i].maxInd = (ctx.vars[label].offset + ctx.vars[label].count - 1) - ctx.out[i].offset;
