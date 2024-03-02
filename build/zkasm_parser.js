@@ -615,7 +615,7 @@ case 131:
 break;
 case 132:
 
-            this.$ = { save: 0, restore: 1 }
+            this.$ = { save: 0, restore: 1, regs: false }
         
 break;
 case 136:

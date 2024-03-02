@@ -11,9 +11,11 @@ const maxConstl = (1n << 256n) - 1n;
 const minConstl = 0n;
 const readOnlyRegisters = ['STEP', 'ROTL_C'];
 
-const SAVE_REGS = ['A','B','C','D','E', 'HASHPOS', 'RR', 'RCX', 'PC', 'SP', 'SR'];
+const SAVE_REGS = ['B','C','D','E', 'RR', 'RCX'];
 
 const MAX_GLOBAL_VAR = 0x10000;
+
+class CompilerError extends Error {};
 
 module.exports = async function compile(fileName, ctx, config = {}) {
 
@@ -117,9 +119,11 @@ module.exports = async function compile(fileName, ctx, config = {}) {
                 let assignmentRequired = false;
                 for (let j=0; j< l.ops.length; j++) {
                     appendOp(traceStep, l.ops[j]);
-                    if (l.ops[j].save || l.ops[j].restore) {
-                        if (l.assignment) {
-                            error(l, "assignment on SAVE/RESTORE not allowed");
+                    if (l.ops[j].save || !l.assignment || l.assignment.out.length === 0) continue;
+                    if (l.ops[j].restore) {
+                        const forbiddenAssigns = l.assignment.out.filter(x => SAVE_REGS.includes(x));
+                        if (forbiddenAssigns.length > 0) {
+                            error(l, `assignment to ${forbiddenAssigns.join()} not allowed on RESTORE`);
                         }
                         continue;
                     }
@@ -219,15 +223,25 @@ module.exports = async function compile(fileName, ctx, config = {}) {
                 ctx.out[i].elseAddr = codeAddr;
             }
 
-            if (ctx.out[i].save || ctx.out[i].restore) {
+            if ((ctx.out[i].save || ctx.out[i].restore) && ctx.out[i].regs !== false) {
                 const regs = ctx.out[i].regs ?? [];    
                 const invalidRegs = regs.filter(x => !SAVE_REGS.includes(x));
+                const noIncludedRegs = SAVE_REGS.filter(x => !regs.includes(x));
+                const duplicatedRegs = regs.filter((x, index) => regs.indexOf(x) !== index);
                 const tag = ctx.out[i].save ? 'SAVE' : 'RESTORE';
-                if (invalidRegs.length > 0) {                    
-                    error(ctx.out[i].line, `Invalid register${invalidRegs.length > 1 ? 's':''} ${invalidRegs.join()} on ${tag}`);
+                let errors = [];
+                if (invalidRegs.length > 0) {
+                    errors.push(`invalid register${invalidRegs.length > 1 ? 's':''} ${invalidRegs.join()}`);
                 }
-                SAVE_REGS.forEach(x => ctx.out[i][`in${x}`] = (ctx.out[i].save && regs.includes(x)) ? 1 : 0);
-
+                if (noIncludedRegs.length > 0) {
+                    errors.push(`mandatory register${noIncludedRegs.length > 1 ? 's':''} ${noIncludedRegs.join()} not included`);
+                }
+                if (duplicatedRegs.length > 0 ) {  
+                    errors.push(`duplicated register${duplicatedRegs.length > 1 ? 's':''} ${duplicatedRegs.join()}`);
+                }
+                if (errors.length > 0) {                    
+                    error(ctx.out[i].line,'On ' + tag + ' ' + errors.join(', '));
+                }
                 delete ctx.out[i].regs;
             }
 
@@ -642,13 +656,14 @@ function warning(l, msg) {
 }
 
 function error(l, err) {
+    if (err instanceof CompilerError) {
+        throw err;
+    } 
     if (err instanceof Error) {
-        err.message = `ERROR ${l.fileName}:${l.line}: ${err.message}`
-        throw(err);
-    } else {
-        const msg = `ERROR ${l.fileName}:${l.line}: ${err}`;
-        throw new Error(msg);
-    }
+        throw new CompilerError(`ERROR ${l.fileName}:${l.line}: ${err.message}`);
+    } 
+    const msg = `ERROR ${l.fileName}:${l.line}: ${err}`;
+    throw new CompilerError(msg);
 }
 
 function checkConstRange(ctx, value, isLongValue) {

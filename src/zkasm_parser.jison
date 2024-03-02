@@ -757,7 +757,7 @@ op
         }
     | RESTORE
         {
-            $$ = { save: 0, restore: 1 }
+            $$ = { save: 0, restore: 1, regs: false }
         }
     ;
 
