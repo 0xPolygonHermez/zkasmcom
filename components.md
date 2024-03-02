@@ -49,6 +49,11 @@ A **register** is a location available to the zkEVM that is manipulated through 
 - Used to repeat instructions.
 - Array of 1 element `[V]`.
 
+### RID
+- Restore ID, register used to manage the save/restore feature.
+- Array of 1 element `[V]`.
+
+
 ### zkEVM Counters
 - Keeps track of the zkEVM counters:
   - `CNT_ARITH`
@@ -71,6 +76,46 @@ addr = SP | SP++ | SP-- | SP+offset | SP-offset | SYS:E+offset | SYS:E+offset | 
 ### MSTORE(addr)
 
 mem(addr) = op
+
+### SAVE(B,C,D,E,RR,RCX)
+Save registers B,C,D,E,RR,RCX,(RID) and op. This saved values are associated an identifier. The register RID is updated with this identifier.
+
+### RESTORE/RESTORE(B,C,D,E,RR,RCX)
+Restore registers B,C,D,E,RR,RCX and setting FREE INPUT with value of op when saved. The restored values are associated with the value of ID when RESTORE is called. The register RID 
+it's updated with previous value when saved was called.
+
+examples:
+```      
+    :SAVE(B,C,D,E,RR,RCX)
+    ; some instructions here
+    :RESTORE
+```
+
+example to save A:            
+```
+    A       :SAVE(B,C,D,E,RR,RCX)
+    ; some instructions here
+    $ => A  :RESTORE
+```
+
+example to restoring  A+2:            
+```
+    A       :SAVE(B,C,D,E,RR,RCX)
+    ; some instructions here
+    $+2 => A  :RESTORE
+```
+
+example also to save B register on memory too:
+```
+    B       :SAVE(B,C,D,E,RR,RCX),MSTORE(num_bytes)
+    ; some instructions here
+    $ => B  :MLOAD(num_bytes)
+    ; more instructions here
+            :RESTORE
+```
+
+NOTE: in restore command cannot assign to one of saved registers as B,C,D,E,RR,RCX,RID
+
 
 ### SLOAD
 key0 = [C0, C1, C2, C3, C4, C5, C6, C7]
@@ -198,7 +243,6 @@ is equivalent to:
 ```
 (A7A6 < B7B6) AND (A5A4 < B5B4) AND (A3A2 < B3B2) AND (A1A0 < B1B0)
 ```
-
 
 ### MEM_ALIGN_RD
 

@@ -26,6 +26,7 @@ RR                      { return 'RR'; }
 STEP                    { return 'STEP'; }
 ROTL_C                  { return 'ROTL_C'; }
 HASHPOS                 { return 'HASHPOS'; }
+RID                     { return 'RID'; }
 MLOAD                   { return 'MLOAD' }
 MSTORE                  { return 'MSTORE' }
 HASHKLEN                { return 'HASHKLEN' }
@@ -86,6 +87,8 @@ CTX                     { return 'CTX' }
 CONST                   { return 'CONST' }
 CONSTL                  { return 'CONSTL' }
 REPEAT                  { return 'REPEAT' }
+SAVE                    { return 'SAVE' }
+RESTORE                 { return 'RESTORE' }
 \"[^"]+\"               { yytext = yytext.slice(1,-1); return 'STRING'; }
 [a-zA-Z_][a-zA-Z$_0-9]*   { return 'IDENTIFIER'; }
 \%[a-zA-Z_][a-zA-Z$_0-9]* { yytext = yytext.slice(1); return 'CONSTID'; }
@@ -744,7 +747,21 @@ op
         {
             $$ = { repeat: 1 }
         }
+    | SAVE '(' regsList ')'
+        {
+            $$ = { save: 1, restore: 0, regs: $3 }
+        }
+    | RESTORE '(' regsList ')'
+        {
+            $$ = { save: 0, restore: 1, regs: $3 }
+        }
+    | RESTORE
+        {
+            $$ = { save: 0, restore: 1, regs: false }
+        }
     ;
+
+
 
 jmpCond
     : JMPN
@@ -784,6 +801,21 @@ reg
     | STEP
     | HASHPOS
     | ROTL_C
+    | RCX
+    | RID
+    ;
+
+saveReg
+    : A
+    | B
+    | C
+    | D
+    | E
+    | SR
+    | SP
+    | PC
+    | RR
+    | HASHPOS
     | RCX
     ;
 
