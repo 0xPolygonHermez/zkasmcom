@@ -12,6 +12,7 @@ const minConstl = 0n;
 const readOnlyRegisters = ['STEP', 'ROTL_C'];
 
 const SAVE_REGS = ['B','C','D','E', 'RR', 'RCX'];
+const RESTORE_FORBIDDEN_REGS = [...SAVE_REGS, 'RID'];
 
 const MAX_GLOBAL_VAR = 0x10000;
 
@@ -121,7 +122,7 @@ module.exports = async function compile(fileName, ctx, config = {}) {
                     appendOp(traceStep, l.ops[j]);
                     if (l.ops[j].save || !l.assignment || l.assignment.out.length === 0) continue;
                     if (l.ops[j].restore) {
-                        const forbiddenAssigns = l.assignment.out.filter(x => SAVE_REGS.includes(x));
+                        const forbiddenAssigns = l.assignment.out.filter(x => RESTORE_FORBIDDEN_REGS.includes(x));
                         if (forbiddenAssigns.length > 0) {
                             error(l, `assignment to ${forbiddenAssigns.join()} not allowed on RESTORE`);
                         }
