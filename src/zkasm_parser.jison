@@ -26,6 +26,7 @@ RR                      { return 'RR'; }
 STEP                    { return 'STEP'; }
 ROTL_C                  { return 'ROTL_C'; }
 HASHPOS                 { return 'HASHPOS'; }
+RID                     { return 'RID'; }
 MLOAD                   { return 'MLOAD' }
 MSTORE                  { return 'MSTORE' }
 HASHKLEN                { return 'HASHKLEN' }
@@ -86,6 +87,8 @@ CTX                     { return 'CTX' }
 CONST                   { return 'CONST' }
 CONSTL                  { return 'CONSTL' }
 REPEAT                  { return 'REPEAT' }
+SAVE                    { return 'SAVE' }
+RESTORE                 { return 'RESTORE' }
 \"[^"]+\"               { yytext = yytext.slice(1,-1); return 'STRING'; }
 [a-zA-Z_][a-zA-Z$_0-9]*   { return 'IDENTIFIER'; }
 \%[a-zA-Z_][a-zA-Z$_0-9]* { yytext = yytext.slice(1); return 'CONSTID'; }
@@ -720,7 +723,7 @@ op
         }
     | ARITH_ECADD_SAME
         {
-            $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 0, arithEq4: 0, arithEq5: 0 }
+            $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 1, arithEq3: 0, arithEq4: 0, arithEq5: 0 }
         }
     | ARITH_BN254_MULFP2
         {
@@ -786,7 +789,21 @@ op
         {
             $$ = { repeat: 1 }
         }
+    | SAVE '(' regsList ')'
+        {
+            $$ = { save: 1, restore: 0, regs: $3 }
+        }
+    | RESTORE '(' regsList ')'
+        {
+            $$ = { save: 0, restore: 1, regs: $3 }
+        }
+    | RESTORE
+        {
+            $$ = { save: 0, restore: 1, regs: false }
+        }
     ;
+
+
 
 jmpCond
     : JMPN
@@ -827,6 +844,21 @@ reg
     | HASHPOS
     | ROTL_C
     | RCX
+    | RID
+    ;
+
+saveReg
+    : A
+    | B
+    | C
+    | D
+    | E
+    | SR
+    | SP
+    | PC
+    | RR
+    | HASHPOS
+    | RCX
     ;
 
 
@@ -863,6 +895,18 @@ addr
         {
             $$ = { isStack: 0, isMem:0, ind:1, indRR: 0, incStack: 0, offset: 0}
         }
+    | SYS ':' RR '+' NUMBER
+        {
+            $$ = { isStack: 0, isMem:0, ind:0, indRR: 1, incStack: 0, offset: $5}
+        }
+    | SYS ':' RR '-' NUMBER
+        {
+            $$ = { isStack: 0, isMem:0, ind:0, indRR: 1, incStack: 0, offset: -$5}
+        }
+    | SYS ':' RR
+        {
+            $$ = { isStack: 0, isMem:0, ind:0, indRR: 1, incStack: 0, offset: 0}
+        }
     | MEM ':' E '+' NUMBER
         {
             $$ = { isStack: 0, isMem: 1, ind:1, indRR: 0, incStack: 0, offset: $5, useCTX: 1}
@@ -875,6 +919,18 @@ addr
         {
             $$ = { isStack: 0, isMem: 1, ind:1, indRR: 0, incStack: 0, offset: 0, useCTX: 1}
         }
+    | MEM ':' RR '+' NUMBER
+        {
+            $$ = { isStack: 0, isMem: 1, ind:0, indRR: 1, incStack: 0, offset: $5, useCTX: 1}
+        }
+    | MEM ':' RR '-' NUMBER
+        {
+            $$ = { isStack: 0, isMem: 1, ind:0, indRR: 1, incStack: 0, offset: -$5, useCTX: 1}
+        }
+    | MEM ':' RR
+        {
+            $$ = { isStack: 0, isMem: 1, ind:0, indRR: 1, incStack: 0, offset: 0, useCTX: 1}
+        }
     | STACK ':' E '+' NUMBER
         {
             $$ = { isStack: 1, ind:1, indRR: 0, incStack: 0, offset: $5, useCTX: 1}
@@ -886,6 +942,18 @@ addr
     | STACK ':' E
         {
             $$ = { isStack: 1, ind:1, indRR: 0, incStack: 0, offset: 0, useCTX: 1}
+        }
+    | STACK ':' RR '+' NUMBER
+        {
+            $$ = { isStack: 1, ind:0, indRR: 1, incStack: 0, offset: $5, useCTX: 1}
+        }
+    | STACK ':' RR '-' NUMBER
+        {
+            $$ = { isStack: 1, ind:0, indRR: 1, incStack: 0, offset: -$5, useCTX: 1}
+        }
+    | STACK ':' RR
+        {
+            $$ = { isStack: 1, ind:0, indRR: 1, incStack: 0, offset: 0, useCTX: 1}
         }
     | IDENTIFIER
         {

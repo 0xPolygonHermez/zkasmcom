@@ -1,74 +1,69 @@
 # zkASM Components
 
 ## Registers
-- Each element is a Goldilocks prime Field number
+
+A **register** is a location available to the zkEVM that is manipulated through the zkEVM's instructions. Registers are of different types, some of them being of generic purpose and others being specific purpose. They are also of different sizes, represented as arrays of Goldilocks prime field numbers, i.e., in the range $[0,2^{64} - 2^{32} + 1]$.
 
 ### A, B, C, D, E
-- generic purpose registers
-- Array of 8 elements `[V0, V1,..., V7]`
+- Generic purpose.
+- Arrays of 8 elements `[V0, V1,..., V7]`.
 
 ### SR
-- Array of 8 elements `[V0, V1,..., V7]`
-- State root
+- Represents the State Root.
+- An array of 8 elements `[V0, V1,..., V7]`.
 
 ### CTX
-- 1 element
-- Context
-- Used to move through zkEVM memory
+- Represents the ConTeXt. Its main use is being able to move through the zkEVM's memory.
+- Array of 1 element `[V]`.
 
 ### SP
-- 1 element
-- Stack Pointer
-- Used to move through zkEVM memory
+- Represents the Stack Pointer. Its main use is being able to move through the zkEVM's memory.
+- Array of 1 element `[V]`.
 
 ### PC
-- 1 element
-- Program Counter
-- Used to move through zkEVM memory
-
-### GAS
-- 1 element
-- Gas in a transaction
-
-### RR
-- 1 element
-- Return register
-- Saves origin `zkPC` in `RR` when a `CALL` instruction is performed
-  - `RETURN` will load `RR` into future `zkPC`
+- Represents the Program Counter. Its main use is being able to move through the zkEVM's memory.
+- Array of 1 element `[V]`.
 
 ### zkPC
-- 1 element
-- zk pogram counter
+- Represents the zk Program Counter.
+- Array of 1 element `[V]`.
+
+### GAS
+- Represents the Gas in a transaction.
+- Array of 1 element `[V]`.
+
+### RR
+- Return Register.
+- Saves the origin `zkPC` in `RR` when a `CALL` instruction is performed. The `RETURN` instruction loads `RR` in `zkPC`.
+- Array of 1 element `[V]`.
 
 ### STEP
-- 1 element
-- number of instruction done
-
-### MAXMEM
-- 1 element
-- maximum memory
+- Represents the number of instructions performed within the program.
+- Array of 1 element `[V]`.
 
 ### HASHPOS
-- 1 element
-- used to set/get bytes from poseidon/keccaks bytes
-
-### ROTL_C
-- Array of 8 elements `[V0, V1,..., V7]`. Each element is a Goldilocks prime Field number
-- Rotate Left Register: `ROTL_C = [C[7], C[0], ..., C[6]]`
+- It is used to set/get bytes from Poseidon/Keccak bytes.
+- Array of 1 element `[V]`.
 
 ### RCX
-- 1 element
-- Used to repeat instructions
+- Used to repeat instructions.
+- Array of 1 element `[V]`.
 
-### zk-counters
-- Keeps track of zk-counters
+### RID
+- Restore ID, register used to manage the save/restore feature.
+- Array of 1 element `[V]`.
+
+
+### zkEVM Counters
+- Keeps track of the zkEVM counters:
   - `CNT_ARITH`
   - `CNT_BINARY`
   - `CNT_KECCAK_F`
   - `CNT_SHA256_F`
   - `CNT_MEM_ALIGN`
-  - `CNT_PADDING_PG`
   - `CNT_POSEIDON_G`
+  - `CNT_PADDING_PG`
+- Arrays of 1 element `[V]`.
 
 ## Instructions
 
@@ -81,6 +76,46 @@ addr = SP | SP++ | SP-- | SP+offset | SP-offset | SYS:E+offset | SYS:E+offset | 
 ### MSTORE(addr)
 
 mem(addr) = op
+
+### SAVE(B,C,D,E,RR,RCX)
+Save registers B,C,D,E,RR,RCX,(RID) and op. This saved values are associated an identifier. The register RID is updated with this identifier.
+
+### RESTORE/RESTORE(B,C,D,E,RR,RCX)
+Restore registers B,C,D,E,RR,RCX and setting FREE INPUT with value of op when saved. The restored values are associated with the value of ID when RESTORE is called. The register RID 
+it's updated with previous value when saved was called.
+
+examples:
+```      
+    :SAVE(B,C,D,E,RR,RCX)
+    ; some instructions here
+    :RESTORE
+```
+
+example to save A:            
+```
+    A       :SAVE(B,C,D,E,RR,RCX)
+    ; some instructions here
+    $ => A  :RESTORE
+```
+
+example to restoring  A+2:            
+```
+    A       :SAVE(B,C,D,E,RR,RCX)
+    ; some instructions here
+    $+2 => A  :RESTORE
+```
+
+example also to save B register on memory too:
+```
+    B       :SAVE(B,C,D,E,RR,RCX),MSTORE(num_bytes)
+    ; some instructions here
+    $ => B  :MLOAD(num_bytes)
+    ; more instructions here
+            :RESTORE
+```
+
+NOTE: in restore command cannot assign to one of saved registers as B,C,D,E,RR,RCX,RID
+
 
 ### SLOAD
 key0 = [C0, C1, C2, C3, C4, C5, C6, C7]
@@ -227,12 +262,32 @@ Addition of two secp256k1 elliptic curve points (points are different)
 Addition of two secp256k1 elliptic curve points (points are equals)
 (A, B) + (A, B) = (E, op)
 
+### ARITH_BN254_ADDFP2
+
+Addition of two $\mathbb{F}_{p^2} = \mathbb{F}_p[u]/(u^2 + 1)$ elements over the base field $\mathbb{F}_p$ of the BN254 curve. Due to the chosen irreducible polynomial, it corresponds to the standard addition of two complex elements.
+```
+(A + B·u) + (C + D·u) = E + op·u
+```
+
+### ARITH_BN254_SUBFP2
+
+Subtraction of two $\mathbb{F}_{p^2} = \mathbb{F}_p[u]/(u^2 + 1)$ elements over the base field $\mathbb{F}_p$ of the BN254 curve. Due to the chosen irreducible polynomial, it corresponds to the standard subtraction of two complex elements.
+```
+(A + B·u) - (C + D·u) = E + op·u
+```
+
+### ARITH_BN254_MULFP2
+
+Multiplication of two $\mathbb{F}_{p^2} = \mathbb{F}_p[u]/(u^2 + 1)$ elements over the base field $\mathbb{F}_p$ of the BN254 curve. Due to the chosen irreducible polynomial, it corresponds to the standard multiplication of two complex elements.
+```
+(A + B·u) * (C + D·u) = E + op·u
+```
 
 ### ASSERT
 
 A = op
 
-### ADD SUB LT SLT EQ AND OR XOR LT4
+### ADD SUB LT LT4 SLT EQ AND OR XOR
 
 The operation is written `op = A BinOp B`, where `BinOp` is one of `ADD,SUB,LT,SLT,EQ,AND,OR,XOR,LT4`.
 
@@ -246,7 +301,6 @@ is equivalent to:
 ```
 (A7A6 < B7B6) AND (A5A4 < B5B4) AND (A3A2 < B3B2) AND (A1A0 < B1B0)
 ```
-
 
 ### MEM_ALIGN_RD
 
@@ -295,8 +349,10 @@ JMP(calladdr)
 JMP(RR)
 
 ### ROTL_C
-
-ROTL_C' = C[6] C[5] C[4] C[3] C[2] C[1] C[0] C[7]
+Rotate the `C = [C[0], C[1], ..., C[6]]` register to the left:
+  ```
+  [op[0], op[1], ..., op[7]]= [C[7], C[0], ..., C[6]].
+  ```
 
 ### REPEAT(RCX)
 

@@ -1,8 +1,6 @@
 const path = require("path");
 const fs = require("fs");
-const util = require('util');
 const { config } = require("process");
-const { get } = require("http");
 const zkasm_parser = require("../build/zkasm_parser.js").parser;
 const command_parser = require("../build/command_parser.js").parser;
 const stringifyBigInts = require("ffjavascript").utils.stringifyBigInts;
@@ -12,6 +10,13 @@ const minConst = -(1n << 31n);
 const maxConstl = (1n << 256n) - 1n;
 const minConstl = 0n;
 const readOnlyRegisters = ['STEP', 'ROTL_C'];
+
+const SAVE_REGS = ['B','C','D','E', 'RR', 'RCX'];
+const RESTORE_FORBIDDEN_REGS = [...SAVE_REGS, 'RID'];
+
+const MAX_GLOBAL_VAR = 0x10000;
+
+class CompilerError extends Error {};
 
 module.exports = async function compile(fileName, ctx, config = {}) {
 
@@ -69,26 +74,22 @@ module.exports = async function compile(fileName, ctx, config = {}) {
         } else if (l.type == "var") {
             if (typeof ctx.vars[l.name] !== "undefined") error(l, `Variable ${l.name} already defined`);
             if (l.scope == "GLOBAL") {
+                const count = typeof l.count === 'string' ? Number(getConstantValue(ctx, l.count)) : l.count;
                 ctx.vars[l.name] = {
                     scope: "GLOBAL",
+                    count,
                     offset: ctx.lastGlobalVarAssigned + 1
                 }
-                if (typeof l.count === 'string') {
-                    ctx.lastGlobalVarAssigned += Number(getConstantValue(ctx, l.count));
-                } else {
-                    ctx.lastGlobalVarAssigned += l.count;
-                }
+                ctx.lastGlobalVarAssigned += count;
             } else if (l.scope == "CTX") {
+                const count = typeof l.count === 'string' ? Number(getConstantValue(ctx, l.count)) : l.count;
                 ctx.vars[l.name] = {
                     scope: "CTX",
+                    count,
                     offset: ctx.lastLocalVarCtxAssigned + 1
                 }
-                if (typeof l.count === 'string') {
-                    ctx.lastGlobalVarAssigned += Number(getConstantValue(ctx, l.count));
-                } else {
-                    ctx.lastGlobalVarAssigned += l.count;
-                }
-                ctx.lastLocalVarCtxAssigned += l.count;
+                ctx.lastGlobalVarAssigned += count;
+                ctx.lastLocalVarCtxAssigned += count;
             } else {
                 throw error(l, `Invalid scope ${l.scope}`);
             }
@@ -119,10 +120,17 @@ module.exports = async function compile(fileName, ctx, config = {}) {
                 let assignmentRequired = false;
                 for (let j=0; j< l.ops.length; j++) {
                     appendOp(traceStep, l.ops[j]);
-                    if (l.ops[j].JMP || l.ops[j].call || l.ops[j].return || l.ops[j].repeat) continue;
+                    if (l.ops[j].save || !l.assignment || l.assignment.out.length === 0) continue;
+                    if (l.ops[j].restore) {
+                        const forbiddenAssigns = l.assignment.out.filter(x => RESTORE_FORBIDDEN_REGS.includes(x));
+                        if (forbiddenAssigns.length > 0) {
+                            error(l, `assignment to ${forbiddenAssigns.join()} not allowed on RESTORE`);
+                        }
+                        continue;
+                    }
+                    if (l.ops[j].JMP || l.ops[j].call || l.ops[j].return || l.ops[j].repeat|| l.ops[j].restore) continue;
                     assignmentRequired = true;
                 }
-
                 if (assignmentRequired && !l.assignment) {
                     error(l, "Left assignment required");
                 }
@@ -181,14 +189,21 @@ module.exports = async function compile(fileName, ctx, config = {}) {
                         ctx.out[i].offset = 0;
                     }
                     else {
-                        if (ctx.vars[ctx.out[i].offset].scope === 'CTX') {
+                        const label = ctx.out[i].offset; 
+                        if (ctx.vars[label].scope === 'CTX') {
                             ctx.out[i].useCTX = 1;
-                        } else if (ctx.vars[ctx.out[i].offset].scope === 'GLOBAL') {
+                        } else if (ctx.vars[label].scope === 'GLOBAL') {
                             ctx.out[i].useCTX = 0;
                         } else {
-                            error(ctx.out[i].line, `Invalid variable scope: ${ctx.out[i].offset} not defined.`);
+                            error(ctx.out[i].line, `Invalid variable scope: ${label} not defined.`);
                         }
-                        ctx.out[i].offset = ctx.vars[ctx.out[i].offset].offset + (ctx.out[i].extraOffset ?? 0);
+                    
+                        ctx.out[i].offset = ctx.vars[label].offset + (ctx.out[i].extraOffset ?? 0);
+                        if (ctx.vars[label].count > 1) {
+                            ctx.out[i].maxInd = (ctx.vars[label].offset + ctx.vars[label].count - 1) - ctx.out[i].offset;
+                            ctx.out[i].baseLabel = ctx.vars[label].offset;
+                            ctx.out[i].sizeLabel = ctx.vars[label].count;
+                        }
                     }
                 }
             }
@@ -207,6 +222,28 @@ module.exports = async function compile(fileName, ctx, config = {}) {
                 }
                 ctx.out[i].elseAddrLabel = ctx.out[i].elseAddr;
                 ctx.out[i].elseAddr = codeAddr;
+            }
+
+            if ((ctx.out[i].save || ctx.out[i].restore) && ctx.out[i].regs !== false) {
+                const regs = ctx.out[i].regs ?? [];    
+                const invalidRegs = regs.filter(x => !SAVE_REGS.includes(x));
+                const noIncludedRegs = SAVE_REGS.filter(x => !regs.includes(x));
+                const duplicatedRegs = regs.filter((x, index) => regs.indexOf(x) !== index);
+                const tag = ctx.out[i].save ? 'SAVE' : 'RESTORE';
+                let errors = [];
+                if (invalidRegs.length > 0) {
+                    errors.push(`invalid register${invalidRegs.length > 1 ? 's':''} ${invalidRegs.join()}`);
+                }
+                if (noIncludedRegs.length > 0) {
+                    errors.push(`mandatory register${noIncludedRegs.length > 1 ? 's':''} ${noIncludedRegs.join()} not included`);
+                }
+                if (duplicatedRegs.length > 0 ) {  
+                    errors.push(`duplicated register${duplicatedRegs.length > 1 ? 's':''} ${duplicatedRegs.join()}`);
+                }
+                if (errors.length > 0) {                    
+                    error(ctx.out[i].line,'On ' + tag + ' ' + errors.join(', '));
+                }
+                delete ctx.out[i].regs;
             }
 
             try {
@@ -228,6 +265,12 @@ module.exports = async function compile(fileName, ctx, config = {}) {
             constants: stringifyBigInts(ctx.constants)
         }
 
+        console.log(`GLOBAL memory: \x1B[1;35m${ctx.lastGlobalVarAssigned+1} ${((ctx.lastGlobalVarAssigned+1) * 100.0/MAX_GLOBAL_VAR).toFixed(2)}%\x1B[0m`);
+        console.log(`LOCAL  memory: ${ctx.lastLocalVarCtxAssigned+1}`);
+
+        if (ctx.lastGlobalVarAssigned > MAX_GLOBAL_VAR) {
+            throw new Error(`GLOBAL memory is too big ${ctx.lastGlobalVarAssigned+1} x 256-bit`);
+        }
         return res;
     }
 
@@ -614,13 +657,14 @@ function warning(l, msg) {
 }
 
 function error(l, err) {
+    if (err instanceof CompilerError) {
+        throw err;
+    } 
     if (err instanceof Error) {
-        err.message = `ERROR ${l.fileName}:${l.line}: ${err.message}`
-        throw(err);
-    } else {
-        const msg = `ERROR ${l.fileName}:${l.line}: ${err}`;
-        throw new Error(msg);
-    }
+        throw new CompilerError(`ERROR ${l.fileName}:${l.line}: ${err.message}`);
+    } 
+    const msg = `ERROR ${l.fileName}:${l.line}: ${err}`;
+    throw new CompilerError(msg);
 }
 
 function checkConstRange(ctx, value, isLongValue) {
