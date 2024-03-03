@@ -31,15 +31,15 @@ MLOAD                   { return 'MLOAD' }
 MSTORE                  { return 'MSTORE' }
 HASHKLEN                { return 'HASHKLEN' }
 HASHKDIGEST             { return 'HASHKDIGEST' }
-HASHK1                  { return 'HASHK1' }
+HASHK((1[0-9])|(2[0-9])|(3[0-2])|[1-9])  { yytext = yytext.slice(5); return 'HASHKn' }
 HASHK                   { return 'HASHK' }
 HASHSLEN                { return 'HASHSLEN' }
 HASHSDIGEST             { return 'HASHSDIGEST' }
-HASHS1                  { return 'HASHS1' }
+HASHS((1[0-9])|(2[0-9])|(3[0-2])|[1-9])  { yytext = yytext.slice(5); return 'HASHSn' }
 HASHS                   { return 'HASHS' }
 HASHPLEN                { return 'HASHPLEN' }
 HASHPDIGEST             { return 'HASHPDIGEST' }
-HASHP1                  { return 'HASHP1' }
+HASHP((1[0-9])|(2[0-9])|(3[0-2])|[1-9])  { yytext = yytext.slice(5); return 'HASHPn' }
 HASHP                   { return 'HASHP' }
 JMP                     { return 'JMP' }
 JMPC                    { return 'JMPC' }
@@ -518,61 +518,103 @@ op
     | HASHK '(' hashId ')'
         {
             $$ = $3;
+            $$.hashS = 0;
+            $$.hashP = 0;
             $$.hashK = 1;
+            $$.hashBytesInD = 1;
+            $$.hashBytes = 0;
         }
-    | HASHK1 '(' hashId ')'
+    | HASHKn '(' hashId ')'
         {
             $$ = $3;
-            $$.hashK1 = 1;
+            $$.hashS = 0;
+            $$.hashP = 0;
+            $$.hashK = 1;
+            $$.hashBytesInD = 0;
+            $$.hashBytes = Number($1);
         }
     | HASHKLEN '(' hashId ')'
         {
             $$ = $3;
+            $$.hashS = 0;
+            $$.hashP = 0;
+            $$.hashK = 0;
             $$.hashKLen = 1;
         }
     | HASHKDIGEST '(' hashId ')'
         {
             $$ = $3;
+            $$.hashS = 0;
+            $$.hashP = 0;
+            $$.hashK = 0;
             $$.hashKDigest = 1;
         }
     | HASHS '(' hashId ')'
         {
             $$ = $3;
+            $$.hashP = 0;
+            $$.hashK = 0;
             $$.hashS = 1;
+            $$.hashBytesInD = 1;
+            $$.hashBytes = 0;
         }
-    | HASHS1 '(' hashId ')'
+    | HASHSn '(' hashId ')'
         {
             $$ = $3;
-            $$.hashS1 = 1;
+            $$.hashP = 0;
+            $$.hashK = 0;
+            $$.hashS = 1;
+            $$.hashBytesInD = 0;
+            $$.hashBytes = Number($1);
         }
     | HASHSLEN '(' hashId ')'
         {
             $$ = $3;
+            $$.hashS = 0;
+            $$.hashP = 0;
+            $$.hashK = 0;
             $$.hashSLen = 1;
         }
     | HASHSDIGEST '(' hashId ')'
         {
             $$ = $3;
+            $$.hashS = 0;
+            $$.hashP = 0;
+            $$.hashK = 0;
             $$.hashSDigest = 1;
         }
     | HASHP '(' hashId ')'
         {
             $$ = $3;
+            $$.hashS = 0;
+            $$.hashK = 0;
             $$.hashP = 1;
+            $$.hashBytesInD = 1;
+            $$.hashBytes = 0;
         }
-    | HASHP1 '(' hashId ')'
+    | HASHPn '(' hashId ')'
         {
             $$ = $3;
-            $$.hashP1 = 1;
+            $$.hashS = 0;
+            $$.hashK = 0;
+            $$.hashP = 1;
+            $$.hashBytesInD = 0;
+            $$.hashBytes = Number($1);
         }
     | HASHPLEN '(' hashId ')'
         {
             $$ = $3;
+            $$.hashS = 0;
+            $$.hashP = 0;
+            $$.hashK = 0;
             $$.hashPLen = 1;
         }
     | HASHPDIGEST '(' hashId ')'
         {
             $$ = $3;
+            $$.hashS = 0;
+            $$.hashP = 0;
+            $$.hashK = 0;
             $$.hashPDigest = 1;
         }
     | JMP '(' IDENTIFIER ')'
