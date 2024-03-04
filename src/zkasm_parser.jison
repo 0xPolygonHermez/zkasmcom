@@ -678,7 +678,7 @@ op
         }
     | ARITH_ECADD_SAME
         {
-            $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 0, arithEq4: 0, arithEq5: 0 }
+            $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 1, arithEq3: 0, arithEq4: 0, arithEq5: 0 }
         }
     | ARITH_BN254_MULFP2
         {
@@ -821,6 +821,18 @@ addr
         {
             $$ = { isStack: 0, isMem:0, ind:1, indRR: 0, incStack: 0, offset: 0}
         }
+    | SYS ':' RR '+' NUMBER
+        {
+            $$ = { isStack: 0, isMem:0, ind:0, indRR: 1, incStack: 0, offset: $5}
+        }
+    | SYS ':' RR '-' NUMBER
+        {
+            $$ = { isStack: 0, isMem:0, ind:0, indRR: 1, incStack: 0, offset: -$5}
+        }
+    | SYS ':' RR
+        {
+            $$ = { isStack: 0, isMem:0, ind:0, indRR: 1, incStack: 0, offset: 0}
+        }
     | MEM ':' E '+' NUMBER
         {
             $$ = { isStack: 0, isMem: 1, ind:1, indRR: 0, incStack: 0, offset: $5, useCTX: 1}
@@ -833,6 +845,18 @@ addr
         {
             $$ = { isStack: 0, isMem: 1, ind:1, indRR: 0, incStack: 0, offset: 0, useCTX: 1}
         }
+    | MEM ':' RR '+' NUMBER
+        {
+            $$ = { isStack: 0, isMem: 1, ind:0, indRR: 1, incStack: 0, offset: $5, useCTX: 1}
+        }
+    | MEM ':' RR '-' NUMBER
+        {
+            $$ = { isStack: 0, isMem: 1, ind:0, indRR: 1, incStack: 0, offset: -$5, useCTX: 1}
+        }
+    | MEM ':' RR
+        {
+            $$ = { isStack: 0, isMem: 1, ind:0, indRR: 1, incStack: 0, offset: 0, useCTX: 1}
+        }
     | STACK ':' E '+' NUMBER
         {
             $$ = { isStack: 1, ind:1, indRR: 0, incStack: 0, offset: $5, useCTX: 1}
@@ -844,6 +868,18 @@ addr
     | STACK ':' E
         {
             $$ = { isStack: 1, ind:1, indRR: 0, incStack: 0, offset: 0, useCTX: 1}
+        }
+    | STACK ':' RR '+' NUMBER
+        {
+            $$ = { isStack: 1, ind:0, indRR: 1, incStack: 0, offset: $5, useCTX: 1}
+        }
+    | STACK ':' RR '-' NUMBER
+        {
+            $$ = { isStack: 1, ind:0, indRR: 1, incStack: 0, offset: -$5, useCTX: 1}
+        }
+    | STACK ':' RR
+        {
+            $$ = { isStack: 1, ind:0, indRR: 1, incStack: 0, offset: 0, useCTX: 1}
         }
     | IDENTIFIER
         {
