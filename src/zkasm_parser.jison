@@ -28,18 +28,25 @@ ROTL_C                  { return 'ROTL_C'; }
 HASHPOS                 { return 'HASHPOS'; }
 RID                     { return 'RID'; }
 MLOAD                   { return 'MLOAD' }
+F_MLOAD                 { return 'F_MLOAD' }
 MSTORE                  { return 'MSTORE' }
 HASHKLEN                { return 'HASHKLEN' }
 HASHKDIGEST             { return 'HASHKDIGEST' }
+F_HASHK((1[0-9])|(2[0-9])|(3[0-2])|[1-9])  { yytext = yytext.slice(7); return 'F_HASHKn' }
 HASHK((1[0-9])|(2[0-9])|(3[0-2])|[1-9])  { yytext = yytext.slice(5); return 'HASHKn' }
+F_HASHK                 { return 'F_HASHK' }
 HASHK                   { return 'HASHK' }
 HASHSLEN                { return 'HASHSLEN' }
 HASHSDIGEST             { return 'HASHSDIGEST' }
+F_HASHS((1[0-9])|(2[0-9])|(3[0-2])|[1-9])  { yytext = yytext.slice(7); return 'F_HASHSn' }
 HASHS((1[0-9])|(2[0-9])|(3[0-2])|[1-9])  { yytext = yytext.slice(5); return 'HASHSn' }
+F_HASHS                   { return 'F_HASHS' }
 HASHS                   { return 'HASHS' }
 HASHPLEN                { return 'HASHPLEN' }
 HASHPDIGEST             { return 'HASHPDIGEST' }
+F_HASHP((1[0-9])|(2[0-9])|(3[0-2])|[1-9])  { yytext = yytext.slice(7); return 'F_HASHPn' }
 HASHP((1[0-9])|(2[0-9])|(3[0-2])|[1-9])  { yytext = yytext.slice(5); return 'HASHPn' }
+F_HASHP                   { return 'F_HASHP' }
 HASHP                   { return 'HASHP' }
 JMP                     { return 'JMP' }
 JMPC                    { return 'JMPC' }
@@ -90,6 +97,7 @@ REPEAT                  { return 'REPEAT' }
 SAVE                    { return 'SAVE' }
 RESTORE                 { return 'RESTORE' }
 \"[^"]+\"               { yytext = yytext.slice(1,-1); return 'STRING'; }
+[a-zA-Z_][a-zA-Z$_0-9]*\:   { yytext = yytext.slice(0, -1); return 'LABEL'; }
 [a-zA-Z_][a-zA-Z$_0-9]*   { return 'IDENTIFIER'; }
 \%[a-zA-Z_][a-zA-Z$_0-9]* { yytext = yytext.slice(1); return 'CONSTID'; }
 \@[a-zA-Z_][a-zA-Z$_0-9]* { yytext = yytext.slice(1); return 'REFERENCE'; }
@@ -129,6 +137,8 @@ RESTORE                 { return 'RESTORE' }
 .                       { /* console.log("INVALID: " + yytext); */ return 'INVALID'; }
 
 /lex
+%nonassoc EMPTY
+%left '?' ':'
 
 %right '='
 %right '?'
@@ -184,9 +194,9 @@ statment
         {
             $$ = $1;
         }
-    | label
+    | LABEL
         {
-            $$ = $1;
+            $$ = {type: "label", identifier: $1};
         }
     | varDef
         {
@@ -228,14 +238,6 @@ step
         }
     ;
 
-label
-    : IDENTIFIER ':'
-        {
-            $$ = {type: "label", identifier: $1};
-            setLine($$, @1)
-        }
-    ;
-
 varDef
     :  VAR scope IDENTIFIER
         {
@@ -253,12 +255,14 @@ varDef
 
 constDef
     : 'CONST' CONSTID '=' nexpr %prec '='
-        {
+        {            
+            // yy.parser.defineConstant($2, 'CONST', $4, @1.first_line);
             $$ = {type: "constdef", name: $2, value: $4}
             setLine($$, @1);
         }
     | 'CONSTL' CONSTID '=' nexpr %prec '='
         {
+            // yy.parser.defineConstant($2, 'CONSTL', $4, @1.first_line);
             $$ = {type: "constldef", name: $2, value: $4}
             setLine($$, @1);
         }
@@ -395,7 +399,7 @@ nexpr
     ;
 
 assignment
-    : inRegsSum '=>' regsList
+    : inRegsSum '=>' destinationsList
         {
             $$ = {in: $1, out: $3}
         }
@@ -438,15 +442,19 @@ inRegP
 inReg
     : TAG
         {
-            $$ = {type: 'TAG' , tag: $1}
+            $$ = {type: 'TAG' , tag: $1 }
         }
     | TAG_0
         {
-            $$ = {type: 'TAG_0' , tag: $1}
+            $$ = {type: 'TAG_0' , tag: $1 }
         }
     | reg
         {
             $$ = {type: 'REG' , reg: $1}
+        }
+    | mem_addr
+        {
+            $$ = {type: 'F_MLOAD', addr: $1}
         }
     | counter
         {
@@ -479,12 +487,31 @@ inReg
         }
     ;
 
-regsList
-    : regsList ',' reg
+destinationsList
+    : destinationsList ',' reg
+        {
+            $1.push({type: 'REG', reg:$3})
+        }
+    | destinationsList ',' mem_addr
+        {
+            $1.push({type: 'MSTORE', addr:{...$3, assumeFree: 0}})
+        }
+    | mem_addr
+        {
+            $$ = [{type: 'MSTORE', addr:{...$1, assumeFree: 0}}]
+        }
+    | reg
+        {
+            $$ = [{type: 'REG', reg:$1}]
+        }
+    ;
+
+saveRegsList
+    : saveRegsList ',' saveReg
         {
             $1.push($3)
         }
-    | reg
+    | saveReg
         {
             $$ = [$1]
         }
@@ -508,12 +535,41 @@ op
             $$ = $3;
             $$.mOp = 1;
             $$.mWR = 0;
+            $$.assumeFree = 0;
+        }
+    | F_MLOAD '(' addr ')'
+        {
+            $$ = $3;
+            $$.mOp = 1;
+            $$.mWR = 0;
+            $$.assumeFree = 1;
         }
     | MSTORE '(' addr ')'
         {
             $$ = $3;
             $$.mOp = 1;
             $$.mWR = 1;
+            $$.assumeFree = 0;
+        }
+    | F_HASHK '(' hashId ')'
+        {
+            $$ = $3;
+            $$.hashS = 0;
+            $$.hashP = 0;
+            $$.hashK = 1;
+            $$.hashBytesInD = 1;
+            $$.hashBytes = 0;
+            $$.assumeFree = 1;
+        }
+    | F_HASHKn '(' hashId ')'
+        {
+            $$ = $3;
+            $$.hashS = 0;
+            $$.hashP = 0;
+            $$.hashK = 1;
+            $$.hashBytesInD = 0;
+            $$.hashBytes = Number($1);
+            $$.assumeFree = 1;
         }
     | HASHK '(' hashId ')'
         {
@@ -523,6 +579,7 @@ op
             $$.hashK = 1;
             $$.hashBytesInD = 1;
             $$.hashBytes = 0;
+            $$.assumeFree = 0;
         }
     | HASHKn '(' hashId ')'
         {
@@ -532,6 +589,7 @@ op
             $$.hashK = 1;
             $$.hashBytesInD = 0;
             $$.hashBytes = Number($1);
+            $$.assumeFree = 0;
         }
     | HASHKLEN '(' hashId ')'
         {
@@ -549,6 +607,26 @@ op
             $$.hashK = 0;
             $$.hashKDigest = 1;
         }
+    | F_HASHS '(' hashId ')'
+        {
+            $$ = $3;
+            $$.hashP = 0;
+            $$.hashK = 0;
+            $$.hashS = 1;
+            $$.hashBytesInD = 1;
+            $$.hashBytes = 0;
+            $$.assumeFree = 1;
+        }
+    | F_HASHSn '(' hashId ')'
+        {
+            $$ = $3;
+            $$.hashP = 0;
+            $$.hashK = 0;
+            $$.hashS = 1;
+            $$.hashBytesInD = 0;
+            $$.hashBytes = Number($1);
+            $$.assumeFree = 1;
+        }
     | HASHS '(' hashId ')'
         {
             $$ = $3;
@@ -557,6 +635,7 @@ op
             $$.hashS = 1;
             $$.hashBytesInD = 1;
             $$.hashBytes = 0;
+            $$.assumeFree = 0;
         }
     | HASHSn '(' hashId ')'
         {
@@ -566,6 +645,7 @@ op
             $$.hashS = 1;
             $$.hashBytesInD = 0;
             $$.hashBytes = Number($1);
+            $$.assumeFree = 0;
         }
     | HASHSLEN '(' hashId ')'
         {
@@ -583,6 +663,26 @@ op
             $$.hashK = 0;
             $$.hashSDigest = 1;
         }
+    | F_HASHP '(' hashId ')'
+        {
+            $$ = $3;
+            $$.hashS = 0;
+            $$.hashK = 0;
+            $$.hashP = 1;
+            $$.hashBytesInD = 1;
+            $$.hashBytes = 0;
+            $$.assumeFree = 1;
+        }
+    | F_HASHPn '(' hashId ')'
+        {
+            $$ = $3;
+            $$.hashS = 0;
+            $$.hashK = 0;
+            $$.hashP = 1;
+            $$.hashBytesInD = 0;
+            $$.hashBytes = Number($1);
+            $$.assumeFree = 1;
+        }
     | HASHP '(' hashId ')'
         {
             $$ = $3;
@@ -591,6 +691,7 @@ op
             $$.hashP = 1;
             $$.hashBytesInD = 1;
             $$.hashBytes = 0;
+            $$.assumeFree = 0;
         }
     | HASHPn '(' hashId ')'
         {
@@ -600,6 +701,7 @@ op
             $$.hashP = 1;
             $$.hashBytesInD = 0;
             $$.hashBytes = Number($1);
+            $$.assumeFree = 0;
         }
     | HASHPLEN '(' hashId ')'
         {
@@ -617,85 +719,29 @@ op
             $$.hashK = 0;
             $$.hashPDigest = 1;
         }
-    | JMP '(' IDENTIFIER ')'
+    | JMP '(' jmp_addr ')'
         {
-            $$ = { [$1]: 1, useJmpAddr: 1, jmpAddr: $3 }
-        }
-    | jmpCond '(' IDENTIFIER ')'
-        {
-            $$ = { [$1]: 1, useJmpAddr: 1, jmpAddr: $3, useElseAddr: 1, elseAddr: 'next' }
-        }
-    | jmpCond '(' IDENTIFIER ',' IDENTIFIER ')'
-        {
-            $$ = { [$1]: 1, useJmpAddr: 1, jmpAddr: $3, useElseAddr: 1, elseAddr: $5 }
+            $$ = { [$1]: 1, ...$3 }
         }
     | jmpNotCond '(' IDENTIFIER ')'
         {
             $$ = { [$1]: 1, useJmpAddr: 1, jmpAddr: 'next', useElseAddr: 1, elseAddr: $3 }
         }
-    | jmpNotCond '(' IDENTIFIER ',' IDENTIFIER ')'
+    | jmpNotCond '(' IDENTIFIER ',' jmp_addr ')'
         {
-            $$ = { [$1]: 1, useJmpAddr: 1, jmpAddr:  $5, useElseAddr: 1, elseAddr: $3 }
+            $$ = { [$1]: 1, useElseAddr: 1, elseAddr: $3, ...$5 }
         }
-    | JMP '(' RR ')'
+    | jmpCond '(' jmp_addr ')'
         {
-            $$ = { [$1]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: 0 }
+            $$ = { [$1]: 1, useElseAddr: 1, elseAddr: 'next', ...$3 }
         }
-    | JMP '(' E ')'
+    | jmpCond '(' jmp_addr ',' IDENTIFIER ')'
         {
-            $$ = { [$1]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: 0 }
+            $$ = { [$1]: 1, useElseAddr: 1, elseAddr: $5, ...$3 }
         }
-    | JMP '(' REFERENCE '+' RR ')'
+    | CALL '(' jmp_addr ')'
         {
-            $$ = { [$1]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: $3 }
-        }
-    | JMP '(' REFERENCE '+' E ')'
-        {
-            $$ = { [$1]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: $3 }
-        }
-    | jmpCond '(' RR ')'
-        {
-            $$ = { [$1]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: 0, useElseAddr: 1, elseAddr: 'next' }
-        }
-    | jmpCond '(' E ')'
-        {
-            $$ = { [$1]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: 0, useElseAddr: 1, elseAddr: 'next' }
-        }
-    | jmpCond '(' REFERENCE '+' RR ')'
-        {
-            $$ = { [$1]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: $3, useElseAddr: 1, elseAddr: 'next' }
-        }
-    | jmpCond '(' REFERENCE '+' E ')'
-        {
-            $$ = { [$1]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: $3, useElseAddr: 1, elseAddr: 'next' }
-        }
-    | jmpCond '(' RR ',' IDENTIFIER ')'
-        {
-            $$ = { [$1]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: 0, useElseAddr: 1, elseAddr: $5 }
-        }
-    | jmpCond '(' E ',' IDENTIFIER ')'
-        {
-            $$ = { [$1]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: 0, useElseAddr: 1, elseAddr: $5 }
-        }
-    | jmpCond '(' REFERENCE '+' RR ',' IDENTIFIER ')'
-        {
-            $$ = { [$1]: 1, useJmpAddr: 0, ind: 0, indRR: 1, offset: $3, useElseAddr: 1, elseAddr: $7 }
-        }
-    | jmpCond '(' REFERENCE '+' E ',' IDENTIFIER')'
-        {
-            $$ = { [$1]: 1, useJmpAddr: 0, ind: 1, indRR: 0, offset: $3, useElseAddr: 1, elseAddr: $7 }
-        }
-    | CALL '(' IDENTIFIER ')'
-        {
-            $$ = {JMP: 0,  JMPC: 0, JMPN: 0, useJmpAddr:1, jmpAddr: $3, call: 1}
-        }
-    | CALL '(' REFERENCE '+' RR ')'
-        {
-            $$ = {JMP: 0,  JMPC: 0, JMPN: 0, offset: $3, ind: 0, indRR: 1, return: 0, call: 1}
-        }
-    | CALL '(' REFERENCE '+' E ')'
-        {
-            $$ = {JMP: 0,  JMPC: 0, JMPN: 0, offset: $3, ind: 1, indRR: 0, return: 0, call: 1}
+            $$ = {JMP: 0,  JMPC: 0, JMPN: 0, return: 0, call: 1, ...$3 }
         }
     | RETURN
         {
@@ -789,11 +835,11 @@ op
         {
             $$ = { repeat: 1 }
         }
-    | SAVE '(' regsList ')'
+    | SAVE '(' saveRegsList ')'
         {
             $$ = { save: 1, restore: 0, regs: $3 }
         }
-    | RESTORE '(' regsList ')'
+    | RESTORE '(' saveRegsList ')'
         {
             $$ = { save: 0, restore: 1, regs: $3 }
         }
@@ -883,77 +929,33 @@ addr
         {
             $$ = { isStack: 1, isMem:0, ind:0, indRR: 0, incStack: -1, offset: 0, useCTX: 1}
         }
-    | SYS ':' E '+' NUMBER
+    | SYS ':' array_index
         {
-            $$ = { isStack: 0, isMem:0, ind:1, indRR: 0, incStack: 0, offset: $5}
+            $$ = { isStack: 0, isMem:0, incStack: 0, offset: 0, ...$3 }
         }
-    | SYS ':' E '-' NUMBER
+    | MEM ':' array_index
         {
-            $$ = { isStack: 0, isMem:0, ind:1, indRR: 0, incStack: 0, offset: -$5}
+            $$ = { isStack: 0, isMem: 1, incStack: 0, offset: 0, useCTX: 1, ...$3 }
         }
-    | SYS ':' E
+    | STACK ':' array_index
         {
-            $$ = { isStack: 0, isMem:0, ind:1, indRR: 0, incStack: 0, offset: 0}
+            $$ = { isStack: 1, isMem: 0, incStack: 0, offset: 0, useCTX: 1, ...$3 }
         }
-    | SYS ':' RR '+' NUMBER
+    | SYS '[' array_index ']'
         {
-            $$ = { isStack: 0, isMem:0, ind:0, indRR: 1, incStack: 0, offset: $5}
+            $$ = { isStack: 0, isMem:0, incStack: 0, offset: 0, ...$3 }
         }
-    | SYS ':' RR '-' NUMBER
+    | MEM '[' array_index ']'
         {
-            $$ = { isStack: 0, isMem:0, ind:0, indRR: 1, incStack: 0, offset: -$5}
+            $$ = { isStack: 0, isMem: 1, incStack: 0, offset: 0, useCTX: 1, ...$3 }
         }
-    | SYS ':' RR
+    | STACK '[' array_index ']'
         {
-            $$ = { isStack: 0, isMem:0, ind:0, indRR: 1, incStack: 0, offset: 0}
+            $$ = { isStack: 1, isMem: 0, incStack: 0, offset: 0, useCTX: 1, ...$3 }
         }
-    | MEM ':' E '+' NUMBER
+    | IDENTIFIER '[' array_index ']'
         {
-            $$ = { isStack: 0, isMem: 1, ind:1, indRR: 0, incStack: 0, offset: $5, useCTX: 1}
-        }
-    | MEM ':' E '-' NUMBER
-        {
-            $$ = { isStack: 0, isMem: 1, ind:1, indRR: 0, incStack: 0, offset: -$5, useCTX: 1}
-        }
-    | MEM ':' E
-        {
-            $$ = { isStack: 0, isMem: 1, ind:1, indRR: 0, incStack: 0, offset: 0, useCTX: 1}
-        }
-    | MEM ':' RR '+' NUMBER
-        {
-            $$ = { isStack: 0, isMem: 1, ind:0, indRR: 1, incStack: 0, offset: $5, useCTX: 1}
-        }
-    | MEM ':' RR '-' NUMBER
-        {
-            $$ = { isStack: 0, isMem: 1, ind:0, indRR: 1, incStack: 0, offset: -$5, useCTX: 1}
-        }
-    | MEM ':' RR
-        {
-            $$ = { isStack: 0, isMem: 1, ind:0, indRR: 1, incStack: 0, offset: 0, useCTX: 1}
-        }
-    | STACK ':' E '+' NUMBER
-        {
-            $$ = { isStack: 1, ind:1, indRR: 0, incStack: 0, offset: $5, useCTX: 1}
-        }
-    | STACK ':' E '-' NUMBER
-        {
-            $$ = { isStack: 1, ind:1, indRR: 0, incStack: 0, offset: -$5, useCTX: 1}
-        }
-    | STACK ':' E
-        {
-            $$ = { isStack: 1, ind:1, indRR: 0, incStack: 0, offset: 0, useCTX: 1}
-        }
-    | STACK ':' RR '+' NUMBER
-        {
-            $$ = { isStack: 1, ind:0, indRR: 1, incStack: 0, offset: $5, useCTX: 1}
-        }
-    | STACK ':' RR '-' NUMBER
-        {
-            $$ = { isStack: 1, ind:0, indRR: 1, incStack: 0, offset: -$5, useCTX: 1}
-        }
-    | STACK ':' RR
-        {
-            $$ = { isStack: 1, ind:0, indRR: 1, incStack: 0, offset: 0, useCTX: 1}
+            $$ = { offset: $1, ...$3 }
         }
     | IDENTIFIER
         {
@@ -967,27 +969,143 @@ addr
         {
             $$ = { offset: $1, ind: 1, indRR: 0 }
         }
-    | IDENTIFIER '[' E ']'
-        {
-            $$ = { offset: $1, ind: 1, indRR: 0 }
-        }
-    | IDENTIFIER '[' E '-' NUMBER ']'
-        {
-            $$ = { offset: $1, extraOffset: -$5, ind: 1, indRR: 0 }
-        }
-    | IDENTIFIER '[' E '+' NUMBER ']'
-        {
-            $$ = { offset: $1, extraOffset: $5, ind: 1, indRR: 0 }
-        }
     | IDENTIFIER '+' NUMBER
         {
             $$ = { offset: $1, extraOffset: $3 }
         }
-    | IDENTIFIER '[' NUMBER ']'
+    ;
+
+jmp_addr
+    : array_index
         {
-            $$ = { offset: $1, extraOffset: $3 }
+            $$ = { useJmpAddr: 0, offset: 0, ...$1 }
+        }            
+
+    | IDENTIFIER
+        {
+            $$ = { useJmpAddr: 1, jmpAddr: $1 }
+        }            
+
+    | REFERENCE '+' array_index
+        {   
+            {
+                let _aindex = { ...$3 };
+                delete _aindex._fk;
+                $$ = { useJmpAddr: 0, offset: $1, ..._aindex }
+            }
+        }            
+
+    | REFERENCE '-' array_index
+        {
+            {
+                let _aindex = { ...$3 };
+                _aindex[_aindex._fk] = { type: 'neg', values: [_aindex[_aindex._fk]]};
+                delete _aindex._fk;
+                $$ = { useJmpAddr: 0, offset: $1, ..._aindex }
+            }
+        }            
+    ;
+
+
+const_value
+    : NUMBER
+        {
+            $$ = {type: 'CONSTL' , const: $1 }
+        }
+    | CONSTID
+        {
+            $$ = {type: 'CONSTID' , identifier: $1 }
         }
     ;
+
+array_index
+    : array_index '+' array_index_item
+        {
+            Object.keys($3).forEach(k => {
+                if (k !== '_fk') {
+                    if ($1[k] && $1[k].const !== 0) {
+                        console.log($1[k], $3[k]);
+                        throw new Error(`Property ${k} already used`);
+                    }
+                    $1[k] = $3[k];
+                }
+            });
+            $$ = $1;
+        }
+    | array_index '-' array_index_item
+        {
+            Object.keys($3).forEach(k => {
+                if (k !== '_fk') {
+                    if ($1[k] && $1[k].const !== 0) {
+                        console.log($1[k], $3[k]);
+                        throw new Error(`Property ${k} already used`);
+                    }
+                    $1[k] = {type: 'neg', values: [$3[k]]};
+                }
+            });
+            $$ = $1;
+        }
+    | array_index_item
+        {
+            $$ = {ind: 0, indRR: 0, extraOffset: 0, ...$1}
+        }
+    ;
+
+array_index_item
+    : const_value
+        {
+            $$ = { _fk: 'extraOffset', extraOffset: $1 }
+        }
+    | E
+        {
+            $$ = { _fk: 'ind', ind: 1 }
+        }
+    | RR
+        {
+            $$ = { _fk: 'indRR', indRR: 1 }
+        }
+    | const_value '*' E
+        {
+            $$ = { _fk: 'ind', ind: $1 }
+        }
+    | const_value '*' RR
+        {
+            $$ = { _fk: 'indRR', indRR: $1 }
+        }
+    | E  '*' const_value 
+        {
+            $$ = { _fk: 'ind', ind: $3 }
+        }
+    | RR '*' const_value 
+        {
+            $$ = { _fk: 'indRR', indRR: $3 }
+        }
+    ;
+
+
+mem_addr
+    : IDENTIFIER    %prec EMPTY
+        {
+            $$ = { offset: $1 }
+        }
+    | SYS '[' array_index ']'
+        {
+            $$ = { isStack: 0, isMem:0, incStack: 0, ...$3 }
+        }
+    | MEM '[' array_index ']'
+        {
+            $$ = { isStack: 0, isMem: 1, incStack: 0, useCTX: 1, ...$3 }
+        }
+    | STACK '[' array_index ']'
+        {
+            $$ = { isStack: 1, isMem: 0, incStack: 0, useCTX: 1, ...$3 }
+        }
+    | IDENTIFIER '[' array_index ']'
+        {
+            $$ = { offset: $1, ...$3 }
+        }
+    ;
+
 
 hashId
     : NUMBER

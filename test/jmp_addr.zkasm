@@ -1,0 +1,72 @@
+
+    0 => A
+    1 => B
+    2 => C
+
+label3:
+   10 => A
+   11 => B
+   12 => C
+   13 => D
+
+label7:
+   23 => A
+   24 => B
+   25 => C
+
+label10:
+   36 => A
+   37 => B
+   38 => C
+
+            :JMP(label3)
+            :JMP(E)
+            :JMP(E+5)
+            :JMP(@label3 + 0 - 10 * E + 8 * RR - 5)
+    A       :JMPZ(@label3 + 0 - 10 * E + 8 * RR - 5)
+    A       :JMPC(@label3 + 0 - 10 * E + 8 * RR - 5),EQ
+    A       :JMPN(@label3 + 0 - 10 * E + 8 * RR - 5)
+    A       :JMPZ(@label3 + 0 - 10 * E + 8 * RR - 5, label10)
+    A       :JMPC(@label3 + 0 - 10 * E + 8 * RR - 5, label10),EQ
+    A       :JMPN(@label3 + 0 - 10 * E + 8 * RR - 5, label10)
+            
+    A       :JMPNZ(label10, @label3 - 10 * E + 8 * RR - 5)
+    A       :JMPNC(label10, @label3 - 10 * E + 8 * RR - 5),EQ
+
+            :JMP(@label3 - 10 * E + 8 * RR - 5)
+            :JMP(@label3 - 10 * E + 8 * RR - 5)
+            :JMP(@label3 - 10 * E + 8 * RR - 5)
+
+            :JMP(@label3 + E)
+            :JMP(@label3 + E + 10)
+            :JMP(@label3 + E - 10)
+            :JMP(@label3 + 3 * E)
+            :JMP(@label3 + 5 * E + 10)
+            :JMP(@label3 + 3 * E)
+            :JMP(@label3 + 10 + 5 * E)
+            :JMP(@label3 + 10 - 5 * E)
+            :JMP(@label3 + 12 - 5 * E)
+            :JMP(@label3 + 0 - 5 * E)
+            :JMP(RR)
+            :JMP(RR+5)
+            :JMP(@label3 + RR)
+            :JMP(@label3 + RR + 10)
+            :JMP(@label3 + RR - 10)
+            :JMP(@label3 + 3 * RR)
+            :JMP(@label3 + 5 * RR + 10)
+            :JMP(@label3 + 3 * RR)
+            :JMP(@label3 + 10 + 5 * RR)
+            :JMP(@label3 + 10 - 5 * RR)
+            :JMP(@label3 + 12 - 5 * RR)
+            :JMP(@label3 + 0 - 5 * RR)
+            :JMP(RR+E)
+            :JMP(RR+E+5)
+            :JMP(@label3 + RR + E)
+            :JMP(@label3 + RR + E + 10)
+            :JMP(@label3 + RR + E - 10)
+            :JMP(@label3 + 3 * RR + 2 * E)
+            :JMP(@label3 + 5 * RR + E + 10)
+            :JMP(@label3 + 3 * RR + 10 * E)
+            :JMP(@label3 + 10 + 5 * RR + 3 * E)
+            :JMP(@label3 + 10 - 5 * RR - 3 * E)
+            :JMP(@label3 + 12 - 5 * RR + 3 * E)
