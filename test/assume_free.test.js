@@ -69,7 +69,7 @@ describe("Test Assume Free Feature", async function () {
             for (const hashSuffix of HASH_SUFFIXES) {
                 const hashTag = bytes === 0 ? `HASH${hashSuffix}` : `HASH${hashSuffix}${bytes}`;
                 json = await compile(`$ => A  :F_${hashTag}(E)\n$ => A  :${hashTag}(E)\n`,false, {compileFromString: true, summary: false});
-                expected = { freeInTag: {op: ''},  inFREE: "1", inFREE0: "0", ind: 1, indRR: 0, offset:0, 
+                expected = { freeInTag: {op: ''},  inFREE: "1", inFREE0: "0", hashOffset:0, 
                             hashS:0, hashK: 0, hashP: 0, hashBytesInD: bytes === 0 ? 1: 0, hashBytes: bytes === 0 ? 0: bytes, setA: 1 };
                 expected[`hash${hashSuffix}`] = 1;
                 assert.equal(json.program.length, 2);
@@ -91,7 +91,7 @@ describe("Test Assume Free Feature", async function () {
         json = await compile('VAR GLOBAL v0[8]\nVAR GLOBAL v1[12]\n3 * $ - 2 * B => A,C  :F_MLOAD(v1+6)\n3 * v1[6] - 2 * B => A,C\n',false, CFG);
         assert.equal(json.program.length, 2);
         for (let line = 0; line < 2; ++line) {
-            compareJson({...expected, offset: 14, extraOffset: 6}, 
+            compareJson({...expected, offset: 14}, 
                          json.program[line], json.program[line].lineStr);
         }
 
@@ -102,7 +102,7 @@ describe("Test Assume Free Feature", async function () {
                 json = await compile(`VAR GLOBAL v0[8]\nVAR GLOBAL v1[12]\n3 * $ - 2 * B => A,C  :F_MLOAD(v1[${reg}${_offset}])\n3 * v1[${reg}${_offset}] - 2 * B => A,C\n`,false, CFG);
                 assert.equal(json.program.length, 2);
                 for (let line = 0; line < 2; ++line) {
-                    compareJson({...expected, offset: 8 + offset, extraOffset: offset, minInd: -offset, maxInd: 11 - offset, baseLabel: 8, sizeLabel: 12, ind: reg === 'E' ? 1:0, indRR: reg === 'RR' ? 1:0}, 
+                    compareJson({...expected, offset: 8 + offset, minInd: -offset, maxInd: 11 - offset, baseLabel: 8, sizeLabel: 12, useAddrRel: 1, ind: reg === 'E' ? 1:0, indRR: reg === 'RR' ? 1:0}, 
                                 json.program[line], json.program[line].lineStr);
                 }
             }
@@ -112,9 +112,8 @@ describe("Test Assume Free Feature", async function () {
             for (const hashSuffix of HASH_SUFFIXES) {
                 const hashTag = bytes === 0 ? `HASH${hashSuffix}` : `HASH${hashSuffix}${bytes}`;
                 const src = `B - 4 * $ => A, D  :F_${hashTag}(E)\n`;
-                console.log(src);
                 json = await compile(src,false, {compileFromString: true, summary: false});
-                expected = { freeInTag: {op: ''},  inFREE: "-4", inFREE0: "0", ind: 1, indRR: 0, offset:0, setD: 1, assumeFree: 1, inB: "1",
+                expected = { freeInTag: {op: ''},  inFREE: "-4", inFREE0: "0", hashOffset:0, setD: 1, assumeFree: 1, inB: "1",
                             hashS:0, hashK: 0, hashP: 0, hashBytesInD: bytes === 0 ? 1: 0, hashBytes: bytes === 0 ? 0: bytes, setA: 1 };
                 expected[`hash${hashSuffix}`] = 1;
                 assert.equal(json.program.length, 1);
@@ -126,7 +125,6 @@ describe("Test Assume Free Feature", async function () {
         let json = await compile('VAR GLOBAL v0[8]\nVAR GLOBAL v1\n3 - 2 * B => A,C :MSTORE(v1)\n3 - 2 * B => A,v1,C\n',false, CFG);
         let expected = { setC: 1, setA: 1, CONST: '3', inB: "-2", assumeFree: 0,
                          offset: 8, mOp: 1, mWR: 1, offsetLabel: 'v1', useCTX: 0 };
-        console.log(json)
         assert.equal(json.program.length, 2);
         for (let line = 0; line < 2; ++line) {
             compareJson({...expected}, json.program[line], json.program[line].lineStr);

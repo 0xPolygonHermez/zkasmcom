@@ -4,7 +4,7 @@ const { config } = require("process");
 const zkasm_parser = require("../build/zkasm_parser.js").parser;
 const command_parser = require("../build/command_parser.js").parser;
 const stringifyBigInts = require("ffjavascript").utils.stringifyBigInts;
-
+const util = require('util');
 const maxConst = (1n << 32n) - 1n;
 const minConst = -(1n << 31n);
 const maxConstl = (1n << 256n) - 1n;
@@ -66,7 +66,7 @@ module.exports = async function compile(fileName, ctx, config = {}) {
 
     for (let i=0; i<lines.length; i++) {
         const l = lines[i];
-        console.log(`#${i} ${ctx.srcLines[relativeFileName][l.line-1]}`,l);
+        // console.log(`#${i} ${ctx.srcLines[relativeFileName][l.line-1]}`,util.inspect(l, false, 100, true));
         ctx.currentLine = l;
         l.fileName = relativeFileName;
         if (l.type == "include") {
@@ -125,8 +125,8 @@ module.exports = async function compile(fileName, ctx, config = {}) {
                 let assignmentRequired = false;
                 for (let j=0; j< l.ops.length; j++) {
                     const op = (l.ops[j].mOp || l.ops[j].JMP || l.ops[j].JMPC || l.ops[j].JMPN || l.ops[j].JMPZ || l.ops[j].call) ? resolve(ctx, l.ops[j]):l.ops[j];
-                    console.log(l.ops[j]);
-                    console.log(op);
+                    // console.log(l.ops[j]);
+                    // console.log(op);
                     appendOp(traceStep, op);
                     if ((op.save || op.restore) && (!l.assignment || l.assignment.out.length === 0)) continue;
                     if (op.restore) {
@@ -137,7 +137,6 @@ module.exports = async function compile(fileName, ctx, config = {}) {
                         continue;
                     }
                     if (op.JMP || op.call || op.return || op.repeat|| op.restore) {
-                        console.log('====\oo/====>', op);
                         continue;
                     }
                     assignmentRequired = true;
@@ -185,63 +184,44 @@ module.exports = async function compile(fileName, ctx, config = {}) {
 
     if (isMain) {
         for (let i=0; i<ctx.out.length; i++) {
-            console.log(`@@{${i}}@@ ${ctx.srcLines[ctx.out[i].line.fileName][ctx.out[i].line.line - 1] ?? ''}`,ctx.out[i]);
-            if (ctx.out[i].line) console.log(ctx.out[i].line);
-            if ((typeof ctx.out[i].offset !== "undefined") && (isNaN(ctx.out[i].offset))) {
-                if (!ctx.out[i].useJmpAddr && (ctx.out[i].JMP || ctx.out[i].JMPC || ctx.out[i].JMPN || ctx.out[i].JMPZ || ctx.out[i].call)) {
-                    const codeAddr = getCodeAddress(ctx.out[i].offset, i);
-
-                    if (codeAddr === false) {
-                        optionalError(config.allowUndefinedLabels, ctx.out[i].line,  `Label: ${ctx.out[i].offset} not defined.`);
+            // console.log(`@@{${i}}@@ ${ctx.srcLines[ctx.out[i].line.fileName][ctx.out[i].line.line - 1] ?? ''}`,ctx.out[i]);
+            if (ctx.out[i].offsetLabel) {
+                const label = ctx.out[i].offsetLabel; 
+                if (typeof ctx.vars[label] === "undefined") {
+                    optionalError(config.allowUndefinedVariables, ctx.out[i].line,  `Variable: ${label} not defined.`);
+                }
+                else {
+                    if (ctx.vars[label].scope === 'CTX') {
+                        ctx.out[i].useCTX = 1;
+                    } else if (ctx.vars[label].scope === 'GLOBAL') {
+                        ctx.out[i].useCTX = 0;
+                    } else {
+                        error(ctx.out[i].line, `Invalid variable scope: ${label} not defined.`);
                     }
-                    ctx.out[i].offsetLabel = ctx.out[i].offset;
-                    ctx.out[i].offset = codeAddr;
-                } else {
-                    ctx.out[i].offsetLabel = ctx.out[i].offset;
-                    if (typeof ctx.vars[ctx.out[i].offset] === "undefined") {
-                        optionalError(config.allowUndefinedVariables, ctx.out[i].line,  `Variable: ${ctx.out[i].offset} not defined.`);
-                        ctx.out[i].offset = 0;
-                    }
-                    else {
-                        const label = ctx.out[i].offset; 
-                        if (ctx.vars[label].scope === 'CTX') {
-                            ctx.out[i].useCTX = 1;
-                        } else if (ctx.vars[label].scope === 'GLOBAL') {
-                            ctx.out[i].useCTX = 0;
-                        } else {
-                            error(ctx.out[i].line, `Invalid variable scope: ${label} not defined.`);
-                        }
-                    
-                        ctx.out[i].offset = ctx.vars[label].offset + Number(ctx.out[i].extraOffset ?? 0);
-                        if (ctx.vars[label].count > 1 && (ctx.out[i].ind || ctx.out[i].indRR)) {
-                            ctx.out[i].minInd = ctx.vars[label].offset - ctx.out[i].offset;
-                            ctx.out[i].maxInd = (ctx.vars[label].offset + ctx.vars[label].count - 1) - ctx.out[i].offset;
-                            ctx.out[i].baseLabel = ctx.vars[label].offset;
-                            ctx.out[i].sizeLabel = ctx.vars[label].count;
-                        }
+                
+                    ctx.out[i].offset = Number(ctx.out[i].offset ?? 0) + Number(ctx.vars[label].offset);
+                    if (ctx.vars[label].count > 1 && ctx.out[i].useAddrRel) {
+                        ctx.out[i].minInd = ctx.vars[label].offset - ctx.out[i].offset;
+                        ctx.out[i].maxInd = (ctx.vars[label].offset + ctx.vars[label].count - 1) - ctx.out[i].offset;
+                        ctx.out[i].baseLabel = ctx.vars[label].offset;
+                        ctx.out[i].sizeLabel = ctx.vars[label].count;
                     }
                 }
-            }
-            if (typeof ctx.out[i].extraOffset !== 'undefined') {
-                ctx.out[i].offset += Number(ctx.out[i].extraOffset);
-                delete ctx.out[i].extraOffset;
             }
 
-            if ((typeof ctx.out[i].jmpAddr !== "undefined") && (isNaN(ctx.out[i].jmpAddr))) {
-                const codeAddr = getCodeAddress(ctx.out[i].jmpAddr, i);
+            if (ctx.out[i].jmpAddrLabel) {
+                const codeAddr = getCodeAddress(ctx.out[i].jmpAddrLabel, i);
                 if (codeAddr === false) {
-                    optionalError(config.allowUndefinedLabels, ctx.out[i].line,  `Label: ${ctx.out[i].jmpAddr} not defined.`);
+                    optionalError(config.allowUndefinedLabels, ctx.out[i].line,  `Label: ${ctx.out[i].jmpAddrLabel} not defined.`);
                 }
-                ctx.out[i].jmpAddrLabel = ctx.out[i].jmpAddr;
-                ctx.out[i].jmpAddr = codeAddr;
+                ctx.out[i].jmpAddr = Number(ctx.out[i].jmpAddr) + Number(codeAddr);
             }
-            if ((typeof ctx.out[i].elseAddr !== "undefined") && (isNaN(ctx.out[i].elseAddr))) {
-                const codeAddr = getCodeAddress(ctx.out[i].elseAddr, i);
+            if (ctx.out[i].elseAddrLabel) {
+                const codeAddr = getCodeAddress(ctx.out[i].elseAddrLabel, i);
                 if (codeAddr === false) {
-                    optionalError(config.allowUndefinedLabels, ctx.out[i].line,  `Label: ${ctx.out[i].elseAddr} not defined.`);
+                    optionalError(config.allowUndefinedLabels, ctx.out[i].line,  `Label: ${ctx.out[i].elseAddrLabel} not defined.`);
                 }
-                ctx.out[i].elseAddrLabel = ctx.out[i].elseAddr;
-                ctx.out[i].elseAddr = codeAddr;
+                ctx.out[i].elseAddr = Number(ctx.out[i].elseAddr) + Number(codeAddr);
             }
 
             if ((ctx.out[i].save || ctx.out[i].restore) && ctx.out[i].regs !== false) {
@@ -472,7 +452,7 @@ function resolve(ctx, input, currentLine) {
     return input;
 }
 function processAssignmentIn(ctx, input, currentLine) {
-    console.log('»»»»»»', input);
+    // console.log('»»»»»»', input);
     let res = {};
     let E1, E2;
     if (input.type == "TAG" || input.type == 'TAG_0') {
@@ -534,7 +514,6 @@ function processAssignmentIn(ctx, input, currentLine) {
         return res;
     }
     if ((input.type == "add") || (input.type == "sub") || (input.type == "neg") || (input.type == "mul")) {
-        console.log('»»', input);
         E1 = processAssignmentIn(ctx, input.values[0], currentLine);
     }
     if ((input.type == "add") || (input.type == "sub") || (input.type == "mul")) {
@@ -556,10 +535,6 @@ function processAssignmentIn(ctx, input, currentLine) {
             }
             Object.keys(E2).forEach(function(key) {
                 if (key === 'CONST' || key === 'CONSTL' || (key.startsWith('in') && !key.startsWith('ind'))) {
-                    console.log('+++++++++');
-                    console.log(key);
-                    console.log(E1);
-                    console.log(E2);
                     E2[key] *= E1.CONST;
                 }
             });
@@ -708,8 +683,8 @@ function processAssignmentOut(ctx, outputs, parent = {}) {
             if (typeof res.mOp !== 'undefined' || typeof parent.mOp !== 'undefined') throw new Error(`Assignment output memory operation already defined, only one operation by step is allowed`);
             res.mOp = 1;
             res.mWR = 1;
-            console.log('@@@@',out.addr);
-            appendOp(res, resolve(ctx, out.addr));
+            const _tmp = resolve(ctx, out.addr);
+            appendOp(res, _tmp);
         } else {
             const l = ctx.currentLine;
             throw new Error(`Invalid type ${out.type} as output destination. ${l.fileName}:${l.line}`);
@@ -723,7 +698,6 @@ function appendOp(step, op) {
         if (typeof step[key] !== "undefined") {
             if (PROPERTY_SAME_VALUE_COLLISION_ALLOWED.includes(key)) {
                 if (step[key] !== op[key]) {
-                    console.log(')==(');
                     console.log(step);
                     console.trace(op);
                     throw new Error(`property ${key} already defined with different value ${step[key]} vs ${op[key]}`);

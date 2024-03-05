@@ -19,6 +19,9 @@ label10:
    37 => B
    38 => C
 
+
+            :JMP(@label7+3*E+5+8*RR)
+
             :JMP(label3)
             :JMP(E)
             :JMP(E+5)
