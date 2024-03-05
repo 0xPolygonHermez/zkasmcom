@@ -66,7 +66,7 @@ module.exports = async function compile(fileName, ctx, config = {}) {
 
     for (let i=0; i<lines.length; i++) {
         const l = lines[i];
-        // console.log(`#${i} ${ctx.srcLines[relativeFileName][l.line-1]}`,util.inspect(l, false, 100, true));
+        console.log(`#${i} ${ctx.srcLines[relativeFileName][l.line-1]}`,util.inspect(l, false, 100, true));
         ctx.currentLine = l;
         l.fileName = relativeFileName;
         if (l.type == "include") {
@@ -125,8 +125,9 @@ module.exports = async function compile(fileName, ctx, config = {}) {
                 let assignmentRequired = false;
                 for (let j=0; j< l.ops.length; j++) {
                     const op = (l.ops[j].mOp || l.ops[j].JMP || l.ops[j].JMPC || l.ops[j].JMPN || l.ops[j].JMPZ || l.ops[j].call) ? resolve(ctx, l.ops[j]):l.ops[j];
-                    // console.log(l.ops[j]);
-                    // console.log(op);
+                    console.log(`#${i} ${ctx.srcLines[relativeFileName][l.line-1]}`,util.inspect(l, false, 100, true));
+                    console.log(l.ops[j]);
+                    console.log(op);
                     appendOp(traceStep, op);
                     if ((op.save || op.restore) && (!l.assignment || l.assignment.out.length === 0)) continue;
                     if (op.restore) {

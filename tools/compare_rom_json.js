@@ -10,6 +10,9 @@ const argv = require("yargs")
     .usage("compare_rom_json <new_rom.json> <legacy_rom.json>")
     .argv;
 
+const CURRENT_ZERO_OPTIONALS = ['JMP', 'JMPZ', 'JMPC', 'JMPN', 'JMPNZ', 'JMPNC', 'call', 'return'];
+const LEGACY_ZERO_OPTIONALS = ['ind', 'indRR', 'useJmpAddr'];
+
 async function run() {
     if (argv._.length !== 2) {
         console.log("Two json files are required");
@@ -24,9 +27,47 @@ async function run() {
     const lineCount = Math.max(programs[0].length, programs[1].length);
     console.log(lineCount);
     let previousBugJMPZ = false;
+    let count = 0;
     for (let line = 0; line < lineCount; ++line ) {
         let current = {...programs[0][line]};
         let legacy = {...programs[1][line]};
+
+        if (current.call && current.JMP) {
+            current.JMP = 0;
+        }
+        if (typeof current.offset !== 'undefined') {
+            current.offset = Number(current.offset);
+        }
+        if (!current.offset && !current.ind && 
+                (current.hashKDigest || current.hashSDigest || current.hashPDigest ||
+                 current.hashKLen || current.hashSLen || current.hashPLen ||
+                 current.hashK || current.hashS || current.hashP)) {
+            current.offset = current.hashOffset;
+            current.ind = 1;
+            current.indRR = 0;
+            delete current.hashOffset;
+        } 
+        if (current.mOp && current.memUseAddrRel && (current.ind || current.indRR)) {
+            delete current.memUseAddrRel;
+        }
+        if (current.jmpUseAddrRel && !legacy.useJmpAddr && !current.offset && !current.offsetLabel) {
+            current.offset = current.jmpAddr;
+            current.offsetLabel = current.jmpAddrLabel;
+            delete current.jmpAddr;
+            delete current.jmpAddrLabel;
+            delete current.jmpUseAddrRel;
+            // current.useJmpAddr = 0;
+        }
+        for (const zo of CURRENT_ZERO_OPTIONALS) {
+            if (current[zo] === 0 && typeof legacy[zo] === 'undefined') {
+                delete current[zo];
+            }
+        }
+        for (const zo of LEGACY_ZERO_OPTIONALS) {
+            if (legacy[zo] === 0 && typeof current[zo] === 'undefined') {
+                delete legacy[zo];
+            }
+        }
         if (current.assumeFree === 0) {
             delete current.assumeFree;
         }
@@ -73,6 +114,13 @@ async function run() {
             delete legacy.baseLabel;
             delete legacy.sizeLabel;
         }
+        if (legacy.useJmpAddr && !current.jmpAddrRel) {
+            delete legacy.useJmpAddr;
+        }
+        if (legacy.useElseAddr && !current.elseAddrRel) {
+            delete legacy.useElseAddr;
+        }
+
         current = {source: current.fileName + ':' + current.line, ...current };
         const currentSource = [current.fileName, current.line];
         delete current.fileName;
@@ -95,16 +143,20 @@ async function run() {
             console.log('----------------------------------------------------------------------------------');
             console.log(`cmdAfter(${legacy.source}) ==> cmdBefore(${csource})\n\n${legacy.source}| ${legacy.lineStr}\n${csource}| ${programs[0][line+1].lineStr}\n`, legacy.cmdAfter);
             delete legacy.cmdAfter;
+            ++count;
         } else {
             previousBugJMPZ = false;
         }
 
         if (lodash.isEqual(current, legacy)) continue;
         console.log(`================================== DIFFS at ${current.source} ==================================`);
+        console.log(programs[0][line]);
         console.log(current);
         console.log(legacy);
+        ++count;
         // break;
     }
+    console.log(`Found ${count} differences`);
 }
 
 run().then(()=> {

@@ -158,12 +158,16 @@ RESTORE                 { return 'RESTORE' }
 const lodash = require('lodash');
 const JMP_FLAGS = {JMP: 0, JMPZ: 0,  JMPC: 0, JMPN: 0, return: 0, call: 0 };
 
-function normalizeArrayIndex(st) {
+function normalizeArrayIndex(st, useAddrRelProp = false) {
     if (typeof st.ind !== typeof st.indRR) {
         st.ind = st.ind ?? 0;
         st.indRR = st.indRR ?? 0;
     }
     delete st._fk;
+    if (useAddrRelProp !== false && typeof st.useAddrRel !== 'undefined') {
+        if (st.useAddrRel) st[useAddrRelProp] = 1;
+        delete st.useAddrRel;
+    }
 }
 
 function setLine(dst, first) {
@@ -546,27 +550,18 @@ opList
 op
     : MLOAD '(' addr ')'
         {
-            normalizeArrayIndex($3);
-            $$ = $3;
-            $$.mOp = 1;
-            $$.mWR = 0;
-            $$.assumeFree = 0;
+            normalizeArrayIndex($3, 'memUseAddrRel');            
+            $$ = { offset: 0, ...$3, mOp: 1, mWR: 0, assumeFree: 0 };
         }
     | F_MLOAD '(' addr ')'
         {
-            normalizeArrayIndex($3);
-            $$ = $3;
-            $$.mOp = 1;
-            $$.mWR = 0;
-            $$.assumeFree = 1;
+            normalizeArrayIndex($3, 'memUseAddrRel');
+            $$ = { offset: 0, ...$3, mOp: 1, mWR: 0, assumeFree: 1 };
         }
     | MSTORE '(' addr ')'
         {
-            normalizeArrayIndex($3);
-            $$ = $3;
-            $$.mOp = 1;
-            $$.mWR = 1;
-            $$.assumeFree = 0;
+            normalizeArrayIndex($3, 'memUseAddrRel');
+            $$ = { offset: 0, ...$3, mOp: 1, mWR: 1, assumeFree: 0 };
         }
     | F_HASHK '(' hashId ')'
         {
@@ -744,7 +739,7 @@ op
                 if (_jmp.useAddrRel) {
                     _jmp.ind = _jmp.ind ?? 0;
                     _jmp.indRR = _jmp.indRR ?? 0;
-                    _jmp.jmpAddrRel = 1;
+                    _jmp.jmpUseAddrRel = 1;
                     delete _jmp.useAddrRel;
                 }
                 _jmp.jmpAddr = _jmp.offset ?? 0;
@@ -761,7 +756,7 @@ op
                 if (_jmp.useAddrRel) {
                     _jmp.ind = _jmp.ind ?? 0;
                     _jmp.indRR = _jmp.indRR ?? 0;
-                    _jmp.elseAddrRel = 1;
+                    _jmp.elseUseAddrRel = 1;
                     delete _jmp.useAddrRel;
                 }
                 _jmp.elseAddr = _jmp.offset ?? 0;
@@ -778,7 +773,7 @@ op
                 if (_else.useAddrRel) {
                     _else.ind = _else.ind ?? 0;
                     _else.indRR = _else.indRR ?? 0;
-                    _else.elseAddrRel = 1;
+                    _else.elseUseAddrRel = 1;
                     delete _else.useAddrRel;
                 }
                 _else.elseAddr = _else.offset ?? 0;
@@ -790,7 +785,7 @@ op
                 if (_jmp.useAddrRel) {
                     _jmp.ind = _jmp.ind ?? 0;
                     _jmp.indRR = _jmp.indRR ?? 0;
-                    _jmp.jmpAddrRel = 1;
+                    _jmp.jmpUseAddrRel = 1;
                     delete _jmp.useAddrRel;
                 }
                 _jmp.jmpAddr = _jmp.offset ?? 0;
@@ -798,7 +793,7 @@ op
                 _jmp.jmpAddrLabel = _jmp.offsetLabel ?? '';
                 delete _jmp.offsetLabel;
 
-                if (_jmp.jmpAddrRel && _else.elseAddrRel && 
+                if (_jmp.jmpUseAddrRel && _else.elseUseAddrRel && 
                     (!lodash.isEqual(_jmp.ind, _else.ind) || !lodash.isEqual(_jmp.indRR, _else.indRR))) {
                         throw new Exception(`Diferent relative address between jmp and else addresses`);
                 }
@@ -813,7 +808,7 @@ op
                 if (_jmp.useAddrRel) {
                     _jmp.ind = _jmp.ind ?? 0;
                     _jmp.indRR = _jmp.indRR ?? 0;
-                    _jmp.jmpAddrRel = 1;
+                    _jmp.jmpUseAddrRel = 1;
                     delete _jmp.useAddrRel;
                 }
                 _jmp.jmpAddr = _jmp.offset ?? 0;
@@ -832,7 +827,7 @@ op
                 if (_else.useAddrRel) {
                     _else.ind = _else.ind ?? 0;
                     _else.indRR = _else.indRR ?? 0;
-                    _else.elseAddrRel = 1;
+                    _else.elseUseAddrRel = 1;
                     delete _else.useAddrRel;
                 }
                 _else.elseAddr = _else.offset ?? 0;
@@ -840,11 +835,11 @@ op
                 _else.elseAddrLabel = _else.offsetLabel ?? '';
                 delete _else.offsetLabel;
 
-                let _jmp = {...$4};
+                let _jmp = {...$3};
                 if (_jmp.useAddrRel) {
                     _jmp.ind = _jmp.ind ?? 0;
                     _jmp.indRR = _jmp.indRR ?? 0;
-                    _jmp.jmpAddrRel = 1;
+                    _jmp.jmpUseAddrRel = 1;
                     delete _jmp.useAddrRel;
                 }
                 _jmp.jmpAddr = _jmp.offset ?? 0;
@@ -852,7 +847,7 @@ op
                 _jmp.jmpAddrLabel = _jmp.offsetLabel ?? '';
                 delete _jmp.offsetLabel;
 
-                if (_jmp.jmpAddrRel && _else.elseAddrRel && 
+                if (_jmp.jmpUseAddrRel && _else.elseUseAddrRel && 
                     (!lodash.isEqual(_jmp.ind, _else.ind) || !lodash.isEqual(_jmp.indRR, _else.indRR))) {
                         throw new Exception(`Diferent relative address between jmp and else addresses`);
                 }
@@ -867,7 +862,7 @@ op
                 if (_jmp.useAddrRel) {
                     _jmp.ind = _jmp.ind ?? 0;
                     _jmp.indRR = _jmp.indRR ?? 0;
-                    _jmp.jmpAddrRel = 1;
+                    _jmp.jmpUseAddrRel = 1;
                     delete _jmp.useAddrRel;
                 }
                 _jmp.jmpAddr = _jmp.offset ?? 0;
@@ -875,9 +870,8 @@ op
                 _jmp.jmpAddrLabel = _jmp.offsetLabel ?? '';
                 delete _jmp.offsetLabel;
 
-                $$ = {...JMP_FLAGS, [$1]: 1, ..._jmp }
+                $$ = {...JMP_FLAGS, JMP: 1, call: 1, ..._jmp }
             }
-            $$ = {...JMP_FLAGS, [$1]: 1, call: 1, ...$3 }
         }
     | callCond '(' jmp_addr ')'
         {   
@@ -886,7 +880,7 @@ op
                 if (_jmp.useAddrRel) {
                     _jmp.ind = _jmp.ind ?? 0;
                     _jmp.indRR = _jmp.indRR ?? 0;
-                    _jmp.jmpAddrRel = 1;
+                    _jmp.jmpUseAddrRel = 1;
                     delete _jmp.useAddrRel;
                 }
                 _jmp.jmpAddr = _jmp.offset ?? 0;
@@ -904,7 +898,7 @@ op
                 if (_jmp.useAddrRel) {
                     _jmp.ind = _jmp.ind ?? 0;
                     _jmp.indRR = _jmp.indRR ?? 0;
-                    _jmp.elseAddrRel = 1;
+                    _jmp.elseUseAddrRel = 1;
                     delete _jmp.useAddrRel;
                 }
                 _jmp.elseAddr = _jmp.offset ?? 0;
@@ -1169,11 +1163,11 @@ addr
         }
     | IDENTIFIER '+' RR
         {
-            $$ = { offsetLabel: $1, offset: 0, useAddrRel: 1, ind: 0, indRR: 1 }
+            $$ = { offsetLabel: $1, offset: 0, memUseAddrRel: 1, ind: 0, indRR: 1 }
         }
     | IDENTIFIER '+' E
         {
-            $$ = { offsetLabel: $1, offset: 0, useAddrRel: 1, ind: 1, indRR: 0 }
+            $$ = { offsetLabel: $1, offset: 0, memUseAddrRel: 1, ind: 1, indRR: 0 }
         }
     | IDENTIFIER '+' NUMBER
         {
