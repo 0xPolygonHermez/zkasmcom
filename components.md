@@ -49,6 +49,11 @@ A **register** is a location available to the zkEVM that is manipulated through 
 - Used to repeat instructions.
 - Array of 1 element `[V]`.
 
+### RID
+- Restore ID, register used to manage the save/restore feature.
+- Array of 1 element `[V]`.
+
+
 ### zkEVM Counters
 - Keeps track of the zkEVM counters:
   - `CNT_ARITH`
@@ -71,6 +76,46 @@ addr = SP | SP++ | SP-- | SP+offset | SP-offset | SYS:E+offset | SYS:E+offset | 
 ### MSTORE(addr)
 
 mem(addr) = op
+
+### SAVE(B,C,D,E,RR,RCX)
+Save registers B,C,D,E,RR,RCX,(RID) and op. This saved values are associated an identifier. The register RID is updated with this identifier.
+
+### RESTORE/RESTORE(B,C,D,E,RR,RCX)
+Restore registers B,C,D,E,RR,RCX and setting FREE INPUT with value of op when saved. The restored values are associated with the value of ID when RESTORE is called. The register RID 
+it's updated with previous value when saved was called.
+
+examples:
+```      
+    :SAVE(B,C,D,E,RR,RCX)
+    ; some instructions here
+    :RESTORE
+```
+
+example to save A:            
+```
+    A       :SAVE(B,C,D,E,RR,RCX)
+    ; some instructions here
+    $ => A  :RESTORE
+```
+
+example to restoring  A+2:            
+```
+    A       :SAVE(B,C,D,E,RR,RCX)
+    ; some instructions here
+    $+2 => A  :RESTORE
+```
+
+example also to save B register on memory too:
+```
+    B       :SAVE(B,C,D,E,RR,RCX),MSTORE(num_bytes)
+    ; some instructions here
+    $ => B  :MLOAD(num_bytes)
+    ; more instructions here
+            :RESTORE
+```
+
+NOTE: in restore command cannot assign to one of saved registers as B,C,D,E,RR,RCX,RID
+
 
 ### SLOAD
 key0 = [C0, C1, C2, C3, C4, C5, C6, C7]
@@ -95,55 +140,113 @@ storage.set(oldRoot, key, newValue) -> newRoot
 
 hashK[hashId][HASHPOS..HASHPOS+D-1] = op[0..D-1]
 HASHPOS := HASHPOS + D
-hashId = number | E
+hashId = number | E | RR | E + number | RR + number
 
-### HASHK1(hashId)
+example:
+        0x010203    :HASHK(E)
 
-hashK1[hashId][HASHPOS] = op[0]
-HASHPOS := HASHPOS + 1
+### HASHKn(hashId)
+
+n=1..32
+hashK[hashId][HASHPOS] = op[0..n-1]
+HASHPOS := HASHPOS + n
+hashId = number | E | RR | E + number | RR + number
+
+examples:
+        A       :HASHK1(E)
+        A       :HASHK32(E)
 
 ### HASHKLEN(hashId)
 
 hashK[hashId].len = op
+hashId = number | E | RR | E + number | RR + number
+
+examples:
+        HASPOS  :HASHKLEN(E)
 
 ### HASHKDIGEST(hashId)
 
 hashK[hashId].digest = op
+hashId = number | E | RR | E + number | RR + number
+example:
+        $ => A   :HASHKDIGEST(E)
 
 ### HASHS(hashId)
 
 hashS[hashId][HASHPOS..HASHPOS+D-1] = op[0..D-1]
 HASHPOS := HASHPOS + D
-hashId = number | E
+hashId = number | E | RR | E + number | RR + number
 
-### HASHS1(hashId)
+example:
+        32 => D
+        A       :HASHS(E)
 
-hashS1[hashId][HASHPOS] = op[0]
-HASHPOS := HASHPOS + 1
+### HASHSn(hashId)
+
+n=1..32
+hashS[hashId][HASHPOS] = op[0..n-1]
+HASHPOS := HASHPOS + n
+hashId = number | E | RR | E + number | RR + number
+
+examples:
+        A       :HASHS1(E)
+        B       :HASHS16(E)
+        C       :HASHS32(E)
 
 ### HASHSLEN(hashId)
 
 hashS[hashId].len = op
+hashId = number | E | RR | E + number | RR + number
+
+examples:
+        HASPOS  :HASHSLEN(E)
 
 ### HASHSDIGEST(hashId)
 
 hashS[hashId].digest = op
+hashId = number | E | RR | E + number | RR + number
+
+example:
+        $ => B    :HASHSDIGEST(E)
 
 ### HASHP(hashId)
 
 hashP[hashId][HASHPOS..HASHPOS+D-1] = op[0..D-1]
+HASPOS := HASHPOS + D[0]
+hashId = number | E | RR | E + number | RR + number
 
-### HASHP1(hashId)
+examples:
+        1 => D
+        A       :HASHP(E)
+        32 => D
+        B       :HASHP(E)
 
-hashP[hashId][HASHPOS] = op[0]
+### HASHPn(hashId)
+
+n=1..32
+hashP[hashId][HASHPOS] = op[0..n-1]
+HASPOS := HASHPOS + n
+hashId = number | E | RR | E + number | RR + number
+
+examples:
+        A       :HASHP1(E)
+        B       :HASHP32(E)
 
 ### HASHPLEN(hashId)
 
 hashP[hashId].len = op
+hashId = number | E | RR | E + number | RR + number
+
+example:
+        HASPOS  :HASHPLEN(E)
 
 ### HASHPDIGEST(hashId)
 
 hashP[hashId].digest = op
+hashId = number | E | RR | E + number | RR + number
+
+example:
+        $ => B  :HASHPDIGEST(E)
 
 ### ARITH
 
@@ -213,7 +316,6 @@ is equivalent to:
 ```
 (A7A6 < B7B6) AND (A5A4 < B5B4) AND (A3A2 < B3B2) AND (A1A0 < B1B0)
 ```
-
 
 ### MEM_ALIGN_RD
 
