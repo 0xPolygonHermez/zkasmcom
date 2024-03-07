@@ -10,7 +10,7 @@ const argv = require("yargs")
     .usage("compare_rom_json <new_rom.json> <legacy_rom.json>")
     .argv;
 
-const CURRENT_ZERO_OPTIONALS = ['JMP', 'JMPZ', 'JMPC', 'JMPN', 'JMPNZ', 'JMPNC', 'call', 'return'];
+const CURRENT_ZERO_OPTIONALS = ['JMP', 'JMPZ', 'JMPC', 'JMPN', 'JMPNZ', 'JMPNC', 'call', 'return', 'useCTX'];
 const LEGACY_ZERO_OPTIONALS = ['ind', 'indRR', 'useJmpAddr'];
 
 async function run() {
@@ -18,6 +18,11 @@ async function run() {
         console.log("Two json files are required");
         process.exit(1);
     }
+
+    // NOTE: previous versions has bug of extra offset on CTX vars
+    // add line:   this.lastGlobalVarAssigned += count;
+    // after line: this.lastLocalVarCtxAssigned += count;
+
     const inputFiles = [argv._[0], argv._[1]];
 
     const roms = [JSON.parse(fs.readFileSync(path.resolve(process.cwd(), inputFiles[0])), "utf8"),
@@ -106,10 +111,13 @@ async function run() {
         if (current.offset === 0 && typeof legacy.offset === 'undefined') {
             delete current.offset;
         }
-        if (typeof current.minInd !== 'undefined') {
-            delete current.minInd;
+        if (typeof current.minAddrRel !== 'undefined' && typeof legacy.minInd === 'undefined') {
+            delete current.minAddrRel;
+            delete current.maxAddrRel;
+            delete current.baseLabel;
+            delete current.sizeLabel;
         }
-        if (typeof legacy.maxInd !== 'undefined' && !legacy.ind && !legacy.indRR) {
+        if (typeof legacy.minInd !== 'undefined') { // && !legacy.ind && !legacy.indRR) {
             delete legacy.maxInd;
             delete legacy.baseLabel;
             delete legacy.sizeLabel;
