@@ -207,14 +207,13 @@ class Compiler {
                         }
                     
                         this.out[i].offset = Number(this.out[i].offset ?? 0) + Number(this.vars[label].offset);
-                        console.log(['@', label, this.out[i].memUseAddrRel, this.out[i].useAddrRel, this.srcLines[this.out[i].line.fileName][this.out[i].line.line - 1]]);
+                        // console.log(['@', label, this.out[i].memUseAddrRel, this.out[i].useAddrRel, this.srcLines[this.out[i].line.fileName][this.out[i].line.line - 1]]);
                         if (this.vars[label].count > 1 && this.out[i].memUseAddrRel) {
                             this.out[i].minAddrRel = (this.vars[label].offset - this.out[i].offset);
                             this.out[i].maxAddrRel = (this.vars[label].offset + this.vars[label].count - 1) - this.out[i].offset;
                             this.out[i].baseLabel = this.vars[label].offset;
                             this.out[i].sizeLabel = this.vars[label].count;
                         }
-                        console.log([label, this.out[i].minAddrRel])
                     }
                 }
 

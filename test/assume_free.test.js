@@ -214,7 +214,8 @@ describe("Test Assume Free Feature", async function () {
         const header = ['VAR GLOBAL padding[7]\nVAR GLOBAL g7_8[8]\nVAR GLOBAL g15\nVAR CTX lpadding[10]\nVAR CTX l10_80[80]\nVAR CTX l90\nCONST %CS1 = 10\nCONST %CS2 = 2\nCONST %CS3 = 3\nCONSTL %CL1 = 100\n','0 => A\nlabel1:', '0 => B\nlabel2:'];
         _cc(header,  '2 * B + 8 => A\n', { setA: 1, CONST: '8', inB: "2"});
         let freeInTag =  {op: ''};
-        let base = {freeInTag, setA: 1, CONST: '8', inFREE: "2", inFREE0: "0", mOp: 1, mWR: 0, assumeFree: 1};
+        let init = {freeInTag, setA: 1, CONST: '8', inFREE: "2", inFREE0: "0", mOp: 1, mWR: 0};
+        let base = {...init, assumeFree: 1}
         _cc(header,  '2 * g15 + 8 => A\n',    { ...base, offset: 15, offsetLabel: 'g15',    useCTX: 0});
         _cc(header,  '2 * l90 + 8 => A\n',    { ...base, offset: 90, offsetLabel: 'l90',    useCTX: 1});
         _cc(header,  '2 * g7_8 + 8 => A\n',   { ...base, offset:  7, offsetLabel: 'g7_8',   useCTX: 0});
@@ -348,14 +349,68 @@ describe("Test Assume Free Feature", async function () {
         _cc(header,  '2 * g7_8[5*E+%CS2-%CS3*RR] + 8 => A   :JMPZ(@label2+5*E-3*RR)\n', { ...base, offset:  9, offsetLabel: 'g7_8',   useCTX: 0, minAddrRel: -2, maxAddrRel:  5, baseLabel:  7, sizeLabel:  8});
         _cc(header,  '2 * l10_80[5*E+%CS2-%CS3*RR] + 8 => A :JMPZ(@label2+5*E-3*RR)\n', { ...base, offset: 12, offsetLabel: 'l10_80', useCTX: 1, minAddrRel: -2, maxAddrRel: 77, baseLabel: 10, sizeLabel: 80});
 
-        base = {...base, JMP: 0, JMPN: 0, JMPC: 0, JMPZ: 1, elseUseAddrRel: 1, elseAddr: 1, elseAddrLabel: 'label1'};
+
+        base = {...init, ind: 5, indRR: -3, memUseAddrRel: 1, assumeFree: 1, call: 0, return: 0,
+                JMP: 0, JMPN: 0, JMPC: 1, JMPZ: 0, jmpAddr: 3, jmpAddrLabel: 'next', elseUseAddrRel: 1, elseAddr: 2, elseAddrLabel: 'label2'};
+        _cc(header,  '2 * g7_8[5*E+%CS2-%CS3*RR] + 8 => A   :EQ,JMPNC(@label2+5*E-3*RR)\n', { ...base, bin: 1, binOpcode: 4, offset:  9, offsetLabel: 'g7_8',   useCTX: 0, minAddrRel: -2, maxAddrRel:  5, baseLabel:  7, sizeLabel:  8});
+        _cc(header,  '2 * l10_80[5*E+%CS2-%CS3*RR] + 8 => A :EQ,JMPNC(@label2+5*E-3*RR)\n', { ...base, bin: 1, binOpcode: 4, offset: 12, offsetLabel: 'l10_80', useCTX: 1, minAddrRel: -2, maxAddrRel: 77, baseLabel: 10, sizeLabel: 80});
+
+        base = {...base, JMP: 0, JMPN: 0, JMPC: 0, JMPZ: 1};
+        _cc(header,  '2 * g7_8[5*E+%CS2-%CS3*RR] + 8 => A   :JMPNZ(@label2+5*E-3*RR)\n', { ...base, offset:  9, offsetLabel: 'g7_8',   useCTX: 0, minAddrRel: -2, maxAddrRel:  5, baseLabel:  7, sizeLabel:  8});
+        _cc(header,  '2 * l10_80[5*E+%CS2-%CS3*RR] + 8 => A :JMPNZ(@label2+5*E-3*RR)\n', { ...base, offset: 12, offsetLabel: 'l10_80', useCTX: 1, minAddrRel: -2, maxAddrRel: 77, baseLabel: 10, sizeLabel: 80});
+
+
+        base = {...init, ind: 5, indRR: -3, memUseAddrRel: 1, assumeFree: 1, call: 0, return: 0,
+                JMP: 0, JMPN: 0, JMPC: 0, JMPZ: 1, elseAddr: 1, elseAddrLabel: 'label1', elseUseAddrRel: 1, jmpUseAddrRel: 1, jmpAddr: 2, jmpAddrLabel: 'label2'};
         _cc(header,  '2 * g7_8[5*E+%CS2-%CS3*RR] + 8 => A   :JMPZ(@label2+5*E-3*RR,@label1+5*E-3*RR)\n', { ...base, offset:  9, offsetLabel: 'g7_8',   useCTX: 0, minAddrRel: -2, maxAddrRel:  5, baseLabel:  7, sizeLabel:  8});
         _cc(header,  '2 * l10_80[5*E+%CS2-%CS3*RR] + 8 => A :JMPZ(@label2+5*E-3*RR,@label1+5*E-3*RR)\n', { ...base, offset: 12, offsetLabel: 'l10_80', useCTX: 1, minAddrRel: -2, maxAddrRel: 77, baseLabel: 10, sizeLabel: 80});
 
-    })
+        base = {...base, JMP: 0, JMPN: 0, JMPC: 1, JMPZ: 0};
+        _cc(header,  '2 * g7_8[5*E+%CS2-%CS3*RR] + 8 => A   :EQ,JMPC(@label2+5*E-3*RR,@label1+5*E-3*RR)\n', { ...base, bin: 1, binOpcode: 4, offset:  9, offsetLabel: 'g7_8',   useCTX: 0, minAddrRel: -2, maxAddrRel:  5, baseLabel:  7, sizeLabel:  8});
+        _cc(header,  '2 * l10_80[5*E+%CS2-%CS3*RR] + 8 => A :EQ,JMPC(@label2+5*E-3*RR,@label1+5*E-3*RR)\n', { ...base, bin: 1, binOpcode: 4, offset: 12, offsetLabel: 'l10_80', useCTX: 1, minAddrRel: -2, maxAddrRel: 77, baseLabel: 10, sizeLabel: 80});
+
+        base = {...base, JMP: 0, JMPN: 1, JMPC: 0, JMPZ: 0};
+        _cc(header,  '2 * g7_8[5*E+%CS2-%CS3*RR] + 8 => A   :JMPN(@label2+5*E-3*RR,@label1+5*E-3*RR)\n', { ...base, offset:  9, offsetLabel: 'g7_8',   useCTX: 0, minAddrRel: -2, maxAddrRel:  5, baseLabel:  7, sizeLabel:  8});
+        _cc(header,  '2 * l10_80[5*E+%CS2-%CS3*RR] + 8 => A :JMPN(@label2+5*E-3*RR,@label1+5*E-3*RR)\n', { ...base, offset: 12, offsetLabel: 'l10_80', useCTX: 1, minAddrRel: -2, maxAddrRel: 77, baseLabel: 10, sizeLabel: 80});
+
+
+        base = {...base, JMP: 0, JMPN: 0, JMPC: 0, JMPZ: 1, elseAddr: 2, elseAddrLabel: 'label2', jmpAddr: 1, jmpAddrLabel: 'label1'};
+        _cc(header,  '2 * g7_8[5*E+%CS2-%CS3*RR] + 8 => A   :JMPNZ(@label2+5*E-3*RR,@label1+5*E-3*RR)\n', { ...base, offset:  9, offsetLabel: 'g7_8',   useCTX: 0, minAddrRel: -2, maxAddrRel:  5, baseLabel:  7, sizeLabel:  8});
+        _cc(header,  '2 * l10_80[5*E+%CS2-%CS3*RR] + 8 => A :JMPNZ(@label2+5*E-3*RR,@label1+5*E-3*RR)\n', { ...base, offset: 12, offsetLabel: 'l10_80', useCTX: 1, minAddrRel: -2, maxAddrRel: 77, baseLabel: 10, sizeLabel: 80});
+
+        base = {...base, JMP: 0, JMPN: 0, JMPC: 1, JMPZ: 0};
+        _cc(header,  '2 * g7_8[5*E+%CS2-%CS3*RR] + 8 => A   :EQ,JMPNC(@label2+5*E-3*RR,@label1+5*E-3*RR)\n', { ...base, bin: 1, binOpcode: 4, offset:  9, offsetLabel: 'g7_8',   useCTX: 0, minAddrRel: -2, maxAddrRel:  5, baseLabel:  7, sizeLabel:  8});
+        _cc(header,  '2 * l10_80[5*E+%CS2-%CS3*RR] + 8 => A :EQ,JMPNC(@label2+5*E-3*RR,@label1+5*E-3*RR)\n', { ...base, bin: 1, binOpcode: 4, offset: 12, offsetLabel: 'l10_80', useCTX: 1, minAddrRel: -2, maxAddrRel: 77, baseLabel: 10, sizeLabel: 80});
+
+        // CALL
+        base = {...init, ind: 5, indRR: -3, JMP: 1, JMPN: 0, JMPC: 0, JMPZ: 0, call:1, return: 0, memUseAddrRel: 1, jmpAddr: 2, jmpAddrLabel: 'label2', assumeFree: 1};
+        _cc(header,  '2 * g7_8[5*E+%CS2-%CS3*RR] + 8 => A   :CALL(label2)\n', { ...base, offset:  9, offsetLabel: 'g7_8',   useCTX: 0, minAddrRel: -2, maxAddrRel:  5, baseLabel:  7, sizeLabel:  8});
+        _cc(header,  '2 * l10_80[5*E+%CS2-%CS3*RR] + 8 => A :CALL(label2)\n', { ...base, offset: 12, offsetLabel: 'l10_80', useCTX: 1, minAddrRel: -2, maxAddrRel: 77, baseLabel: 10, sizeLabel: 80});
+
+        base = {...base, jmpUseAddrRel: 1};
+        _cc(header,  '2 * g7_8[5*E+%CS2-%CS3*RR] + 8 => A   :CALL(@label2+5*E-3*RR)\n', { ...base, offset:  9, offsetLabel: 'g7_8',   useCTX: 0, minAddrRel: -2, maxAddrRel:  5, baseLabel:  7, sizeLabel:  8});
+        _cc(header,  '2 * l10_80[5*E+%CS2-%CS3*RR] + 8 => A :CALL(@label2+5*E-3*RR)\n', { ...base, offset: 12, offsetLabel: 'l10_80', useCTX: 1, minAddrRel: -2, maxAddrRel: 77, baseLabel: 10, sizeLabel: 80});
+
+        base = {...base, JMP: 0, JMPN: 0, JMPC: 1, JMPZ: 0, elseAddr: 3, elseAddrLabel: 'next'};
+        _cc(header,  '2 * g7_8[5*E+%CS2-%CS3*RR] + 8 => A   :CALL_C(@label2+5*E-3*RR),EQ\n', { ...base, bin: 1, binOpcode: 4, offset:  9, offsetLabel: 'g7_8',   useCTX: 0, minAddrRel: -2, maxAddrRel:  5, baseLabel:  7, sizeLabel:  8});
+        _cc(header,  '2 * l10_80[5*E+%CS2-%CS3*RR] + 8 => A :CALL_C(@label2+5*E-3*RR),EQ\n', { ...base, bin: 1, binOpcode: 4, offset: 12, offsetLabel: 'l10_80', useCTX: 1, minAddrRel: -2, maxAddrRel: 77, baseLabel: 10, sizeLabel: 80});
+
+        base = {...base, JMP: 0, JMPN: 1, JMPC: 0, JMPZ: 0};
+        _cc(header,  '2 * g7_8[5*E+%CS2-%CS3*RR] + 8 => A   :CALL_N(@label2+5*E-3*RR)\n', { ...base, offset:  9, offsetLabel: 'g7_8',   useCTX: 0, minAddrRel: -2, maxAddrRel:  5, baseLabel:  7, sizeLabel:  8});
+        _cc(header,  '2 * l10_80[5*E+%CS2-%CS3*RR] + 8 => A :CALL_N(@label2+5*E-3*RR)\n', { ...base, offset: 12, offsetLabel: 'l10_80', useCTX: 1, minAddrRel: -2, maxAddrRel: 77, baseLabel: 10, sizeLabel: 80});
+
+        base = {...base, JMP: 0, JMPN: 0, JMPC: 0, JMPZ: 1};
+        _cc(header,  '2 * g7_8[5*E+%CS2-%CS3*RR] + 8 => A   :CALL_Z(@label2+5*E-3*RR)\n', { ...base, offset:  9, offsetLabel: 'g7_8',   useCTX: 0, minAddrRel: -2, maxAddrRel:  5, baseLabel:  7, sizeLabel:  8});
+        _cc(header,  '2 * l10_80[5*E+%CS2-%CS3*RR] + 8 => A :CALL_Z(@label2+5*E-3*RR)\n', { ...base, offset: 12, offsetLabel: 'l10_80', useCTX: 1, minAddrRel: -2, maxAddrRel: 77, baseLabel: 10, sizeLabel: 80});
     
-    it("Dump all tests", async () => {
-        console.log(programs.join('\n'));
-        assert.equal(2, 2);
+
+        base = {...init, ind: 5, indRR: -3, JMP: 0, JMPN: 0, JMPC: 0, JMPZ: 1, call:1, return: 0, 
+                memUseAddrRel: 1, jmpAddr: 1, jmpAddrLabel: 'label1', jmpUseAddrRel: 1, assumeFree: 1, elseAddr: 2, elseAddrLabel: 'label2', elseUseAddrRel: 1};
+        _cc(header,  '2 * g7_8[5*E+%CS2-%CS3*RR] + 8 => A   :CALL_NZ(@label2+5*E-3*RR,@label1+5*E-3*RR)\n', { ...base, offset:  9, offsetLabel: 'g7_8',   useCTX: 0, minAddrRel: -2, maxAddrRel:  5, baseLabel:  7, sizeLabel:  8});
+        _cc(header,  '2 * l10_80[5*E+%CS2-%CS3*RR] + 8 => A :CALL_NZ(@label2+5*E-3*RR,@label1+5*E-3*RR)\n', { ...base, offset: 12, offsetLabel: 'l10_80', useCTX: 1, minAddrRel: -2, maxAddrRel: 77, baseLabel: 10, sizeLabel: 80});
+
+        base = {...base, JMP: 0, JMPN: 0, JMPC: 1, JMPZ: 0};
+        _cc(header,  '2 * g7_8[5*E+%CS2-%CS3*RR] + 8 => A   :EQ,CALL_NC(@label2+5*E-3*RR,@label1+5*E-3*RR)\n', { ...base, bin: 1, binOpcode: 4, offset:  9, offsetLabel: 'g7_8',   useCTX: 0, minAddrRel: -2, maxAddrRel:  5, baseLabel:  7, sizeLabel:  8});
+        _cc(header,  '2 * l10_80[5*E+%CS2-%CS3*RR] + 8 => A :EQ,CALL_NC(@label2+5*E-3*RR,@label1+5*E-3*RR)\n', { ...base, bin: 1, binOpcode: 4, offset: 12, offsetLabel: 'l10_80', useCTX: 1, minAddrRel: -2, maxAddrRel: 77, baseLabel: 10, sizeLabel: 80});
     })
 });
