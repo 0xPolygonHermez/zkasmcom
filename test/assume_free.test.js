@@ -348,6 +348,10 @@ describe("Test Assume Free Feature", async function () {
         _cc(header,  '2 * g7_8[5*E+%CS2-%CS3*RR] + 8 => A   :JMPZ(@label2+5*E-3*RR)\n', { ...base, offset:  9, offsetLabel: 'g7_8',   useCTX: 0, minAddrRel: -2, maxAddrRel:  5, baseLabel:  7, sizeLabel:  8});
         _cc(header,  '2 * l10_80[5*E+%CS2-%CS3*RR] + 8 => A :JMPZ(@label2+5*E-3*RR)\n', { ...base, offset: 12, offsetLabel: 'l10_80', useCTX: 1, minAddrRel: -2, maxAddrRel: 77, baseLabel: 10, sizeLabel: 80});
 
+        base = {...base, JMP: 0, JMPN: 0, JMPC: 0, JMPZ: 1, elseUseAddrRel: 1, elseAddr: 1, elseAddrLabel: 'label1'};
+        _cc(header,  '2 * g7_8[5*E+%CS2-%CS3*RR] + 8 => A   :JMPZ(@label2+5*E-3*RR,@label1+5*E-3*RR)\n', { ...base, offset:  9, offsetLabel: 'g7_8',   useCTX: 0, minAddrRel: -2, maxAddrRel:  5, baseLabel:  7, sizeLabel:  8});
+        _cc(header,  '2 * l10_80[5*E+%CS2-%CS3*RR] + 8 => A :JMPZ(@label2+5*E-3*RR,@label1+5*E-3*RR)\n', { ...base, offset: 12, offsetLabel: 'l10_80', useCTX: 1, minAddrRel: -2, maxAddrRel: 77, baseLabel: 10, sizeLabel: 80});
+
     })
     
     it("Dump all tests", async () => {
