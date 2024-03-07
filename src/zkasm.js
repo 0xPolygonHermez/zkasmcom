@@ -64,12 +64,7 @@ async function run() {
 run().then(()=> {
     process.exit(0);
 }, (err) => {
-    console.log(err.stack);
-    if (err.pos) {
-        console.error(`ERROR at ${err.errFile}:${err.pos.first_line},${err.pos.first_column}-${err.pos.last_line},${err.pos.last_column}   ${err.errStr}`);
-    } else {
-        console.log(err.message);
-    }
+    console.error(err.message);
     process.exit(1);
 });
 
