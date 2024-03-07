@@ -1,9 +1,0 @@
-CONST %PEPE = 3
-VAR GLOBAL v1
-
-
-v1[E*%PEPE+%PEPE] => A
-A => v1[E*%PEPE+%PEPE]
-
-
-$ => A :MLOAD(v1[E*%PEPE+%PEPE])
