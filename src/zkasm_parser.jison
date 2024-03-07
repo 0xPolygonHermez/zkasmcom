@@ -30,6 +30,7 @@ RID                     { return 'RID'; }
 MLOAD                   { return 'MLOAD' }
 F_MLOAD                 { return 'F_MLOAD' }
 MSTORE                  { return 'MSTORE' }
+MSTORE                  { return 'F_MSTORE' }
 HASHKLEN                { return 'HASHKLEN' }
 HASHKDIGEST             { return 'HASHKDIGEST' }
 F_HASHK((1[0-9])|(2[0-9])|(3[0-2])|[1-9])  { yytext = yytext.slice(7); return 'F_HASHKn' }
@@ -46,7 +47,7 @@ HASHPLEN                { return 'HASHPLEN' }
 HASHPDIGEST             { return 'HASHPDIGEST' }
 F_HASHP((1[0-9])|(2[0-9])|(3[0-2])|[1-9])  { yytext = yytext.slice(7); return 'F_HASHPn' }
 HASHP((1[0-9])|(2[0-9])|(3[0-2])|[1-9])  { yytext = yytext.slice(5); return 'HASHPn' }
-F_HASHP                   { return 'F_HASHP' }
+F_HASHP                 { return 'F_HASHP' }
 HASHP                   { return 'HASHP' }
 JMP                     { return 'JMP' }
 JMPC                    { return 'JMPC' }
@@ -158,6 +159,7 @@ RESTORE                 { return 'RESTORE' }
 const lodash = require('lodash');
 const JMP_FLAGS = {JMP: 0, JMPZ: 0,  JMPC: 0, JMPN: 0, return: 0, call: 0 };
 
+
 function normalizeArrayIndex(st, useAddrRelProp = false) {
     if (typeof st.ind !== typeof st.indRR) {
         st.ind = st.ind ?? 0;
@@ -212,6 +214,8 @@ statment
     | LABEL
         {
             $$ = {type: "label", identifier: $1};
+            setLine($$, @1)
+
         }
     | varDef
         {
@@ -299,6 +303,7 @@ include
     : INCLUDE STRING
         {
             $$ = {type: "include", file: $2}
+            setLine($$, @1)
         }
     ;
 
@@ -470,7 +475,9 @@ inReg
     | mem_addr
         {
             $$ = {type: 'F_MLOAD', addr: $1}
-            normalizeArrayIndex($$.addr);
+            console.log('PRE', $$.addr);
+            normalizeArrayIndex($$.addr, 'memUseAddrRel');
+            console.log('POST', $$.addr);
         }
     | counter
         {
@@ -562,6 +569,11 @@ op
         {
             normalizeArrayIndex($3, 'memUseAddrRel');
             $$ = { offset: 0, ...$3, mOp: 1, mWR: 1, assumeFree: 0 };
+        }
+    | F_MSTORE '(' addr ')'
+        {
+            normalizeArrayIndex($3, 'memUseAddrRel');
+            $$ = { offset: 0, ...$3, mOp: 1, mWR: 1, assumeFree: 1 };
         }
     | F_HASHK '(' hashId ')'
         {
@@ -734,7 +746,6 @@ op
     | JMP '(' jmp_addr ')'
         {
             {   
-                console.log('JMP', $3);
                 let _jmp = {...$3};
                 if (_jmp.useAddrRel) {
                     _jmp.ind = _jmp.ind ?? 0;
@@ -795,7 +806,7 @@ op
 
                 if (_jmp.jmpUseAddrRel && _else.elseUseAddrRel && 
                     (!lodash.isEqual(_jmp.ind, _else.ind) || !lodash.isEqual(_jmp.indRR, _else.indRR))) {
-                        throw new Exception(`Diferent relative address between jmp and else addresses`);
+                        this.compiler._error(`Diferent relative address between jmp and else addresses`);
                 }
                 $$ = { ...JMP_FLAGS, [$1]: 1, ..._jmp, ..._else }            
             }
@@ -803,7 +814,6 @@ op
     | jmpCond '(' jmp_addr ')'
         {   
             {
-                console.log('___>', $1, $3);
                 let _jmp = {...$3};
                 if (_jmp.useAddrRel) {
                     _jmp.ind = _jmp.ind ?? 0;
@@ -822,7 +832,6 @@ op
     | jmpCond '(' jmp_addr ',' jmp_addr ')'
         {
             {
-                console.log($1, $3, $5);
                 let _else = {...$5};
                 if (_else.useAddrRel) {
                     _else.ind = _else.ind ?? 0;
@@ -849,7 +858,7 @@ op
 
                 if (_jmp.jmpUseAddrRel && _else.elseUseAddrRel && 
                     (!lodash.isEqual(_jmp.ind, _else.ind) || !lodash.isEqual(_jmp.indRR, _else.indRR))) {
-                        throw new Exception(`Diferent relative address between jmp and else addresses`);
+                        this.compiler._error(`Diferent relative address between jmp and else addresses`);
                 }
                 $$ = {...JMP_FLAGS,  [$1]: 1, ..._jmp, ..._else };
             }
@@ -1213,11 +1222,11 @@ jmp_addr
     ;
 
 
-const_value
+short_const_value
 
     : NUMBER
         {
-            $$ = {type: 'CONSTL' , const: $1 }
+            $$ = {type: 'CONST' , const: Number($1) }
         }
     | CONSTID
         {
@@ -1229,10 +1238,9 @@ array_index
     : array_index '+' array_index_item
         {
             Object.keys($3).forEach(k => {
-                if (k !== '_fk' && (k !== 'useAddrRel' || !lodash.isEqual($1[k], $3[k]))) {
+                if (!k.startsWith('_') && (k !== 'useAddrRel' || !lodash.isEqual($1[k], $3[k]))) {
                     if ($1[k] && $1[k].const !== 0) {
-                        console.log($1, $3);
-                        throw new Error(`Property ${k} already used`);
+                        this.compiler._error(`Property ${k} already used`);
                     }
                     $1[k] = $3[k];
                 }
@@ -1242,10 +1250,9 @@ array_index
     | array_index '-' array_index_item
         {
             Object.keys($3).forEach(k => {
-                if (k !== '_fk' && (k !== 'useAddrRel' || !lodash.isEqual($1[k], $3[k]))) {
+                if (!k.startsWith('_') && (k !== 'useAddrRel' || !lodash.isEqual($1[k], $3[k]))) {
                     if ($1[k] && $1[k].const !== 0) {
-                        console.log($1, $3);
-                        throw new Error(`Property ${k} already used`);
+                        this.compiler._error(`Property ${k} already used`);
                     }
                     if (k === $3._fk) {
                         $1[k] = {type: 'neg', values: [$3[k]]};
@@ -1264,7 +1271,7 @@ array_index
 
 array_index_item
 
-    : const_value
+    : short_const_value
         {
             $$ = { _fk: 'offset', offset: $1 }
         }
@@ -1274,21 +1281,21 @@ array_index_item
         }
     | RR
         {
-            $$ = { _fk: 'indRR', useAddrRel: 1, indRR: 1 }
+            $$ = { _fk: 'indRR', useAddrRel: 1, indRR: 1 }            
         }
-    | const_value '*' E
+    | short_const_value '*' E
         {
             $$ = { _fk: 'ind', useAddrRel: 1, ind: $1 }
         }
-    | const_value '*' RR
+    | short_const_value '*' RR
         {
             $$ = { _fk: 'indRR', useAddrRel: 1, indRR: $1 }
         }
-    | E  '*' const_value 
+    | E  '*' short_const_value 
         {
             $$ = { _fk: 'ind', useAddrRel: 1, ind: $3 }
         }
-    | RR '*' const_value 
+    | RR '*' short_const_value 
         {
             $$ = { _fk: 'indRR', useAddrRel: 1, indRR: $3 }
         }
