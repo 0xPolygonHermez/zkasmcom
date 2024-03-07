@@ -13,7 +13,7 @@ const readOnlyRegisters = ['STEP', 'ROTL_C'];
 
 const SAVE_REGS = ['B','C','D','E', 'RR', 'RCX'];
 const RESTORE_FORBIDDEN_REGS = [...SAVE_REGS, 'RID'];
-const PROPERTY_SAME_VALUE_COLLISION_ALLOWED = {assumeFree: 'assumeFree', ind: ['ind', 'indRR'], indRR: ['ind', 'indRR']};
+const PROPERTY_SAME_VALUE_COLLISION_ALLOWED = {assumeFree: ['assumeFree'], ind: ['ind', 'indRR'], indRR: ['ind', 'indRR']};
 const MAX_GLOBAL_VAR = 0x10000;
 
 class CompilerError extends Error {};

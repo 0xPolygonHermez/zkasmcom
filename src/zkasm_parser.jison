@@ -27,10 +27,9 @@ STEP                    { return 'STEP'; }
 ROTL_C                  { return 'ROTL_C'; }
 HASHPOS                 { return 'HASHPOS'; }
 RID                     { return 'RID'; }
-MLOAD                   { return 'MLOAD' }
 F_MLOAD                 { return 'F_MLOAD' }
+MLOAD                   { return 'MLOAD' }
 MSTORE                  { return 'MSTORE' }
-MSTORE                  { return 'F_MSTORE' }
 HASHKLEN                { return 'HASHKLEN' }
 HASHKDIGEST             { return 'HASHKDIGEST' }
 F_HASHK((1[0-9])|(2[0-9])|(3[0-2])|[1-9])  { yytext = yytext.slice(7); return 'F_HASHKn' }
@@ -571,11 +570,6 @@ op
         {
             normalizeArrayIndex($3, 'memUseAddrRel');
             $$ = { offset: 0, ...$3, mOp: 1, mWR: 1, assumeFree: 0 };
-        }
-    | F_MSTORE '(' addr ')'
-        {
-            normalizeArrayIndex($3, 'memUseAddrRel');
-            $$ = { offset: 0, ...$3, mOp: 1, mWR: 1, assumeFree: 1 };
         }
     | F_HASHK '(' hashId ')'
         {
