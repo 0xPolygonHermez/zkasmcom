@@ -707,37 +707,37 @@ case 107:
 break;
 case 108:
 
-            this.$ = { arithEq0: 1, arithEq1: 0, arithEq2: 0, arithEq3: 0, arithEq4: 0, arithEq5: 0, arithEq6: 0 }
+            this.$ = { arithEquation: 1 }
         
 break;
 case 109:
 
-            this.$ = { arithEq0: 0, arithEq1: 1, arithEq2: 0, arithEq3: 0, arithEq4: 0, arithEq5: 0, arithEq6: 0 }
+            this.$ = { arithEquation: 2 }
         
 break;
 case 110:
 
-            this.$ = { arithEq0: 0, arithEq1: 0, arithEq2: 1, arithEq3: 0, arithEq4: 0, arithEq5: 0, arithEq6: 0 }
+            this.$ = { arithEquation: 3 }
         
 break;
 case 111:
 
-            this.$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 1, arithEq4: 0, arithEq5: 0, arithEq6: 0 }
+            this.$ = { arithEquation: 4 }
         
 break;
 case 112:
 
-            this.$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 0, arithEq4: 1, arithEq5: 0, arithEq6: 0 }
+            this.$ = { arithEquation: 5 }
         
 break;
 case 113:
 
-            this.$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 0, arithEq4: 0, arithEq5: 1, arithEq6: 0 }
+            this.$ = { arithEquation: 6 }
         
 break;
 case 114:
 
-            this.$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 0, arithEq4: 0, arithEq5: 0, arithEq6: 1 }
+            this.$ = { arithEquation: 7 }
         
 break;
 case 115:
