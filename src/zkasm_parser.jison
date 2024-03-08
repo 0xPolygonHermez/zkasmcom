@@ -6,7 +6,8 @@
 ((0x[0-9A-Fa-f][0-9A-Fa-f_]*)|([0-9][0-9_]*))n          { yytext = BigInt(yytext.replace(/[\_n]/g, "")); return 'NUMBERL'; }
 (0x[0-9A-Fa-f][0-9A-Fa-f_]*)|([0-9][0-9_]*)          { yytext = Number(yytext.replace(/\_/g, "")); return 'NUMBER'; }
 \$\$\{[^\}]*\}          { yytext = yytext.slice(3, -1); return "COMMAND"; }
-\$0\{[^\}]*\}          { yytext = yytext.slice(3, -1); return 'TAG_0'; }
+(\$0(\{[^\}]*\})?)      { yytext = yytext.length == 2 ? "" : yytext.slice(3, -1); return 'TAG_0'; }
+(\$BYTE(\{[^\}]*\})?)      { yytext = yytext.length == 2 ? "" : yytext.slice(6, -1); return 'TAG_BYTE'; }
 (\$(\{[^\}]*\})?)       { yytext = yytext.length == 1 ? "" : yytext.slice(2, -1); return 'TAG'; }
 [\r\n]+                 { return "LF";}
 [ \t]+                  { /* console.log("Empty spaces"); */ }
@@ -48,17 +49,17 @@ F_HASHP((1[0-9])|(2[0-9])|(3[0-2])|[1-9])  { yytext = yytext.slice(7); return 'F
 HASHP((1[0-9])|(2[0-9])|(3[0-2])|[1-9])  { yytext = yytext.slice(5); return 'HASHPn' }
 F_HASHP                 { return 'F_HASHP' }
 HASHP                   { return 'HASHP' }
-JMP                     { return 'JMP' }
 JMPC                    { return 'JMPC' }
 JMPZ                    { return 'JMPZ' }
 JMPNZ                   { return 'JMPNZ' }
 JMPNC                   { return 'JMPNC' }
 JMPN                    { return 'JMPN' }
+JMP                     { return 'JMP' }
 CALL_C                  { return 'CALL_C' }
 CALL_Z                  { return 'CALL_Z' }
-CALL_N                  { return 'CALL_N' }
 CALL_NC                 { return 'CALL_NC' }
 CALL_NZ                 { return 'CALL_NZ' }
+CALL_N                  { return 'CALL_N' }
 CALL                    { return 'CALL' }
 RETURN                  { return 'RETURN' }
 ASSERT                  { return 'ASSERT' }
@@ -471,6 +472,10 @@ inReg
         {
             $$ = {type: 'TAG_0' , tag: $1 }
         }
+    | TAG_BYTE
+        {
+            $$ = {type: 'TAG_BYTE' , tag: $1 }
+        }
     | reg
         {
             $$ = {type: 'REG' , reg: $1}
@@ -770,8 +775,7 @@ op
                 delete _jmp.offset;
                 _jmp.elseAddrLabel = _jmp.offsetLabel ?? '';
                 delete _jmp.offsetLabel;
-                $$ = { ...JMP_FLAGS,  [$1.jtype]: 1, ..._jmp, jmpAddr: 0, jmpAddrLabel: 'next' }
-                if ($1.call) $$.call = 1;
+                $$ = { ...JMP_FLAGS,  ...$1, ..._jmp, jmpAddr: 0, jmpAddrLabel: 'next' }
             }
         }
     | jmpNotCond '(' jmp_addr ',' jmp_addr ')'
@@ -805,8 +809,7 @@ op
                     (!lodash.isEqual(_jmp.ind, _else.ind) || !lodash.isEqual(_jmp.indRR, _else.indRR))) {
                         this.compiler._error(`Diferent relative address between jmp and else addresses`);
                 }
-                $$ = { ...JMP_FLAGS, [$1.jtype]: 1, ..._jmp, ..._else }            
-                if ($1.call) $$.call = 1;
+                $$ = { ...JMP_FLAGS, ...$1, ..._jmp, ..._else }            
             }
         }
     | jmpCond '(' jmp_addr ')'
@@ -824,8 +827,7 @@ op
                 _jmp.jmpAddrLabel = _jmp.offsetLabel ?? '';
                 delete _jmp.offsetLabel;
 
-                $$ = {...JMP_FLAGS, [$1.jtype]: 1, ..._jmp, elseAddr: 0, elseAddrLabel: 'next' };
-                if ($1.call) $$.call = 1;
+                $$ = {...JMP_FLAGS, ...$1, ..._jmp, elseAddr: 0, elseAddrLabel: 'next' };
             }
         }
     | jmpCond '(' jmp_addr ',' jmp_addr ')'
@@ -859,8 +861,7 @@ op
                     (!lodash.isEqual(_jmp.ind, _else.ind) || !lodash.isEqual(_jmp.indRR, _else.indRR))) {
                         this.compiler._error(`Diferent relative address between jmp and else addresses`);
                 }
-                $$ = {...JMP_FLAGS,  [$1.jtype]: 1, ..._jmp, ..._else };
-                if ($1.call) $$.call = 1;
+                $$ = {...JMP_FLAGS, ...$1, ..._jmp, ..._else };
             }
         }
 
@@ -990,19 +991,19 @@ op
     ;
 
 jmpCond
-    : JMPN    { $$ = { jtype: $1 } }
-    | JMPC    { $$ = { jtype: $1 } }
-    | JMPZ    { $$ = { jtype: $1 } }
-    | CALL_Z  { $$ = { jtype: 'JMPZ', call: 1 } }
-    | CALL_N  { $$ = { jtype: 'JMPN', call: 1 } }
-    | CALL_C  { $$ = { jtype: 'JMPC', call: 1 } }
+    : JMPN    { $$ = { JMPN: 1, free0IsByte: 0 } }
+    | JMPC    { $$ = { JMPC: 1 } }
+    | JMPZ    { $$ = { JMPZ: 1 } }
+    | CALL_Z  { $$ = { JMPZ: 1, call: 1 } }
+    | CALL_N  { $$ = { JMPN: 1, call: 1, free0IsByte: 0 } }
+    | CALL_C  { $$ = { JMPC: 1, call: 1 } }
     ;
 
 jmpNotCond
-    : JMPNC   { $$ = { jtype: 'JMPC' } }
-    | JMPNZ   { $$ = { jtype: 'JMPZ' } }
-    | CALL_NC { $$ = { jtype: 'JMPC', call: 1 } }
-    | CALL_NZ { $$ = { jtype: 'JMPZ', call: 1 } }
+    : JMPNC   { $$ = { JMPC: 1 } }
+    | JMPNZ   { $$ = { JMPZ: 1 } }
+    | CALL_NC { $$ = { JMPC: 1, call: 1 } }
+    | CALL_NZ { $$ = { JMPZ: 1, call: 1 } }
     ;
 
 

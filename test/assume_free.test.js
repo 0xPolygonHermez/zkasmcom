@@ -2,84 +2,13 @@ const chai = require("chai");
 const assert = chai.assert;
 const fs = require("fs");
 const path = require("path");
-const _ = require('lodash');
-const util = require('util');
+const {_cc, compareJson, _compile} = require('./ottools.js');
 
-const compile = require("../src/compiler.js");
-
-const IGNORE_PROPS = ['line', 'fileName', 'lineStr'];
 const HASH_SUFFIXES = ['P', 'K', 'S'];
-
-const CFG = {compileFromString: true, summary: false};
-let programs = [];
 
 describe("Test Assume Free Feature", async function () {
     this.timeout(10000000000);
 
-    function _cc(header, program, expected) {
-        const _header = Array.isArray(header) ? header : [header];
-        let json = _compile(_header.join('\n') + '\n' + program);
-        expected = Array.isArray(expected) ? expected : [expected];
-        const ignoreLines = _header.length - 1;
-        assert.equal(json.program.length - ignoreLines, expected.length);
-        for (let line = 0; line < expected.length; ++line) {
-            compareJson(expected[line], json.program[line + ignoreLines], json.program[line + ignoreLines].lineStr);
-        }
-    }
-
-    function _compile (program) {
-        programs.push(program);
-        return compile(program, false, CFG);
-    }
-    
-    function errorDifferentProperty(location, prop, expected, result) {
-        if (typeof expected !== typeof result && `${expected}` === `${result}`) {
-            expected = `${expected}(${typeof expected})`;
-            result = `${result}(${typeof result})`;
-        }
-        throw new Error(`${location}. Property ${prop} no equal, ${expected} vs ${result}`);
-    }
-    function compareJson(expected, result, location) {
-        for (const prop in expected) {
-            if (IGNORE_PROPS.includes(prop)) continue;
-            if (prop === 'freeInTag') {
-                const expectedFreeInTag = expected.freeInTag;
-                const resultFreeInTag = result.freeInTag;
-                if (!_.isEqual(expectedFreeInTag, resultFreeInTag)) {
-                    console.log(['EXPECTED', expectedFreeInTag]);
-                    console.log(['RESULT', resultFreeInTag]);
-                    throw new Error(`${location} FreeIntTag not match\nEXPECTED:\n`+util.inspect(expectedFreeInTag, false, 100)+'\n\nRESULT:\n'+util.inspect(resultFreeInTag, false, 100));
-                }
-                continue;
-            }
-            if (expected[prop] !== result[prop]) {
-                console.log(['EXPECTED', expected]);
-                console.log(['RESULT', result]);
-                errorDifferentProperty(location, prop, expected[prop], result[prop]);
-            }
-        }
-        for (const prop in result) {
-            if (IGNORE_PROPS.includes(prop)) continue;
-            if (typeof expected[prop] !== 'undefined' && IGNORE_PROPS.includes(prop)) continue;
-            if (prop === 'freeInTag') {
-                const expectedFreeInTag = expected.freeInTag;
-                const resultFreeInTag = result.freeInTag;
-                if (!_.isEqual(expectedFreeInTag, resultFreeInTag)) {
-                    console.log(expectedFreeInTag);
-                    console.log(resultFreeInTag);
-                    throw new Error(`${location} FreeIntTag not match`)
-                }
-                continue;
-            }
-            if (expected[prop] !== result[prop]) {
-                console.log(['EXPECTED', expected]);
-                console.log(['RESULT', result]);
-                console.log(expected[prop]);
-                console.log(result[prop]);
-                errorDifferentProperty(location, prop, expected[prop], result[prop]);
-            }
-        }
-    }
     it("Basic Test Assume Free Compilation", async () => {
         let json = _compile('VAR GLOBAL v0[8]\nVAR GLOBAL v1\n$ => A  :F_MLOAD(v1)\n$ => A  :MLOAD(v1)\nv1 => A\n');
         let expected = { freeInTag: {op: ''},  inFREE: "1", inFREE0: "0",
@@ -342,8 +271,8 @@ describe("Test Assume Free Feature", async function () {
         _cc(header,  '2 * l10_80[5*E+%CS2-%CS3*RR] + 8 => A :JMPC(@label2+5*E-3*RR),EQ\n', { ...base, bin: 1, binOpcode: 4, offset: 12, offsetLabel: 'l10_80', useCTX: 1, minAddrRel: -2, maxAddrRel: 77, baseLabel: 10, sizeLabel: 80});
 
         base = {...base, JMP: 0, JMPN: 1, JMPC: 0, JMPZ: 0};
-        _cc(header,  '2 * g7_8[5*E+%CS2-%CS3*RR] + 8 => A   :JMPN(@label2+5*E-3*RR)\n', { ...base, offset:  9, offsetLabel: 'g7_8',   useCTX: 0, minAddrRel: -2, maxAddrRel:  5, baseLabel:  7, sizeLabel:  8});
-        _cc(header,  '2 * l10_80[5*E+%CS2-%CS3*RR] + 8 => A :JMPN(@label2+5*E-3*RR)\n', { ...base, offset: 12, offsetLabel: 'l10_80', useCTX: 1, minAddrRel: -2, maxAddrRel: 77, baseLabel: 10, sizeLabel: 80});
+        _cc(header,  '2 * g7_8[5*E+%CS2-%CS3*RR] + 8 => A   :JMPN(@label2+5*E-3*RR)\n', { ...base, free0IsByte:0, offset:  9, offsetLabel: 'g7_8',   useCTX: 0, minAddrRel: -2, maxAddrRel:  5, baseLabel:  7, sizeLabel:  8});
+        _cc(header,  '2 * l10_80[5*E+%CS2-%CS3*RR] + 8 => A :JMPN(@label2+5*E-3*RR)\n', { ...base, free0IsByte:0, offset: 12, offsetLabel: 'l10_80', useCTX: 1, minAddrRel: -2, maxAddrRel: 77, baseLabel: 10, sizeLabel: 80});
 
         base = {...base, JMP: 0, JMPN: 0, JMPC: 0, JMPZ: 1};
         _cc(header,  '2 * g7_8[5*E+%CS2-%CS3*RR] + 8 => A   :JMPZ(@label2+5*E-3*RR)\n', { ...base, offset:  9, offsetLabel: 'g7_8',   useCTX: 0, minAddrRel: -2, maxAddrRel:  5, baseLabel:  7, sizeLabel:  8});
@@ -370,8 +299,8 @@ describe("Test Assume Free Feature", async function () {
         _cc(header,  '2 * l10_80[5*E+%CS2-%CS3*RR] + 8 => A :EQ,JMPC(@label2+5*E-3*RR,@label1+5*E-3*RR)\n', { ...base, bin: 1, binOpcode: 4, offset: 12, offsetLabel: 'l10_80', useCTX: 1, minAddrRel: -2, maxAddrRel: 77, baseLabel: 10, sizeLabel: 80});
 
         base = {...base, JMP: 0, JMPN: 1, JMPC: 0, JMPZ: 0};
-        _cc(header,  '2 * g7_8[5*E+%CS2-%CS3*RR] + 8 => A   :JMPN(@label2+5*E-3*RR,@label1+5*E-3*RR)\n', { ...base, offset:  9, offsetLabel: 'g7_8',   useCTX: 0, minAddrRel: -2, maxAddrRel:  5, baseLabel:  7, sizeLabel:  8});
-        _cc(header,  '2 * l10_80[5*E+%CS2-%CS3*RR] + 8 => A :JMPN(@label2+5*E-3*RR,@label1+5*E-3*RR)\n', { ...base, offset: 12, offsetLabel: 'l10_80', useCTX: 1, minAddrRel: -2, maxAddrRel: 77, baseLabel: 10, sizeLabel: 80});
+        _cc(header,  '2 * g7_8[5*E+%CS2-%CS3*RR] + 8 => A   :JMPN(@label2+5*E-3*RR,@label1+5*E-3*RR)\n', { ...base, free0IsByte:0, offset:  9, offsetLabel: 'g7_8',   useCTX: 0, minAddrRel: -2, maxAddrRel:  5, baseLabel:  7, sizeLabel:  8});
+        _cc(header,  '2 * l10_80[5*E+%CS2-%CS3*RR] + 8 => A :JMPN(@label2+5*E-3*RR,@label1+5*E-3*RR)\n', { ...base, free0IsByte:0, offset: 12, offsetLabel: 'l10_80', useCTX: 1, minAddrRel: -2, maxAddrRel: 77, baseLabel: 10, sizeLabel: 80});
 
 
         base = {...base, JMP: 0, JMPN: 0, JMPC: 0, JMPZ: 1, elseAddr: 2, elseAddrLabel: 'label2', jmpAddr: 1, jmpAddrLabel: 'label1'};
@@ -396,8 +325,8 @@ describe("Test Assume Free Feature", async function () {
         _cc(header,  '2 * l10_80[5*E+%CS2-%CS3*RR] + 8 => A :CALL_C(@label2+5*E-3*RR),EQ\n', { ...base, bin: 1, binOpcode: 4, offset: 12, offsetLabel: 'l10_80', useCTX: 1, minAddrRel: -2, maxAddrRel: 77, baseLabel: 10, sizeLabel: 80});
 
         base = {...base, JMP: 0, JMPN: 1, JMPC: 0, JMPZ: 0};
-        _cc(header,  '2 * g7_8[5*E+%CS2-%CS3*RR] + 8 => A   :CALL_N(@label2+5*E-3*RR)\n', { ...base, offset:  9, offsetLabel: 'g7_8',   useCTX: 0, minAddrRel: -2, maxAddrRel:  5, baseLabel:  7, sizeLabel:  8});
-        _cc(header,  '2 * l10_80[5*E+%CS2-%CS3*RR] + 8 => A :CALL_N(@label2+5*E-3*RR)\n', { ...base, offset: 12, offsetLabel: 'l10_80', useCTX: 1, minAddrRel: -2, maxAddrRel: 77, baseLabel: 10, sizeLabel: 80});
+        _cc(header,  '2 * g7_8[5*E+%CS2-%CS3*RR] + 8 => A   :CALL_N(@label2+5*E-3*RR)\n', { ...base, free0IsByte:0, offset:  9, offsetLabel: 'g7_8',   useCTX: 0, minAddrRel: -2, maxAddrRel:  5, baseLabel:  7, sizeLabel:  8});
+        _cc(header,  '2 * l10_80[5*E+%CS2-%CS3*RR] + 8 => A :CALL_N(@label2+5*E-3*RR)\n', { ...base, free0IsByte:0, offset: 12, offsetLabel: 'l10_80', useCTX: 1, minAddrRel: -2, maxAddrRel: 77, baseLabel: 10, sizeLabel: 80});
 
         base = {...base, JMP: 0, JMPN: 0, JMPC: 0, JMPZ: 1};
         _cc(header,  '2 * g7_8[5*E+%CS2-%CS3*RR] + 8 => A   :CALL_Z(@label2+5*E-3*RR)\n', { ...base, offset:  9, offsetLabel: 'g7_8',   useCTX: 0, minAddrRel: -2, maxAddrRel:  5, baseLabel:  7, sizeLabel:  8});
