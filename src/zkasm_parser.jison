@@ -68,9 +68,10 @@ SSTORE                  { return 'SSTORE' }
 ARITH                   { return 'ARITH' }
 ARITH_ECADD_DIFFERENT   { return 'ARITH_ECADD_DIFFERENT' }
 ARITH_ECADD_SAME        { return 'ARITH_ECADD_SAME' }
+ARITH_BN254_MULFP2      { return 'ARITH_BN254_MULFP2' }
 ARITH_BN254_ADDFP2      { return 'ARITH_BN254_ADDFP2' }
 ARITH_BN254_SUBFP2      { return 'ARITH_BN254_SUBFP2' }
-ARITH_BN254_MULFP2      { return 'ARITH_BN254_MULFP2' }
+ARITH_MOD               { return 'ARITH_MOD' }
 ADD                     { return 'ADD' }
 SUB                     { return 'SUB' }
 LT                      { return 'LT' }
@@ -902,27 +903,31 @@ op
         }
     | ARITH
         {
-            $$ = { arithEq0: 1, arithEq1: 0, arithEq2: 0, arithEq3: 0, arithEq4: 0, arithEq5: 0 }
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 0, arithEquation: 1 }
         }
     | ARITH_ECADD_DIFFERENT
         {
-            $$ = { arithEq0: 0, arithEq1: 1, arithEq2: 0, arithEq3: 0, arithEq4: 0, arithEq5: 0 }
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithEquation: 2 }
         }
     | ARITH_ECADD_SAME
         {
-            $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 1, arithEq3: 0, arithEq4: 0, arithEq5: 0 }
+            $$ = { arith: 1, arithSame12: 1, arithUseE: 1, arithEquation: 3 }
         }
     | ARITH_BN254_MULFP2
         {
-            $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 1, arithEq4: 0, arithEq5: 0 }
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithEquation: 4 }
         }
     | ARITH_BN254_ADDFP2
         {
-            $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 0, arithEq4: 1, arithEq5: 0 }
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithEquation: 5 }
         }
     | ARITH_BN254_SUBFP2
         {
-            $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 0, arithEq4: 0, arithEq5: 1 }
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithEquation: 6 }
+        }
+    | ARITH_MOD
+        {
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 0, arithEquation: 7 }
         }
     | ADD
         {
