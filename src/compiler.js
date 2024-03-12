@@ -461,10 +461,13 @@ class Compiler {
     processAssignmentIn(input, currentLine) {
         let res = {};
         let E1, E2;
-        if (input.type == "TAG" || input.type == 'TAG_0') {
+        if (input.type == "TAG" || input.type == 'TAG_0' || input.type == 'TAG_BYTE') {
             res.freeInTag = input.tag ? commandParser.parse(input.tag) : { op: ""};
-            res.inFREE = input.type == 'TAG_0' ? 0n : 1n;
-            res.inFREE0 = input.type == 'TAG_0' ? 1n : 0n;
+            res.inFREE = input.type == 'TAG' ? 1n : 0n;
+            res.inFREE0 = (input.type == 'TAG_0' || input.type == 'TAG_BYTE') ? 1n : 0n;
+            if (input.type == 'TAG_BYTE') {
+                res.free0IsByte = 1;
+            }
             return res;
         }
         if (input.type == "REG") {
@@ -784,10 +787,10 @@ class Compiler {
 
     verifyStep(l) {
         if (!l.assignment) return;
-        const typesInfo = this.extractTypes(l.assignment.in, ['MLOAD', 'TAG', 'TAG_0']);
+        const typesInfo = this.extractTypes(l.assignment.in, ['MLOAD', 'TAG', 'TAG_0', 'TAG_BYTE']);
         if (typesInfo === false) return;
 
-        const tagCount = (typesInfo.TAG ?? 0) + (typesInfo.TAG_0 ?? 0);
+        const tagCount = (typesInfo.TAG ?? 0) + (typesInfo.TAG_0 ?? 0) + (typesInfo.TAG_BYTE ?? 0);
         if (tagCount > 1) {
             this.error(l, 'Only one tag is allowed');
         }
