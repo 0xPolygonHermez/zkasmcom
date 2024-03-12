@@ -708,37 +708,37 @@ case 108:
 break;
 case 109:
 
-            this.$ = { arithEquation: 1 }
+            this.$ = { arith: 1, arithSame12: 0, arithUseE: 0, arithEquation: 1 }
         
 break;
 case 110:
 
-            this.$ = { arithEquation: 2 }
+            this.$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithEquation: 2 }
         
 break;
 case 111:
 
-            this.$ = { arithEquation: 3 }
+            this.$ = { arith: 1, arithSame12: 1, arithUseE: 1, arithEquation: 3 }
         
 break;
 case 112:
 
-            this.$ = { arithEquation: 4 }
+            this.$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithEquation: 4 }
         
 break;
 case 113:
 
-            this.$ = { arithEquation: 5 }
+            this.$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithEquation: 5 }
         
 break;
 case 114:
 
-            this.$ = { arithEquation: 6 }
+            this.$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithEquation: 6 }
         
 break;
 case 115:
 
-            this.$ = { arithEquation: 7 }
+            this.$ = { arith: 1, arithSame12: 0, arithUseE: 0, arithEquation: 7 }
         
 break;
 case 116:

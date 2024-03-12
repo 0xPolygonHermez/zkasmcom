@@ -903,31 +903,31 @@ op
         }
     | ARITH
         {
-            $$ = { arithEquation: 1 }
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 0, arithEquation: 1 }
         }
     | ARITH_ECADD_DIFFERENT
         {
-            $$ = { arithEquation: 2 }
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithEquation: 2 }
         }
     | ARITH_ECADD_SAME
         {
-            $$ = { arithEquation: 3 }
+            $$ = { arith: 1, arithSame12: 1, arithUseE: 1, arithEquation: 3 }
         }
     | ARITH_BN254_MULFP2
         {
-            $$ = { arithEquation: 4 }
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithEquation: 4 }
         }
     | ARITH_BN254_ADDFP2
         {
-            $$ = { arithEquation: 5 }
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithEquation: 5 }
         }
     | ARITH_BN254_SUBFP2
         {
-            $$ = { arithEquation: 6 }
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithEquation: 6 }
         }
     | ARITH_MOD
         {
-            $$ = { arithEquation: 7 }
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 0, arithEquation: 7 }
         }
     | ADD
         {
