@@ -829,7 +829,7 @@ class Compiler {
     }
 }
 
-module.exports = function compile(fileName, ctx, config = {}) {
+module.exports = function compile(fileName, config = {}) {
 
     let compiler = new Compiler(config);
     return compiler.compile(fileName);
