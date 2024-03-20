@@ -30,6 +30,7 @@ HASHPOS                 { return 'HASHPOS'; }
 RID                     { return 'RID'; }
 F_MLOAD                 { return 'F_MLOAD' }
 MLOAD                   { return 'MLOAD' }
+F_MSTORE                { return 'F_MSTORE' }
 MSTORE                  { return 'MSTORE' }
 HASHKLEN                { return 'HASHKLEN' }
 HASHKDIGEST             { return 'HASHKDIGEST' }
@@ -576,6 +577,11 @@ op
         {
             normalizeArrayIndex($3, 'memUseAddrRel');
             $$ = { offset: 0, ...$3, mOp: 1, mWR: 1, assumeFree: 0 };
+        }
+    | F_MSTORE '(' addr ')'
+        {
+            normalizeArrayIndex($3, 'memUseAddrRel');
+            $$ = { offset: 0, ...$3, mOp: 1, mWR: 1, assumeFree: 1 };
         }
     | F_HASHK '(' hashId ')'
         {

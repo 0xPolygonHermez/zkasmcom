@@ -198,8 +198,45 @@ describe("Test Assume Free Feature", async function () {
         _cc(header,  '2 * ${B} + 8 => A    :F_MLOAD(g7_8[100])\n',    { ...base, offset: 107, offsetLabel: 'g7_8',   useCTX: 0});
         _cc(header,  '2 * ${B} + 8 => A    :F_MLOAD(l10_80[%CL1])\n', { ...base, offset: 110, offsetLabel: 'l10_80', useCTX: 1});
 
+        freeInTag = { op: 'getReg', regName: 'B' };
+        base = {...base, mWR: 1, freeInTag, assumeFree: 1};
+        _cc(header,  '2 * ${B} + 8 => A    :F_MSTORE(g15)\n',    { ...base, offset: 15, offsetLabel: 'g15',    useCTX: 0});
+        _cc(header,  '2 * ${B} + 8 => A    :F_MSTORE(l90)\n',    { ...base, offset: 90, offsetLabel: 'l90',    useCTX: 1});
+        _cc(header,  '2 * ${B} + 8 => A    :F_MSTORE(g7_8)\n',   { ...base, offset:  7, offsetLabel: 'g7_8',   useCTX: 0});
+        _cc(header,  '2 * ${B} + 8 => A    :F_MSTORE(l10_80)\n', { ...base, offset: 10, offsetLabel: 'l10_80', useCTX: 1});
+
+        _cc(header,  '2 * ${B} + 8 => A    :F_MSTORE(g15+100)\n',    { ...base, offset: 115, offsetLabel: 'g15',    useCTX: 0});
+        _cc(header,  '2 * ${B} + 8 => A    :F_MSTORE(l90+100)\n',    { ...base, offset: 190, offsetLabel: 'l90',    useCTX: 1});
+        _cc(header,  '2 * ${B} + 8 => A    :F_MSTORE(g7_8+100)\n',   { ...base, offset: 107, offsetLabel: 'g7_8',   useCTX: 0});
+        _cc(header,  '2 * ${B} + 8 => A    :F_MSTORE(l10_80+100)\n', { ...base, offset: 110, offsetLabel: 'l10_80', useCTX: 1});
+
+        // TODO: warning/error out-of-bounds
+        _cc(header,  '2 * ${B} + 8 => A    :F_MSTORE(g15[%CL1])\n',    { ...base, offset: 115, offsetLabel: 'g15',    useCTX: 0});
+        _cc(header,  '2 * ${B} + 8 => A    :F_MSTORE(l90[100])\n',     { ...base, offset: 190, offsetLabel: 'l90',    useCTX: 1});
+        _cc(header,  '2 * ${B} + 8 => A    :F_MSTORE(g7_8[100])\n',    { ...base, offset: 107, offsetLabel: 'g7_8',   useCTX: 0});
+        _cc(header,  '2 * ${B} + 8 => A    :F_MSTORE(l10_80[%CL1])\n', { ...base, offset: 110, offsetLabel: 'l10_80', useCTX: 1});
+
+        freeInTag = { op: 'getReg', regName: 'B' };
+        base = {...base, freeInTag, assumeFree: 0};
+        _cc(header,  '2 * ${B} + 8 => A    :MSTORE(g15)\n',    { ...base, offset: 15, offsetLabel: 'g15',    useCTX: 0});
+        _cc(header,  '2 * ${B} + 8 => A    :MSTORE(l90)\n',    { ...base, offset: 90, offsetLabel: 'l90',    useCTX: 1});
+        _cc(header,  '2 * ${B} + 8 => A    :MSTORE(g7_8)\n',   { ...base, offset:  7, offsetLabel: 'g7_8',   useCTX: 0});
+        _cc(header,  '2 * ${B} + 8 => A    :MSTORE(l10_80)\n', { ...base, offset: 10, offsetLabel: 'l10_80', useCTX: 1});
+
+        _cc(header,  '2 * ${B} + 8 => A    :MSTORE(g15+100)\n',    { ...base, offset: 115, offsetLabel: 'g15',    useCTX: 0});
+        _cc(header,  '2 * ${B} + 8 => A    :MSTORE(l90+100)\n',    { ...base, offset: 190, offsetLabel: 'l90',    useCTX: 1});
+        _cc(header,  '2 * ${B} + 8 => A    :MSTORE(g7_8+100)\n',   { ...base, offset: 107, offsetLabel: 'g7_8',   useCTX: 0});
+        _cc(header,  '2 * ${B} + 8 => A    :MSTORE(l10_80+100)\n', { ...base, offset: 110, offsetLabel: 'l10_80', useCTX: 1});
+
+        // TODO: warning/error out-of-bounds
+        _cc(header,  '2 * ${B} + 8 => A    :MSTORE(g15[%CL1])\n',    { ...base, offset: 115, offsetLabel: 'g15',    useCTX: 0});
+        _cc(header,  '2 * ${B} + 8 => A    :MSTORE(l90[100])\n',     { ...base, offset: 190, offsetLabel: 'l90',    useCTX: 1});
+        _cc(header,  '2 * ${B} + 8 => A    :MSTORE(g7_8[100])\n',    { ...base, offset: 107, offsetLabel: 'g7_8',   useCTX: 0});
+        _cc(header,  '2 * ${B} + 8 => A    :MSTORE(l10_80[%CL1])\n', { ...base, offset: 110, offsetLabel: 'l10_80', useCTX: 1});
+
+
         freeInTag = { op: '' };
-        base = {...base, freeInTag, assumeFree: 1};
+        base = {...base, mWR: 0, freeInTag, assumeFree: 1};
 
         // TODO: warning/error out-of-bounds
         _cc(header,  '2 * g15[100] + 8 => A\n',     { ...base, offset: 115, offsetLabel: 'g15',    useCTX: 0});
