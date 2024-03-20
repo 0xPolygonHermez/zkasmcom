@@ -343,7 +343,7 @@ class Compiler {
                     cmd.op = 'number';
                     return;
                 }
-                cmd.op = cmd.module === 'addr' ? 'getMemAdress':'getMemValue';
+                cmd.op = cmd.module === 'addr' ? 'getMemAddr':'getMemValue';
                 cmd.params = params;
                 return;
             }
