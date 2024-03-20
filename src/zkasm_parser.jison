@@ -983,7 +983,7 @@ jmpCondConst
     | JMP_LE  { $$ = { JMPN: 1, condConst: -1, free0IsByte: 0 } }
     | CALL_EQ { $$ = { JMPZ: 1, condConst:  0, call: 1 } }
     | CALL_LT { $$ = { JMPN: 1, condConst:  0, call: 1, free0IsByte: 0 } }
-    | CALL_LE { $$ = { JMPN: 1, condConst: -1, call: 1 } }
+    | CALL_LE { $$ = { JMPN: 1, condConst: -1, call: 1, free0IsByte: 0 } }
     ;
 
 jmpNotCond
@@ -994,12 +994,12 @@ jmpNotCond
     ;
 
 jmpNotCondConst
-    : JMP_NE  { $$ = { JMPZ: 1, condConst:  0, free0IsByte: 0 } }
+    : JMP_NE  { $$ = { JMPZ: 1, condConst:  0 } }
     | JMP_GT  { $$ = { JMPN: 1, condConst: -1, free0IsByte: 0 } }
     | JMP_GE  { $$ = { JMPN: 1, condConst:  0, free0IsByte: 0 } }
-    | CALL_NE { $$ = { JMPZ: 1, condConst:  0, free0IsByte: 0, call: 1 } }
-    | CALL_GT { $$ = { JMPN: 1, condConst: -1, free0IsByte: 0, call: 1 } }
-    | CALL_GE { $$ = { JMPN: 1, condConst:  0, free0IsByte: 0, call: 1 } }
+    | CALL_NE { $$ = { JMPZ: 1, condConst:  0, call: 1 } }
+    | CALL_GT { $$ = { JMPN: 1, condConst: -1, call: 1, free0IsByte: 0 } }
+    | CALL_GE { $$ = { JMPN: 1, condConst:  0, call: 1, free0IsByte: 0 } }
     ;
 
 
