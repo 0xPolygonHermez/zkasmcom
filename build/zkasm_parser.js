@@ -786,10 +786,10 @@ break;
 case 142:
  this.$ = { JMPZ: 1, condConst:  0 } 
 break;
-case 143: case 153:
+case 143: case 154:
  this.$ = { JMPN: 1, condConst:  0, free0IsByte: 0 } 
 break;
-case 144: case 154:
+case 144: case 153:
  this.$ = { JMPN: 1, condConst: -1, free0IsByte: 0 } 
 break;
 case 145:
@@ -799,7 +799,7 @@ case 146:
  this.$ = { JMPN: 1, condConst:  0, call: 1, free0IsByte: 0 } 
 break;
 case 147:
- this.$ = { JMPC: 1, condConst: -1, call: 1 } 
+ this.$ = { JMPN: 1, condConst: -1, call: 1 } 
 break;
 case 152:
  this.$ = { JMPZ: 1, condConst:  0, free0IsByte: 0 } 
@@ -808,10 +808,10 @@ case 155:
  this.$ = { JMPZ: 1, condConst:  0, free0IsByte: 0, call: 1 } 
 break;
 case 156:
- this.$ = { JMPN: 1, condConst:  0, free0IsByte: 0, call: 1 } 
+ this.$ = { JMPN: 1, condConst: -1, free0IsByte: 0, call: 1 } 
 break;
 case 157:
- this.$ = { JMPN: 1, condConst: -1, free0IsByte: 0, call: 1 } 
+ this.$ = { JMPN: 1, condConst:  0, free0IsByte: 0, call: 1 } 
 break;
 case 158:
  this.$ = 'cntArith' 
@@ -1237,7 +1237,6 @@ function normalizeArrayIndex(st, useAddrRelProp = false) {
 }
 
 function applyAddrRel(prefix, data) {
-    console.log('ENTER applyAddrRel');
     let _jmp = {...data};
     if (_jmp.useAddrRel) {
         _jmp.ind = _jmp.ind ?? 0;
@@ -1249,7 +1248,6 @@ function applyAddrRel(prefix, data) {
     delete _jmp.offset;
     _jmp[`${prefix}AddrLabel`] = _jmp.offsetLabel ?? '';
     delete _jmp.offsetLabel;
-    console.log('EXIT applyAddrRel');
     return _jmp;
 }
 

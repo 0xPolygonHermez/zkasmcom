@@ -191,7 +191,6 @@ function normalizeArrayIndex(st, useAddrRelProp = false) {
 }
 
 function applyAddrRel(prefix, data) {
-    console.log('ENTER applyAddrRel');
     let _jmp = {...data};
     if (_jmp.useAddrRel) {
         _jmp.ind = _jmp.ind ?? 0;
@@ -203,7 +202,6 @@ function applyAddrRel(prefix, data) {
     delete _jmp.offset;
     _jmp[`${prefix}AddrLabel`] = _jmp.offsetLabel ?? '';
     delete _jmp.offsetLabel;
-    console.log('EXIT applyAddrRel');
     return _jmp;
 }
 
@@ -985,7 +983,7 @@ jmpCondConst
     | JMP_LE  { $$ = { JMPN: 1, condConst: -1, free0IsByte: 0 } }
     | CALL_EQ { $$ = { JMPZ: 1, condConst:  0, call: 1 } }
     | CALL_LT { $$ = { JMPN: 1, condConst:  0, call: 1, free0IsByte: 0 } }
-    | CALL_LE { $$ = { JMPC: 1, condConst: -1, call: 1 } }
+    | CALL_LE { $$ = { JMPN: 1, condConst: -1, call: 1 } }
     ;
 
 jmpNotCond
@@ -997,11 +995,11 @@ jmpNotCond
 
 jmpNotCondConst
     : JMP_NE  { $$ = { JMPZ: 1, condConst:  0, free0IsByte: 0 } }
-    | JMP_GT  { $$ = { JMPN: 1, condConst:  0, free0IsByte: 0 } }
-    | JMP_GE  { $$ = { JMPN: 1, condConst: -1, free0IsByte: 0 } }
+    | JMP_GT  { $$ = { JMPN: 1, condConst: -1, free0IsByte: 0 } }
+    | JMP_GE  { $$ = { JMPN: 1, condConst:  0, free0IsByte: 0 } }
     | CALL_NE { $$ = { JMPZ: 1, condConst:  0, free0IsByte: 0, call: 1 } }
-    | CALL_GT { $$ = { JMPN: 1, condConst:  0, free0IsByte: 0, call: 1 } }
-    | CALL_GE { $$ = { JMPN: 1, condConst: -1, free0IsByte: 0, call: 1 } }
+    | CALL_GT { $$ = { JMPN: 1, condConst: -1, free0IsByte: 0, call: 1 } }
+    | CALL_GE { $$ = { JMPN: 1, condConst:  0, free0IsByte: 0, call: 1 } }
     ;
 
 
