@@ -336,7 +336,7 @@ class Compiler {
                     params = offset ? [{ op: 'add', values: [cmd.arrayOffset, params[0]]}]:
                                       [cmd.arrayOffset];
                     delete cmd.arrayOffset;
-                } else if (cmd.useCTX === 0) {
+                } else if (cmd.useCTX === 0 && cmd.module === 'addr') {
                     // only when address is 100% static could return as static number
                     // if useCTX means that address depends of CTX
                     cmd.num = BigInt(offset);
