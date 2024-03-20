@@ -783,7 +783,7 @@ break;
 case 141: case 150:
  this.$ = { JMPC: 1, call: 1 } 
 break;
-case 142:
+case 142: case 152:
  this.$ = { JMPZ: 1, condConst:  0 } 
 break;
 case 143: case 154:
@@ -792,26 +792,14 @@ break;
 case 144: case 153:
  this.$ = { JMPN: 1, condConst: -1, free0IsByte: 0 } 
 break;
-case 145:
+case 145: case 155:
  this.$ = { JMPZ: 1, condConst:  0, call: 1 } 
 break;
-case 146:
+case 146: case 157:
  this.$ = { JMPN: 1, condConst:  0, call: 1, free0IsByte: 0 } 
 break;
-case 147:
- this.$ = { JMPN: 1, condConst: -1, call: 1 } 
-break;
-case 152:
- this.$ = { JMPZ: 1, condConst:  0, free0IsByte: 0 } 
-break;
-case 155:
- this.$ = { JMPZ: 1, condConst:  0, free0IsByte: 0, call: 1 } 
-break;
-case 156:
- this.$ = { JMPN: 1, condConst: -1, free0IsByte: 0, call: 1 } 
-break;
-case 157:
- this.$ = { JMPN: 1, condConst:  0, free0IsByte: 0, call: 1 } 
+case 147: case 156:
+ this.$ = { JMPN: 1, condConst: -1, call: 1, free0IsByte: 0 } 
 break;
 case 158:
  this.$ = 'cntArith' 
