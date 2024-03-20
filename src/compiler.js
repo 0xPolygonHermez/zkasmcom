@@ -311,48 +311,40 @@ class Compiler {
     resolveDataOffset(i, cmd) {
         if (typeof cmd !== 'object' || cmd === null) return;
         if (cmd.op === 'getData') {
-            if (cmd.module === 'mem' && typeof cmd.offsetLabel === 'undefined') {
+            if ((cmd.module === 'mem' || cmd.module === 'addr') && typeof cmd.offsetLabel === 'undefined') {
                 const name = cmd.offset;
                 if (typeof this.vars[name] === 'undefined') {
                     this.error(this.out[i].line, `Not found reference ${cmd.module}.${name}`);
                 }
-                cmd.op = 'getMemValue'
-                cmd.offset = this.vars[name].offset;
+                cmd.offsetLabel = name;
+                let offset = this.vars[name].offset;
+                delete cmd.offset;
+
                 // set useCTX
                 if (this.vars[name].scope === 'CTX') {
                     cmd.useCTX = 1;
                 } else if (this.vars[name].scope === 'GLOBAL') {
                     cmd.useCTX = 0;
                 }
+                if (cmd.arrayOffset && cmd.arrayOffset.op === 'number') {
+                    offset += Number(cmd.arrayOffset.num);
+                    delete cmd.arrayOffset;
+                }
+
+                let params = [{op: 'number', num: BigInt(offset)}];
                 if (cmd.arrayOffset) {
-                    if (cmd.arrayOffset.op === 'number') {
-                        cmd.offset += Number(cmd.arrayOffset.num);
-                    } else {
-                        cmd.op = 'getMemValueByAddress';
-                        cmd.params = [cmd.arrayOffset];
-                        if (cmd.offset) {
-                            cmd.params = [{ op: 'add', values: [cmd.params[0], {op: 'number', num: BigInt(cmd.offset)}]}];
-                        }
-                        delete cmd.offset;
-                        delete cmd.arrayOffset;
-                        return;
-                    }
+                    params = offset ? [{ op: 'add', values: [cmd.arrayOffset, params[0]]}]:
+                                      [cmd.arrayOffset];
+                    delete cmd.arrayOffset;
+                } else if (cmd.useCTX === 0) {
+                    // only when address is 100% static could return as static number
+                    // if useCTX means that address depends of CTX
+                    cmd.num = BigInt(offset);
+                    cmd.op = 'number';
+                    return;
                 }
-                cmd.offsetLabel = name;
-                return;
-            }
-            else if (cmd.module === 'addr' && typeof cmd.offsetLabel === 'undefined') {
-                const name = cmd.offset;
-                if (typeof this.vars[name] === 'undefined') {
-                    this.error(this.out[i].line, `Not found reference ${cmd.module}.${name}`);
-                }
-                cmd.op = 'number'
-                cmd.num = this.vars[name].offset.toString();
-                if (cmd.arrayOffset) {
-                    cmd.num += Number(cmd.arrayOffset.num ?? 0).toString();
-                }
-                cmd.offsetLabel = name;
-                delete cmd.offset;
+                cmd.op = cmd.module === 'addr' ? 'getMemAdress':'getMemValue';
+                cmd.params = params;
                 return;
             }
             else if (cmd.module === 'const' && typeof cmd.offsetLabel === 'undefined') {
