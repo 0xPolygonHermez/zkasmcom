@@ -44,10 +44,11 @@ class Compiler {
         let isMain = this.mainInit === false;
         this.mainInit = true;
 
-        const fullFileName = this.config.compileFromString ? '(string)' : path.resolve(process.cwd(), fileName);
-        const fileDir = this.config.compileFromString ? '' : path.dirname(fullFileName);
+        const compileFromString = this.config.compileFromString && isMain;
+        const fullFileName = compileFromString ? '(string)' : path.resolve(process.cwd(), fileName);
+        const fileDir = compileFromString ? '' : path.dirname(fullFileName);
 
-        const src = this.config.compileFromString ? fileName : fs.readFileSync(fullFileName, "utf8") + "\n";
+        const src = compileFromString ? fileName : fs.readFileSync(fullFileName, "utf8") + "\n";
 
         // zkasm_parser.defineConstant = (name, ctype, value, line) => defineConstant(ctx, name, ctype, value, line);
 
@@ -55,8 +56,8 @@ class Compiler {
         let lastLineAllowsCommand = false;
 
         if (isMain) {
-            this.relativeFileName = this.config.compileFromString ? '(string)' : path.basename(fullFileName);
-            this.basePath = this.config.compileFromString ? '' : fileDir;
+            this.relativeFileName = compileFromString ? '(string)' : path.basename(fullFileName);
+            this.basePath = compileFromString ? '' : fileDir;
         } else {
             if (fullFileName.startsWith(this.basePath)) {
                 this.relativeFileName = fullFileName.substring(this.basePath.length+1);
