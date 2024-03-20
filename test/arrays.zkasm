@@ -18,15 +18,27 @@ start:
         4   :MSTORE(d)
 
         13 => E
+        2 => RR
         0 :MLOAD(a1[23])
         0 :MLOAD(a1[E + 10])
         0x1FE223 :MSTORE(a1[23])
         0x1FE223 :MLOAD(a1[23])
         0x1FE223 :MLOAD(a1[E + 10])
+
+        ; Check values are stored and obtained correctly
         0x1FE223 => A
-        ${mem.a1[23]}    :ASSERT
-        ${mem.a1[E+10]}  :ASSERT
-        ${getMemValueByAddress(addr.a1+E+10)} :ASSERT
+        ${mem.a1[23]}                   :ASSERT
+        ${mem.a1[E+10]}                 :ASSERT
+        ${mem.a1[E+RR+2]}               :ASSERT
+        ${getMemValue(addr.a1+E+10)}    :ASSERT
+        ${getMemValue(addr.a1+E+RR+2)}  :ASSERT
+
+        ; Check address is stored and obtained correctly
+        @a1 + 23 => A
+        ${addr.a1[E+10]}                :ASSERT
+        ${addr.a1[E+RR+2]}              :ASSERT
+        ${getMemAddr(addr.a1+E+10)}     :ASSERT
+        ${getMemAddr(addr.a1+E+RR+2)}   :ASSERT
 
         0 => RCX,E
 loopA:
