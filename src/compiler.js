@@ -231,6 +231,10 @@ class Compiler {
                     }
                     this.out[i].elseAddr = Number(this.out[i].elseAddr) + Number(codeAddr);
                 }
+                if (this.out[i].condConst) {
+                    const value = this.evaluateExpression(this.out[i].condConst.value);
+                    this.out[i].condConst = value;
+                }
 
                 if ((this.out[i].save || this.out[i].restore) && this.out[i].regs !== false) {
                     const regs = this.out[i].regs ?? [];    
@@ -447,7 +451,7 @@ class Compiler {
                     res[prop] = this.resolve(input[prop]);
                 }
                 return res;
-            } else {
+            } else if (input.type !== '@final') {
                 const res = this.processAssignmentIn(input, currentLine);
                 if (typeof res === 'object') {
                     if (typeof res.CONST !== 'undefined') return Number(res.CONST);
@@ -559,6 +563,7 @@ class Compiler {
                 });
                 return E1;
             } else {
+                console.log(E1,E2);
                 throw new Error("Multiplication not allowed in input");
             }
         }
