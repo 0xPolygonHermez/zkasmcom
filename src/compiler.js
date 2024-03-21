@@ -562,7 +562,9 @@ class Compiler {
         }
         if (input.type == "neg") {
             Object.keys(E1).forEach(function(key) {
-                if (key === 'CONST' || key === 'CONSTL' || (key.startsWith('in') && !key.startsWith('ind'))) {
+                if (key === 'CONSTL') throw new Error(`Negation not allowed for CONSTL value=${E1[key]}`);
+
+                if (key === 'CONST' || (key.startsWith('in') && !key.startsWith('ind'))) {
                     E1[key] = -E1[key];
                 }
             });
