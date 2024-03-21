@@ -396,14 +396,14 @@ class Compiler {
 
         if (ctype == 'CONSTL') {
             if (value > maxConstl || value < minConstl) {
-                throw error(l, `Constant ${name} out of range, value ${value} must be in range [${minConstl},${maxConstl}]`);
+                this.error(l, `Constant ${name} out of range, value ${value} must be in range [${minConstl},${maxConstl}]`);
             }
         } else if (ctype == 'CONST') {
             if (value > maxConst || value < minConst) {
-                throw error(l, `Constant ${name} out of range, value ${value} must be in range [${minConst},${maxConst}]`);
+                this.error(l, `Constant ${name} out of range, value ${value} must be in range [${minConst},${maxConst}]`);
             }
         } else {
-            throw error(l, `Constant ${name} has an invalid type ${ctype}`);
+            this.error(l, `Constant ${name} has an invalid type ${ctype}`);
         }
 
         this.constants[name] = {
