@@ -54,12 +54,24 @@ JMPZ                    { return 'JMPZ' }
 JMPNZ                   { return 'JMPNZ' }
 JMPNC                   { return 'JMPNC' }
 JMPN                    { return 'JMPN' }
+JMP_EQ                  { return 'JMP_EQ' }
+JMP_NE                  { return 'JMP_NE' }
+JMP_LT                  { return 'JMP_LT' }
+JMP_LE                  { return 'JMP_LE' }
+JMP_GT                  { return 'JMP_GT' }
+JMP_GE                  { return 'JMP_GE' }
 JMP                     { return 'JMP' }
 CALL_C                  { return 'CALL_C' }
 CALL_Z                  { return 'CALL_Z' }
 CALL_NC                 { return 'CALL_NC' }
 CALL_NZ                 { return 'CALL_NZ' }
 CALL_N                  { return 'CALL_N' }
+CALL_EQ                 { return 'CALL_EQ' }
+CALL_NE                 { return 'CALL_NE' }
+CALL_LT                 { return 'CALL_LT' }
+CALL_LE                 { return 'CALL_LE' }
+CALL_GT                 { return 'CALL_GT' }
+CALL_GE                 { return 'CALL_GE' }
 CALL                    { return 'CALL' }
 RETURN                  { return 'RETURN' }
 ASSERT                  { return 'ASSERT' }
@@ -178,6 +190,24 @@ function normalizeArrayIndex(st, useAddrRelProp = false) {
     }
 }
 
+function applyAddrRel(prefix, data) {
+    let _jmp = {...data};
+    if (_jmp.useAddrRel) {
+        _jmp.ind = _jmp.ind ?? 0;
+        _jmp.indRR = _jmp.indRR ?? 0;
+        _jmp[`${prefix}UseAddrRel`] = 1;
+        delete _jmp.useAddrRel;
+    }
+    _jmp[`${prefix}Addr`] = _jmp.offset ?? 0;
+    delete _jmp.offset;
+    _jmp[`${prefix}AddrLabel`] = _jmp.offsetLabel ?? '';
+    delete _jmp.offsetLabel;
+    return _jmp;
+}
+
+function applyCondConst(jmp, cond) {
+    return { condConst: { type: '@final', value:  {type: '-' , values: [{type: 'CONSTL' , value: jmp.condConst}, cond]}}};
+}
 function setLine(dst, first) {
     dst.line = first.first_line;
 }
@@ -747,64 +777,17 @@ op
         }
     | JMP '(' jmp_addr ')'
         {
-            {   
-                let _jmp = {...$3};
-                if (_jmp.useAddrRel) {
-                    _jmp.ind = _jmp.ind ?? 0;
-                    _jmp.indRR = _jmp.indRR ?? 0;
-                    _jmp.jmpUseAddrRel = 1;
-                    delete _jmp.useAddrRel;
-                }
-                _jmp.jmpAddr = _jmp.offset ?? 0;
-                delete _jmp.offset;
-                _jmp.jmpAddrLabel = _jmp.offsetLabel ?? '';
-                delete _jmp.offsetLabel;
-                $$ = {...JMP_FLAGS, JMP: 1, ..._jmp }
-            }
+            $$ = {...JMP_FLAGS, JMP: 1, ...applyAddrRel('jmp', $3) }
         }
     | jmpNotCond '(' jmp_addr ')'
         {
-            {   
-                let _jmp = {...$3};
-                if (_jmp.useAddrRel) {
-                    _jmp.ind = _jmp.ind ?? 0;
-                    _jmp.indRR = _jmp.indRR ?? 0;
-                    _jmp.elseUseAddrRel = 1;
-                    delete _jmp.useAddrRel;
-                }
-                _jmp.elseAddr = _jmp.offset ?? 0;
-                delete _jmp.offset;
-                _jmp.elseAddrLabel = _jmp.offsetLabel ?? '';
-                delete _jmp.offsetLabel;
-                $$ = { ...JMP_FLAGS,  ...$1, ..._jmp, jmpAddr: 0, jmpAddrLabel: 'next' }
-            }
+            $$ = { ...JMP_FLAGS,  ...$1, ...applyAddrRel('else', $3), jmpAddr: 0, jmpAddrLabel: 'next' }
         }
     | jmpNotCond '(' jmp_addr ',' jmp_addr ')'
         {
             {
-                let _else = {...$3};
-                if (_else.useAddrRel) {
-                    _else.ind = _else.ind ?? 0;
-                    _else.indRR = _else.indRR ?? 0;
-                    _else.elseUseAddrRel = 1;
-                    delete _else.useAddrRel;
-                }
-                _else.elseAddr = _else.offset ?? 0;
-                delete _else.offset;
-                _else.elseAddrLabel = _else.offsetLabel ?? '';
-                delete _else.offsetLabel;
-
-                let _jmp = {...$5};
-                if (_jmp.useAddrRel) {
-                    _jmp.ind = _jmp.ind ?? 0;
-                    _jmp.indRR = _jmp.indRR ?? 0;
-                    _jmp.jmpUseAddrRel = 1;
-                    delete _jmp.useAddrRel;
-                }
-                _jmp.jmpAddr = _jmp.offset ?? 0;
-                delete _jmp.offset;
-                _jmp.jmpAddrLabel = _jmp.offsetLabel ?? '';
-                delete _jmp.offsetLabel;
+                let _else = applyAddrRel('else', $3);
+                let _jmp = applyAddrRel('jmp', $5);
 
                 if (_jmp.jmpUseAddrRel && _else.elseUseAddrRel && 
                     (!lodash.isEqual(_jmp.ind, _else.ind) || !lodash.isEqual(_jmp.indRR, _else.indRR))) {
@@ -815,48 +798,13 @@ op
         }
     | jmpCond '(' jmp_addr ')'
         {   
-            {
-                let _jmp = {...$3};
-                if (_jmp.useAddrRel) {
-                    _jmp.ind = _jmp.ind ?? 0;
-                    _jmp.indRR = _jmp.indRR ?? 0;
-                    _jmp.jmpUseAddrRel = 1;
-                    delete _jmp.useAddrRel;
-                }
-                _jmp.jmpAddr = _jmp.offset ?? 0;
-                delete _jmp.offset;
-                _jmp.jmpAddrLabel = _jmp.offsetLabel ?? '';
-                delete _jmp.offsetLabel;
-
-                $$ = {...JMP_FLAGS, ...$1, ..._jmp, elseAddr: 0, elseAddrLabel: 'next' };
-            }
+            $$ = {...JMP_FLAGS, ...$1, ...applyAddrRel('jmp', $3), elseAddr: 0, elseAddrLabel: 'next' };
         }
     | jmpCond '(' jmp_addr ',' jmp_addr ')'
         {
             {
-                let _else = {...$5};
-                if (_else.useAddrRel) {
-                    _else.ind = _else.ind ?? 0;
-                    _else.indRR = _else.indRR ?? 0;
-                    _else.elseUseAddrRel = 1;
-                    delete _else.useAddrRel;
-                }
-                _else.elseAddr = _else.offset ?? 0;
-                delete _else.offset;
-                _else.elseAddrLabel = _else.offsetLabel ?? '';
-                delete _else.offsetLabel;
-
-                let _jmp = {...$3};
-                if (_jmp.useAddrRel) {
-                    _jmp.ind = _jmp.ind ?? 0;
-                    _jmp.indRR = _jmp.indRR ?? 0;
-                    _jmp.jmpUseAddrRel = 1;
-                    delete _jmp.useAddrRel;
-                }
-                _jmp.jmpAddr = _jmp.offset ?? 0;
-                delete _jmp.offset;
-                _jmp.jmpAddrLabel = _jmp.offsetLabel ?? '';
-                delete _jmp.offsetLabel;
+                let _else = applyAddrRel('else', $5);
+                let _jmp = applyAddrRel('jmp', $3);
 
                 if (_jmp.jmpUseAddrRel && _else.elseUseAddrRel && 
                     (!lodash.isEqual(_jmp.ind, _else.ind) || !lodash.isEqual(_jmp.indRR, _else.indRR))) {
@@ -866,23 +814,48 @@ op
             }
         }
 
+    // condConst conditionals
+
+    | jmpNotCondConst '(' nexpr ',' jmp_addr ')'
+        {
+            $$ = { ...JMP_FLAGS,  ...$1, ...applyAddrRel('else', $5), jmpAddr: 0, jmpAddrLabel: 'next', ...applyCondConst($1, $3)};
+        }
+    | jmpNotCondConst '(' nexpr ',' jmp_addr ',' jmp_addr ')'
+        {
+            {
+                let _else = applyAddrRel('else', $5);
+                let _jmp = applyAddrRel('jmp', $7);
+
+                if (_jmp.jmpUseAddrRel && _else.elseUseAddrRel && 
+                    (!lodash.isEqual(_jmp.ind, _else.ind) || !lodash.isEqual(_jmp.indRR, _else.indRR))) {
+                        this.compiler._error(`Diferent relative address between jmp and else addresses`);
+                }
+                $$ = { ...JMP_FLAGS, ...$1, ..._jmp, ..._else, ...applyCondConst($1, $3)}
+
+            }
+        }
+    | jmpCondConst '(' nexpr ',' jmp_addr ')'
+        {   
+            $$ = {...JMP_FLAGS, ...$1, ...applyAddrRel('jmp', $5), elseAddr: 0, elseAddrLabel: 'next', 
+                  ...applyCondConst($1, $3)};
+        }
+    | jmpCondConst '(' nexpr ',' jmp_addr ',' jmp_addr ')'
+        {
+            {
+                let _else = applyAddrRel('else', $7);
+                let _jmp = applyAddrRel('jmp', $5);
+
+                if (_jmp.jmpUseAddrRel && _else.elseUseAddrRel && 
+                    (!lodash.isEqual(_jmp.ind, _else.ind) || !lodash.isEqual(_jmp.indRR, _else.indRR))) {
+                        this.compiler._error(`Diferent relative address between jmp and else addresses`);
+                }
+                $$ = {...JMP_FLAGS, ...$1, ..._jmp, ..._else, ...applyCondConst($1, $3)}
+            }
+        }
+
     | CALL '(' jmp_addr ')'
         {
-            {   
-                let _jmp = {...$3};
-                if (_jmp.useAddrRel) {
-                    _jmp.ind = _jmp.ind ?? 0;
-                    _jmp.indRR = _jmp.indRR ?? 0;
-                    _jmp.jmpUseAddrRel = 1;
-                    delete _jmp.useAddrRel;
-                }
-                _jmp.jmpAddr = _jmp.offset ?? 0;
-                delete _jmp.offset;
-                _jmp.jmpAddrLabel = _jmp.offsetLabel ?? '';
-                delete _jmp.offsetLabel;
-
-                $$ = {...JMP_FLAGS, JMP: 1, call: 1, ..._jmp }
-            }
+            $$ = {...JMP_FLAGS, JMP: 1, call: 1, ...applyAddrRel('jmp', $3) }
         }
 
     | RETURN
@@ -1004,11 +977,29 @@ jmpCond
     | CALL_C  { $$ = { JMPC: 1, call: 1 } }
     ;
 
+jmpCondConst
+    : JMP_EQ  { $$ = { JMPZ: 1, condConst:  0 } }
+    | JMP_LT  { $$ = { JMPN: 1, condConst:  0, free0IsByte: 0 } }
+    | JMP_LE  { $$ = { JMPN: 1, condConst: -1, free0IsByte: 0 } }
+    | CALL_EQ { $$ = { JMPZ: 1, condConst:  0, call: 1 } }
+    | CALL_LT { $$ = { JMPN: 1, condConst:  0, call: 1, free0IsByte: 0 } }
+    | CALL_LE { $$ = { JMPN: 1, condConst: -1, call: 1, free0IsByte: 0 } }
+    ;
+
 jmpNotCond
     : JMPNC   { $$ = { JMPC: 1 } }
     | JMPNZ   { $$ = { JMPZ: 1 } }
     | CALL_NC { $$ = { JMPC: 1, call: 1 } }
     | CALL_NZ { $$ = { JMPZ: 1, call: 1 } }
+    ;
+
+jmpNotCondConst
+    : JMP_NE  { $$ = { JMPZ: 1, condConst:  0 } }
+    | JMP_GT  { $$ = { JMPN: 1, condConst: -1, free0IsByte: 0 } }
+    | JMP_GE  { $$ = { JMPN: 1, condConst:  0, free0IsByte: 0 } }
+    | CALL_NE { $$ = { JMPZ: 1, condConst:  0, call: 1 } }
+    | CALL_GT { $$ = { JMPN: 1, condConst: -1, call: 1, free0IsByte: 0 } }
+    | CALL_GE { $$ = { JMPN: 1, condConst:  0, call: 1, free0IsByte: 0 } }
     ;
 
 
