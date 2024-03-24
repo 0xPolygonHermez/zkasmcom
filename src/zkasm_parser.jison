@@ -100,7 +100,6 @@ CNT_SHA256_F            { return 'CNT_SHA256_F' }
 CNT_MEM_ALIGN           { return 'CNT_MEM_ALIGN' }
 CNT_PADDING_PG          { return 'CNT_PADDING_PG' }
 CNT_POSEIDON_G          { return 'CNT_POSEIDON_G' }
-MEM_ALIGN_WR8           { return 'MEM_ALIGN_WR8' }
 MEM_ALIGN_RD            { return 'MEM_ALIGN_RD' }
 MEM_ALIGN_WR            { return 'MEM_ALIGN_WR' }
 SYS                     { return 'SYS' }
@@ -940,15 +939,11 @@ op
         }
     | MEM_ALIGN_RD
         {
-            $$ = { memAlignRD: 1, memAlignWR: 0, memAlignWR8: 0}
+            $$ = { memAlignRD: 1, memAlignWR: 0 }
         }
     | MEM_ALIGN_WR
         {
-            $$ = { memAlignRD: 0, memAlignWR: 1, memAlignWR8: 0}
-        }
-    | MEM_ALIGN_WR8
-        {
-            $$ = { memAlignRD: 0, memAlignWR: 0, memAlignWR8: 1}
+            $$ = { memAlignRD: 0, memAlignWR: 1 }
         }
     | REPEAT '(' RCX ')'
         {
