@@ -319,25 +319,30 @@ is equivalent to:
 
 ### MEM_ALIGN_RD
 
-M0=A, M1=B, V=op, Offset=C
+M0=A, M1=B, V=op, mode=C  
 
-M0 = 256bit word read in position x of ZKEVM memory (32x EVM)
-M1 = 256bit word read in position x+1 of ZKEVM memory (32x+1 EVM)
-Offset = 0..31 bytes
-V = value of 256 bits
+M0 = 256bit word read in position x of ZKEVM memory (32x EVM)  
+M1 = 256bit word read in position x+1 of ZKEVM memory (32x+1 EVM)   
+
+mode = offset + 128 * len (bytes) + 8192 * left_alignment + 16384 * little endian  
+offset = 0..64 bytes  
+len = 0..32 bytes (0 default = 32 bytes)
+V = value of 256 bits (bytes no readed must be 0) 
 
 ### MEM_ALIGN_WR
 
-M0=A, M1=B, V=op Offset=C, W0=D W1=E
-W0 = 256bit word to write position x of ZKEVM memory (32x EVM)
-W1 = 256bit word to write in position x+1 of ZKEVM memory (32x+1 EVM)
+M0=A, M1=B, V=op mode=C, W0=D W1=E  
 
+W0 = 256bit word to write position x of ZKEVM memory (32x EVM)   
+W1 = 256bit word to write in position x+1 of ZKEVM memory (32x+1 EVM) 
 
-### MEM_ALIGN_WR8
+mode = offset + 128 * len (bytes) + 8192 * left_alignment + 16384 * little endian  
+offset = 0..64 bytes  
+len = 0..32 bytes (0 default = 32 bytes)
+V = value of 256 bits (bytes no written, no must be 0, could has any value) 
 
-M0=A, V=op, Offset=C, W0=D
-W0 = 256bit word to write position x of ZKEVM memory (32x EVM)
-V = value of 8 bits
+NOTE: to emulate MEM_ALIGN_WR must be added 128 to offset (len = 1 byte)
+
 
 ### JMP (jmpaddr)
 
