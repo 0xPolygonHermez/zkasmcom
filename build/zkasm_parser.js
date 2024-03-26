@@ -932,7 +932,7 @@ case 212:
 
             {
                 let _aindex = { ...$$[$0] };
-                _aindex[_aindex._fk] = { type: 'neg', values: [_aindex[_aindex._fk]]};
+                _aindex[_aindex._fk] = { type: 'neg', values: [{type: 'CONST', const: _aindex[_aindex._fk]}]};
                 delete _aindex._fk;
                 this.$ = { offsetLabel: $$[$0-2], ..._aindex }
             }
@@ -969,7 +969,7 @@ case 216:
                         this.compiler._error(`Property ${k} already used`);
                     }
                     if (k === $$[$0]._fk) {
-                        $$[$0-2][k] = {type: 'neg', values: [$$[$0][k]]};
+                        $$[$0-2][k] = {type: 'neg', values: [{type: 'CONST', const: $$[$0][k]}]};
                     } else {
                         $$[$0-2][k] = $$[$0][k];
                     }

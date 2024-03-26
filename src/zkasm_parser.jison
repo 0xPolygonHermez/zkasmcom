@@ -1148,7 +1148,7 @@ jmp_addr
         {
             {
                 let _aindex = { ...$3 };
-                _aindex[_aindex._fk] = { type: 'neg', values: [_aindex[_aindex._fk]]};
+                _aindex[_aindex._fk] = { type: 'neg', values: [{type: 'CONST', const: _aindex[_aindex._fk]}]};
                 delete _aindex._fk;
                 $$ = { offsetLabel: $1, ..._aindex }
             }
@@ -1189,7 +1189,7 @@ array_index
                         this.compiler._error(`Property ${k} already used`);
                     }
                     if (k === $3._fk) {
-                        $1[k] = {type: 'neg', values: [$3[k]]};
+                        $1[k] = {type: 'neg', values: [{type: 'CONST', const: $3[k]}]};
                     } else {
                         $1[k] = $3[k];
                     }
