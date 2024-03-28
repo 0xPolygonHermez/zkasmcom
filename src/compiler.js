@@ -731,6 +731,7 @@ class Compiler {
         if (err instanceof CompilerError) {
             throw err;
         } 
+        console.log(err);
         if (err instanceof Error) {
             throw new CompilerError(`ERROR ${l.fileName}:${l.__line}: ${err.message}`);
         } 
