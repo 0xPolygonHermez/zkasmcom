@@ -8,6 +8,11 @@ B                       { return 'B'; }
 C                       { return 'C'; }
 D                       { return 'D'; }
 E                       { return 'E'; }
+A_384                   { return 'A_384'; }
+B_384                   { return 'B_384'; }
+C_384                   { return 'C_384'; }
+D_384                   { return 'D_384'; }
+E_384                   { return 'E_384'; }
 SR                      { return 'SR'; }
 CTX                     { return 'CTX'; }
 SP                      { return 'SP'; }
@@ -250,6 +255,10 @@ e0
         {
             $$ = {op: "getReg", regName: $1}
         }
+    | reg384
+        {
+            $$ = {op: "getReg384", regName: $1}
+        }
     | counter
         {
             $$ = {op: "getReg", regName: $1}
@@ -297,6 +306,15 @@ reg
     | RCX
     | RID
     | NRID
+    ;
+
+reg384
+    : A_384
+    | B_384
+    | C_384
+    | D_384
+    | E_384
+    | SR_384
     ;
 
 counter

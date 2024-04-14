@@ -384,7 +384,7 @@ class Compiler {
     resolveDataOffset(i, cmd) {
         if (typeof cmd !== 'object' || cmd === null) return;
         if (cmd.op === 'getData') {
-            if ((cmd.module === 'mem' || cmd.module === 'addr') && typeof cmd.offsetLabel === 'undefined') {
+            if ((cmd.module === 'mem' || cmd.module === 'addr' || cmd.module == 'mem_384') && typeof cmd.offsetLabel === 'undefined') {
                 const name = cmd.offset;
                 const vinfo = this.getVarInfo(name);
                 if (vinfo === false) {
@@ -417,7 +417,11 @@ class Compiler {
                     cmd.op = 'number';
                     return;
                 }
-                cmd.op = cmd.module === 'addr' ? 'getMemAddr':'getMemValue';
+                switch (cmd.module) {
+                    case 'addr':    cmd.op = 'getMemAddr'; break;
+                    case 'mem':     cmd.op = 'getMemValue'; break;
+                    case 'mem_384': cmd.op = 'getMem384Value'; break;
+                }
                 cmd.params = params;
                 return;
             }

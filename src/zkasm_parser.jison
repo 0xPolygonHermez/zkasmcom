@@ -83,6 +83,11 @@ ARITH_ECADD_SAME        { return 'ARITH_ECADD_SAME' }
 ARITH_BN254_MULFP2      { return 'ARITH_BN254_MULFP2' }
 ARITH_BN254_ADDFP2      { return 'ARITH_BN254_ADDFP2' }
 ARITH_BN254_SUBFP2      { return 'ARITH_BN254_SUBFP2' }
+ARITH_BLS12381_MULFP2   { return 'ARITH_BLS12381_MULFP2' }
+ARITH_BLS12381_ADDFP2   { return 'ARITH_BLS12381_ADDFP2' }
+ARITH_BLS12381_SUBFP2   { return 'ARITH_BLS12381_SUBFP2' }
+ARITH_384_MOD           { return 'ARITH_384_MOD' }
+ARITH_256TO384          { return 'ARITH_256TO384' }
 ARITH_MOD               { return 'ARITH_MOD' }
 ADD                     { return 'ADD' }
 SUB                     { return 'SUB' }
@@ -875,31 +880,51 @@ op
         }
     | ARITH
         {
-            $$ = { arith: 1, arithSame12: 0, arithUseE: 0, arithEquation: 1 }
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 0, arithUseCD: 1, arithEquation: 1 }
         }
     | ARITH_ECADD_DIFFERENT
         {
-            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithEquation: 2 }
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithUseCD: 1, arithEquation: 2 }
         }
     | ARITH_ECADD_SAME
         {
-            $$ = { arith: 1, arithSame12: 1, arithUseE: 1, arithEquation: 3 }
+            $$ = { arith: 1, arithSame12: 1, arithUseE: 1, arithUseCD: 1, arithEquation: 3 }
         }
     | ARITH_BN254_MULFP2
         {
-            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithEquation: 4 }
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithUseCD: 1, arithEquation: 4 }
         }
     | ARITH_BN254_ADDFP2
         {
-            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithEquation: 5 }
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithUseCD: 1, arithEquation: 5 }
         }
     | ARITH_BN254_SUBFP2
         {
-            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithEquation: 6 }
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithUseCD: 1, arithEquation: 6 }
         }
     | ARITH_MOD
         {
-            $$ = { arith: 1, arithSame12: 0, arithUseE: 0, arithEquation: 7 }
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 0, arithUseCD: 1, arithEquation: 7 }
+        }
+    | ARITH_384_MOD
+        {
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 0, arithUseCD: 1, arithEquation: 8 }
+        }
+    | ARITH_BLS12381_MULFP2
+        {
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithUseCD: 1, arithEquation: 9 }
+        }
+    | ARITH_BLS12381_ADDFP2
+        {
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithUseCD: 1, arithEquation: 10 }
+        }
+    | ARITH_BLS12381_SUBFP2
+        {
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithUseCD: 1, arithEquation: 11 }
+        }
+    | ARITH_256TO386
+        {
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 0, arithUseCD: 0, arithEquation: 12 }
         }
     | ADD
         {
