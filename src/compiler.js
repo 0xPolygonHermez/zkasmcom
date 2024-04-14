@@ -200,7 +200,6 @@ class Compiler {
 
 
         if (isMain) {
-            console.log(this.labels);
             const mainIncludeId = this.includeId;
             for (let i=0; i<this.out.length; i++) {
                 // console.log(`@@{${i}}@@ ${this.srcLines[this.out[i].line.fileName][this.out[i].line.line - 1] ?? ''}`,this.out[i]);
