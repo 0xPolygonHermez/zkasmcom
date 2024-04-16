@@ -1,0 +1,16 @@
+PRAGMA MODE_384_BITS
+
+lib_384_call_default:
+
+            4 => A,B    :MODE_256_BITS
+            8           :ADD, MODE_256_BITS, RETURN
+
+lib_384_call_384:
+
+            0x333322222222221415161718191A1B1C1D1E1F202122232425262728292A2B2C2D2E2F10111213n => D
+                :RETURN
+
+lib_384_call_254:
+
+            1 => A,B    :MODE_256_BITS
+            2           :ADD, MODE_256_BITS, RETURN

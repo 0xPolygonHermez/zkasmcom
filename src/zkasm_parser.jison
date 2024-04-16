@@ -11,6 +11,7 @@
 (\$(\{[^\}]*\})?)       { yytext = yytext.length == 1 ? "" : yytext.slice(2, -1); return 'TAG'; }
 [\r\n]+                 { return "LF";}
 [ \t]+                  { /* console.log("Empty spaces"); */ }
+PRAGMA                  { return 'PRAGMA' }
 A                       { return 'A'; }
 B                       { return 'B'; }
 C                       { return 'C'; }
@@ -89,6 +90,8 @@ ARITH_BLS12381_SUBFP2   { return 'ARITH_BLS12381_SUBFP2' }
 ARITH_384_MOD           { return 'ARITH_384_MOD' }
 ARITH_256TO384          { return 'ARITH_256TO384' }
 ARITH_MOD               { return 'ARITH_MOD' }
+MODE_256_BITS           { return 'MODE_256_BITS' }
+MODE_384_BITS           { return 'MODE_384_BITS' }
 ADD                     { return 'ADD' }
 SUB                     { return 'SUB' }
 LT                      { return 'LT' }
@@ -249,28 +252,37 @@ statment
     : step
         {
             $$ = $1;
+            setLine($$, @1)
         }
     | LABEL
         {
             $$ = {type: "label", identifier: $1};
             setLine($$, @1)
-
         }
     | varDef
         {
             $$ = $1;
+            setLine($$, @1)
         }
     | constDef
         {
             $$ = $1;
+            setLine($$, @1)
         }
     | include
         {
             $$ = $1;
+            setLine($$, @1)
         }
     | command
         {
             $$ = $1;
+            setLine($$, @1)
+        }
+    | pragma
+        {
+            $$ = $1;
+            setLine($$, @1)
         }
     | LF
         {
@@ -343,6 +355,89 @@ include
         {
             $$ = {type: "include", file: $2}
             setLine($$, @1)
+        }
+    ;
+
+pragma
+    : PRAGMA pragma_params LF
+        {
+            $$ = {type: "pragma", params: $2}
+            setLine($$, @1)
+        }
+    ;
+
+pragma_params
+    :   IDENTIFIER
+        {
+            $$ = [$1]
+        }
+    |   NUMBER
+        {
+            $$ = [{type: 'CONSTL' , value: $1}]
+        }
+    |   NUMBERL
+        {
+            $$ = [{type: 'CONSTL' , value: $1}]
+        }
+    |   '(' nexpr ')'
+        {
+            $$ = [$2]
+        }
+    |   MODE_256_BITS
+        {
+            $$ = [$1]
+        }        
+    |   MODE_384_BITS
+        {
+            $$ = [$1]
+        }        
+    |   CONSTID
+        {
+            $$ = [{type: 'CONSTID' , value: $1}]
+        }
+    |   reg  
+        {
+            $$ = [$1]
+        }
+    |   pragma_params IDENTIFIER
+        {
+            $$ = $1;
+            $$.push($2);
+        }
+    |   pragma_params NUMBER
+        {
+            $$ = $1;
+            $$.push({type: 'CONSTL' , value: $2});
+        }
+    |   pragma_params NUMBERL
+        {
+            $$ = $1;
+            $$.push({type: 'CONSTL' , value: $2});
+        }
+    |   pragma_params '(' nexpr ')'
+        {
+            $$ = $1;
+            $$.push($3);
+        }
+    |   pragma_params MODE_256_BITS
+        {
+            $$ = $1;
+            $$.push($2);
+        }
+    |   pragma_params MODE_384_BITS
+        {
+            $$ = $1;
+            $$.push($2);
+        }
+    |   pragma_params CONSTID
+        {
+            $$ = $1;
+            $$.push({type: 'CONSTID' , identifier: $2});
+        }
+    |   pragma_params reg 
+        {
+            $$ = $1;
+            $$.push($2);
         }
     ;
 
@@ -620,6 +715,7 @@ op
             $$.hashBytesInD = 1;
             $$.hashBytes = 0;
             $$.assumeFree = 1;
+            $$.requireModeBits = 256
         }
     | F_HASHKn '(' hashId ')'
         {
@@ -630,6 +726,7 @@ op
             $$.hashBytesInD = 0;
             $$.hashBytes = Number($1);
             $$.assumeFree = 1;
+            $$.requireModeBits = 256
         }
     | HASHK '(' hashId ')'
         {
@@ -640,6 +737,7 @@ op
             $$.hashBytesInD = 1;
             $$.hashBytes = 0;
             $$.assumeFree = 0;
+            $$.requireModeBits = 256
         }
     | HASHKn '(' hashId ')'
         {
@@ -650,6 +748,7 @@ op
             $$.hashBytesInD = 0;
             $$.hashBytes = Number($1);
             $$.assumeFree = 0;
+            $$.requireModeBits = 256
         }
     | HASHKLEN '(' hashId ')'
         {
@@ -658,6 +757,7 @@ op
             $$.hashP = 0;
             $$.hashK = 0;
             $$.hashKLen = 1;
+            $$.requireModeBits = 256
         }
     | HASHKDIGEST '(' hashId ')'
         {
@@ -666,6 +766,7 @@ op
             $$.hashP = 0;
             $$.hashK = 0;
             $$.hashKDigest = 1;
+            $$.requireModeBits = 256
         }
     | F_HASHS '(' hashId ')'
         {
@@ -676,6 +777,7 @@ op
             $$.hashBytesInD = 1;
             $$.hashBytes = 0;
             $$.assumeFree = 1;
+            $$.requireModeBits = 256
         }
     | F_HASHSn '(' hashId ')'
         {
@@ -686,6 +788,7 @@ op
             $$.hashBytesInD = 0;
             $$.hashBytes = Number($1);
             $$.assumeFree = 1;
+            $$.requireModeBits = 256
         }
     | HASHS '(' hashId ')'
         {
@@ -696,6 +799,7 @@ op
             $$.hashBytesInD = 1;
             $$.hashBytes = 0;
             $$.assumeFree = 0;
+            $$.requireModeBits = 256
         }
     | HASHSn '(' hashId ')'
         {
@@ -706,6 +810,7 @@ op
             $$.hashBytesInD = 0;
             $$.hashBytes = Number($1);
             $$.assumeFree = 0;
+            $$.requireModeBits = 256
         }
     | HASHSLEN '(' hashId ')'
         {
@@ -714,6 +819,7 @@ op
             $$.hashP = 0;
             $$.hashK = 0;
             $$.hashSLen = 1;
+            $$.requireModeBits = 256
         }
     | HASHSDIGEST '(' hashId ')'
         {
@@ -722,6 +828,7 @@ op
             $$.hashP = 0;
             $$.hashK = 0;
             $$.hashSDigest = 1;
+            $$.requireModeBits = 256
         }
     | F_HASHP '(' hashId ')'
         {
@@ -732,6 +839,7 @@ op
             $$.hashBytesInD = 1;
             $$.hashBytes = 0;
             $$.assumeFree = 1;
+            $$.requireModeBits = 256
         }
     | F_HASHPn '(' hashId ')'
         {
@@ -742,6 +850,7 @@ op
             $$.hashBytesInD = 0;
             $$.hashBytes = Number($1);
             $$.assumeFree = 1;
+            $$.requireModeBits = 256
         }
     | HASHP '(' hashId ')'
         {
@@ -752,6 +861,7 @@ op
             $$.hashBytesInD = 1;
             $$.hashBytes = 0;
             $$.assumeFree = 0;
+            $$.requireModeBits = 256
         }
     | HASHPn '(' hashId ')'
         {
@@ -762,6 +872,8 @@ op
             $$.hashBytesInD = 0;
             $$.hashBytes = Number($1);
             $$.assumeFree = 0;
+            $$.mode = 256
+            $$.requireModeBits = 256
         }
     | HASHPLEN '(' hashId ')'
         {
@@ -770,6 +882,7 @@ op
             $$.hashP = 0;
             $$.hashK = 0;
             $$.hashPLen = 1;
+            $$.requireModeBits = 256
         }
     | HASHPDIGEST '(' hashId ')'
         {
@@ -778,6 +891,7 @@ op
             $$.hashP = 0;
             $$.hashK = 0;
             $$.hashPDigest = 1;
+            $$.requireModeBits = 256
         }
     | JMP '(' jmp_addr ')'
         {
@@ -872,103 +986,111 @@ op
         }
     | SLOAD
         {
-            $$ = {sRD: 1}
+            $$ = { sRD: 1, requireModeBits: 256 }
         }
     | SSTORE
         {
-            $$ = {sWR: 1}
+            $$ = { sWR: 1, requireModeBits: 256 }
         }
     | ARITH
         {
-            $$ = { arith: 1, arithSame12: 0, arithUseE: 0, arithUseCD: 1, arithEquation: 1 }
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 0, arithUseCD: 1, arithEquation: 1, requireModeBits: 256 }
         }
     | ARITH_ECADD_DIFFERENT
         {
-            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithUseCD: 1, arithEquation: 2 }
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithUseCD: 1, arithEquation: 2, requireModeBits: 256 }
         }
     | ARITH_ECADD_SAME
         {
-            $$ = { arith: 1, arithSame12: 1, arithUseE: 1, arithUseCD: 1, arithEquation: 3 }
+            $$ = { arith: 1, arithSame12: 1, arithUseE: 1, arithUseCD: 1, arithEquation: 3, requireModeBits: 256 }
         }
     | ARITH_BN254_MULFP2
         {
-            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithUseCD: 1, arithEquation: 4 }
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithUseCD: 1, arithEquation: 4, requireModeBits: 256 }
         }
     | ARITH_BN254_ADDFP2
         {
-            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithUseCD: 1, arithEquation: 5 }
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithUseCD: 1, arithEquation: 5, requireModeBits: 256 }
         }
     | ARITH_BN254_SUBFP2
         {
-            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithUseCD: 1, arithEquation: 6 }
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithUseCD: 1, arithEquation: 6, requireModeBits: 256 }
         }
     | ARITH_MOD
         {
-            $$ = { arith: 1, arithSame12: 0, arithUseE: 0, arithUseCD: 1, arithEquation: 7 }
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 0, arithUseCD: 1, arithEquation: 7, requireModeBits: 256 }
         }
     | ARITH_384_MOD
         {
-            $$ = { arith: 1, arithSame12: 0, arithUseE: 0, arithUseCD: 1, arithEquation: 8 }
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 0, arithUseCD: 1, arithEquation: 8, requireModeBits: 384 }
         }
     | ARITH_BLS12381_MULFP2
         {
-            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithUseCD: 1, arithEquation: 9 }
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithUseCD: 1, arithEquation: 9, requireModeBits: 384 }
         }
     | ARITH_BLS12381_ADDFP2
         {
-            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithUseCD: 1, arithEquation: 10 }
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithUseCD: 1, arithEquation: 10, requireModeBits: 384 }
         }
     | ARITH_BLS12381_SUBFP2
         {
-            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithUseCD: 1, arithEquation: 11 }
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithUseCD: 1, arithEquation: 11, requireModeBits: 384 }
         }
-    | ARITH_256TO386
+    | ARITH_256TO384
         {
-            $$ = { arith: 1, arithSame12: 0, arithUseE: 0, arithUseCD: 0, arithEquation: 12 }
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 0, arithUseCD: 0, arithEquation: 12, requireModeBits: 384 }
+        }
+    | MODE_384_BITS
+        {
+            $$ = { modeBits: 384 }
+        }
+    | MODE_256_BITS
+        {
+            $$ = { modeBits: 256 }
         }
     | ADD
         {
-            $$ = { bin: 1, binOpcode: 0}
+            $$ = { bin: 1, binOpcode: 0, requireModeBits: 256}
         }
     | SUB
         {
-            $$ = { bin: 1, binOpcode: 1}
+            $$ = { bin: 1, binOpcode: 1, requireModeBits: 256}
         }
     | LT
         {
-            $$ = { bin: 1, binOpcode: 2}
+            $$ = { bin: 1, binOpcode: 2, requireModeBits: 256}
         }
     | SLT
         {
-            $$ = { bin: 1, binOpcode: 3}
+            $$ = { bin: 1, binOpcode: 3, requireModeBits: 256}
         }
     | EQ
         {
-            $$ = { bin: 1, binOpcode: 4}
+            $$ = { bin: 1, binOpcode: 4, requireModeBits: 256}
         }
     | AND
         {
-            $$ = { bin: 1, binOpcode: 5}
+            $$ = { bin: 1, binOpcode: 5, requireModeBits: 256}
         }
     | OR
         {
-            $$ = { bin: 1, binOpcode: 6}
+            $$ = { bin: 1, binOpcode: 6, requireModeBits: 256}
         }
     | XOR
         {
-            $$ = { bin: 1, binOpcode: 7}
+            $$ = { bin: 1, binOpcode: 7, requireModeBits: 256}
         }
     | LT4
         {
-            $$ = { bin: 1, binOpcode: 8}
+            $$ = { bin: 1, binOpcode: 8, requireModeBits: 256}
         }
     | MEM_ALIGN_RD
         {
-            $$ = { memAlignRD: 1, memAlignWR: 0 }
+            $$ = { memAlignRD: 1, memAlignWR: 0, requireModeBits: 256 }
         }
     | MEM_ALIGN_WR
         {
-            $$ = { memAlignRD: 0, memAlignWR: 1 }
+            $$ = { memAlignRD: 0, memAlignWR: 1, requireModeBits: 256 }
         }
     | REPEAT '(' RCX ')'
         {

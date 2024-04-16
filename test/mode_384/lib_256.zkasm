@@ -1,0 +1,15 @@
+lib_256_call_default:
+
+
+            4 => A,B
+            8   :ADD, RETURN
+
+lib_256_call_384:
+
+            0x333322222222221415161718191A1B1C1D1E1F202122232425262728292A2B2C2D2E2F10111213n => D  :MODE_384_BITS
+                :RETURN
+
+lib_256_call_254:
+
+            1 => A,B
+            2   :ADD, RETURN
