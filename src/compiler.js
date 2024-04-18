@@ -517,15 +517,8 @@ class Compiler {
         }
 
         if (ctype == 'CONSTL') {
-            if (this.modeBits === 384) {
-                if (value > maxConstl384 || value < minConstl384) {
-                    this.error(l, `Long-constant384 value ${value} out of range [${minConstl256},${maxConstl256}]`);
-                }
-            } else {
-                if (value > maxConstl256 || value < minConstl256) {
-                    console.log([this.modeBits, this.defaultModeBits]);
-                    this.error(l, `Long-constant256 value ${value} out of range [${minConstl256},${maxConstl256}]`);
-                }
+            if (value > maxConstl384 || value < minConstl384) {
+                this.error(l, `Long-constant value ${value} out of range [${minConstl384},${maxConstl384}]`);
             }
         } else if (ctype == 'CONST') {
             if (value > maxConst || value < minConst) {
