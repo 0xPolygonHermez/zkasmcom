@@ -83,6 +83,7 @@ class Compiler {
             this.currentLine = l;
             this.sourceRef = this.relativeFileName + ':' + l.line;
             l.fileName = this.relativeFileName;
+            this.modeBits = this.defaultModeBits;
             if (l.type == "include") {
                 const fullFileNameI = path.resolve(fileDir, l.file);
                 const previousRelativeFilename = this.relativeFileName;
@@ -129,9 +130,7 @@ class Compiler {
                 const traceStep = {
                     // type: "step"
                 };
-                this.modeBits = this.defaultModeBits;
                 this.verifyStep(l);
-
                 try {
                     for (let j=0; j< l.ops.length; j++) {
                         if (l.ops[j].modeBits) {
@@ -415,7 +414,7 @@ class Compiler {
     }
     getLabelInfo(name) {
         const _name = this.encodeLocalLabel(name);
-        return this.labels[_name];
+        return this.labels[_name] ?? false;
     }
     getLabel(name) {
         const _info = this.getLabelInfo(name);
@@ -518,8 +517,15 @@ class Compiler {
         }
 
         if (ctype == 'CONSTL') {
-            if (value > maxConstl256 || value < minConstl256) {
-                this.error(l, `Constant ${name} out of range, value ${value} must be in range [${minConstl256},${maxConstl256}]`);
+            if (this.modeBits === 384) {
+                if (value > maxConstl384 || value < minConstl384) {
+                    this.error(l, `Long-constant384 value ${value} out of range [${minConstl256},${maxConstl256}]`);
+                }
+            } else {
+                if (value > maxConstl256 || value < minConstl256) {
+                    console.log([this.modeBits, this.defaultModeBits]);
+                    this.error(l, `Long-constant256 value ${value} out of range [${minConstl256},${maxConstl256}]`);
+                }
             }
         } else if (ctype == 'CONST') {
             if (value > maxConst || value < minConst) {
@@ -721,6 +727,7 @@ class Compiler {
             res.labelCONST = input.identifier;
             const linfo = this.getLabelInfo(input.identifier);
             if (linfo !== false) {
+                console.log(linfo);
                 res.CONST = BigInt(linfo.offset);
             }
             else {
@@ -856,7 +863,9 @@ class Compiler {
         if (err instanceof CompilerError) {
             throw err;
         } 
-        if (typeof err !== 'string') console.log(err);
+        if (err instanceof TypeError) {
+            console.log(err.stack);
+        }
         if (err instanceof Error) {
             throw new CompilerError(`ERROR ${l.fileName}:${l.line}: ${err.message}`);
         } 
