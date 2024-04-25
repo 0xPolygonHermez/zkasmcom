@@ -1002,7 +1002,7 @@ op
         }
     | ARITH_ECADD_SAME
         {
-            $$ = { arith: 1, arithSame12: 1, arithUseE: 1, arithUseCD: 1, arithEquation: 3, requireModeBits: 256 }
+            $$ = { arith: 1, arithSame12: 1, arithUseE: 1, arithUseCD: 0, arithEquation: 3, requireModeBits: 256 }
         }
     | ARITH_BN254_MULFP2
         {
