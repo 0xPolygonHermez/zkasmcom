@@ -627,7 +627,7 @@ case 107:
 break;
 case 108:
 
-            this.$ = {...JMP_FLAGS, JMP: 1, call: 1, ...applyAddrRel('jmp', $$[$0-1]) }
+            this.$ = {...JMP_FLAGS, JMP: 1, setzkPC: 0, call: 1, ...applyAddrRel('jmp', $$[$0-1]) }
         
 break;
 case 109:
@@ -747,7 +747,7 @@ case 131:
 break;
 case 132:
 
-            this.$ = { save: 1, restore: 0, regs: $$[$0-1] }
+            this.$ = { save: 1, setRID: 0, restore: 0, regs: $$[$0-1] }
         
 break;
 case 133:
@@ -770,13 +770,13 @@ case 137: case 148:
  this.$ = { JMPZ: 1 } 
 break;
 case 138: case 150:
- this.$ = { JMPZ: 1, call: 1 } 
+ this.$ = { JMPZ: 1, setzkPC: 0, call: 1 } 
 break;
 case 139:
- this.$ = { JMPN: 1, call: 1, free0IsByte: 0 } 
+ this.$ = { JMPN: 1, setzkPC: 0, call: 1, free0IsByte: 0 } 
 break;
 case 140: case 149:
- this.$ = { JMPC: 1, call: 1 } 
+ this.$ = { JMPC: 1, setzkPC: 0, call: 1 } 
 break;
 case 141: case 151:
  this.$ = { JMPZ: 1, condConst:  0 } 
@@ -788,13 +788,13 @@ case 143: case 152:
  this.$ = { JMPN: 1, condConst: -1, free0IsByte: 0 } 
 break;
 case 144: case 154:
- this.$ = { JMPZ: 1, condConst:  0, call: 1 } 
+ this.$ = { JMPZ: 1, condConst:  0, setzkPC: 0, call: 1 } 
 break;
 case 145: case 156:
- this.$ = { JMPN: 1, condConst:  0, call: 1, free0IsByte: 0 } 
+ this.$ = { JMPN: 1, condConst:  0, setzkPC: 0, call: 1, free0IsByte: 0 } 
 break;
 case 146: case 155:
- this.$ = { JMPN: 1, condConst: -1, call: 1, free0IsByte: 0 } 
+ this.$ = { JMPN: 1, condConst: -1, setzkPC: 0, call: 1, free0IsByte: 0 } 
 break;
 case 157:
  this.$ = 'cntArith' 

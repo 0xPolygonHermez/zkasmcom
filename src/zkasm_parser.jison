@@ -854,7 +854,7 @@ op
 
     | CALL '(' jmp_addr ')'
         {
-            $$ = {...JMP_FLAGS, JMP: 1, call: 1, ...applyAddrRel('jmp', $3) }
+            $$ = {...JMP_FLAGS, JMP: 1, setzkPC: 0, call: 1, ...applyAddrRel('jmp', $3) }
         }
 
     | RETURN
@@ -951,7 +951,7 @@ op
         }
     | SAVE '(' saveRegsList ')'
         {
-            $$ = { save: 1, restore: 0, regs: $3 }
+            $$ = { save: 1, setRID: 0, restore: 0, regs: $3 }
         }
     | RESTORE '(' saveRegsList ')'
         {
@@ -967,34 +967,34 @@ jmpCond
     : JMPN    { $$ = { JMPN: 1, free0IsByte: 0 } }
     | JMPC    { $$ = { JMPC: 1 } }
     | JMPZ    { $$ = { JMPZ: 1 } }
-    | CALL_Z  { $$ = { JMPZ: 1, call: 1 } }
-    | CALL_N  { $$ = { JMPN: 1, call: 1, free0IsByte: 0 } }
-    | CALL_C  { $$ = { JMPC: 1, call: 1 } }
+    | CALL_Z  { $$ = { JMPZ: 1, setzkPC: 0, call: 1 } }
+    | CALL_N  { $$ = { JMPN: 1, setzkPC: 0, call: 1, free0IsByte: 0 } }
+    | CALL_C  { $$ = { JMPC: 1, setzkPC: 0, call: 1 } }
     ;
 
 jmpCondConst
     : JMP_EQ  { $$ = { JMPZ: 1, condConst:  0 } }
     | JMP_LT  { $$ = { JMPN: 1, condConst:  0, free0IsByte: 0 } }
     | JMP_LE  { $$ = { JMPN: 1, condConst: -1, free0IsByte: 0 } }
-    | CALL_EQ { $$ = { JMPZ: 1, condConst:  0, call: 1 } }
-    | CALL_LT { $$ = { JMPN: 1, condConst:  0, call: 1, free0IsByte: 0 } }
-    | CALL_LE { $$ = { JMPN: 1, condConst: -1, call: 1, free0IsByte: 0 } }
+    | CALL_EQ { $$ = { JMPZ: 1, condConst:  0, setzkPC: 0, call: 1 } }
+    | CALL_LT { $$ = { JMPN: 1, condConst:  0, setzkPC: 0, call: 1, free0IsByte: 0 } }
+    | CALL_LE { $$ = { JMPN: 1, condConst: -1, setzkPC: 0, call: 1, free0IsByte: 0 } }
     ;
 
 jmpNotCond
     : JMPNC   { $$ = { JMPC: 1 } }
     | JMPNZ   { $$ = { JMPZ: 1 } }
-    | CALL_NC { $$ = { JMPC: 1, call: 1 } }
-    | CALL_NZ { $$ = { JMPZ: 1, call: 1 } }
+    | CALL_NC { $$ = { JMPC: 1, setzkPC: 0, call: 1 } }
+    | CALL_NZ { $$ = { JMPZ: 1, setzkPC: 0, call: 1 } }
     ;
 
 jmpNotCondConst
     : JMP_NE  { $$ = { JMPZ: 1, condConst:  0 } }
     | JMP_GT  { $$ = { JMPN: 1, condConst: -1, free0IsByte: 0 } }
     | JMP_GE  { $$ = { JMPN: 1, condConst:  0, free0IsByte: 0 } }
-    | CALL_NE { $$ = { JMPZ: 1, condConst:  0, call: 1 } }
-    | CALL_GT { $$ = { JMPN: 1, condConst: -1, call: 1, free0IsByte: 0 } }
-    | CALL_GE { $$ = { JMPN: 1, condConst:  0, call: 1, free0IsByte: 0 } }
+    | CALL_NE { $$ = { JMPZ: 1, condConst:  0, setzkPC: 0, call: 1 } }
+    | CALL_GT { $$ = { JMPN: 1, condConst: -1, setzkPC: 0, call: 1, free0IsByte: 0 } }
+    | CALL_GE { $$ = { JMPN: 1, condConst:  0, setzkPC: 0, call: 1, free0IsByte: 0 } }
     ;
 
 
