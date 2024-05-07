@@ -357,13 +357,13 @@ case 88:
 break;
 case 89:
 
-            normalizeArrayIndex($$[$0]);
+            normalizeArrayIndex($$[$0], 'memUseAddrRel');
             $$[$0-2].push({type: 'MSTORE', addr:{...$$[$0], assumeFree: 0}})
         
 break;
 case 90:
 
-            normalizeArrayIndex($$[$0]);
+            normalizeArrayIndex($$[$0], 'memUseAddrRel');
             this.$ = [{type: 'MSTORE', addr:{...$$[$0], assumeFree: 0}}]
         
 break;
