@@ -553,12 +553,12 @@ destinationsList
         }
     | destinationsList ',' mem_addr
         {
-            normalizeArrayIndex($3);
+            normalizeArrayIndex($3, 'memUseAddrRel');
             $1.push({type: 'MSTORE', addr:{...$3, assumeFree: 0}})
         }
     | mem_addr
         {
-            normalizeArrayIndex($1);
+            normalizeArrayIndex($1, 'memUseAddrRel');
             $$ = [{type: 'MSTORE', addr:{...$1, assumeFree: 0}}]
         }
     | reg
