@@ -7,13 +7,15 @@ const stringifyBigInts = require("ffjavascript").utils.stringifyBigInts;
 const util = require('util');
 const maxConst = (1n << 32n) - 1n;
 const minConst = -(1n << 31n);
-const maxConstl = (1n << 256n) - 1n;
-const minConstl = 0n;
+const maxConstl256 = (1n << 256n) - 1n;
+const minConstl256 = 0n;
+const maxConstl384 = (1n << 384n) - 1n;
+const minConstl384 = 0n;
 const readOnlyRegisters = ['STEP', 'ROTL_C'];
 
 const SAVE_REGS = ['B','C','D','E', 'RR', 'RCX'];
 const RESTORE_FORBIDDEN_REGS = [...SAVE_REGS, 'RID'];
-const PROPERTY_SAME_VALUE_COLLISION_ALLOWED = {assumeFree: ['assumeFree'], ind: ['ind', 'indRR'], indRR: ['ind', 'indRR']};
+const PROPERTY_SAME_VALUE_COLLISION_ALLOWED = {assumeFree: ['assumeFree'], ind: ['ind', 'indRR'], indRR: ['ind', 'indRR'], requireModeBits: ['requireModeBits']};
 const MAX_GLOBAL_VAR = 0x10000;
 
 class CompilerError extends Error {};
@@ -24,9 +26,13 @@ class Compiler {
     constructor (config) {
         this.line = false;
         this.config = config;
+        this.includeId = 1;
+        this.lastIncludeId = 1;
+        this.includeStack = [];
         this.vars = {};
         this.constants = {};
-        this.definedLabels = {};
+        this.labels = {};
+        this.labelsStack = [];
         this.lastGlobalVarAssigned = -1;
         this.lastLocalVarCtxAssigned = -1;
         this.refs = [];
@@ -35,7 +41,8 @@ class Compiler {
         this.mainInit = false;
         this.srcLines = {};
         this.sourceRef = '';
-
+        this.defaultModeBits = 256;
+        this.modeBits = 256;
     }
     _error(msg) {
         throw new CompilerError(`${msg} at ${this.sourceRef}`);
@@ -74,11 +81,15 @@ class Compiler {
             const l = lines[i];
             // console.log(`#${i} ${this.srcLines[this.relativeFileName][l.__line -1]}`,util.inspect(l, false, 100, true));
             this.currentLine = l;
+            this.sourceRef = this.relativeFileName + ':' + l.line;
             l.fileName = this.relativeFileName;
+            this.modeBits = this.defaultModeBits;
             if (l.type == "include") {
                 const fullFileNameI = path.resolve(fileDir, l.file);
                 const previousRelativeFilename = this.relativeFileName;
+                this.pushIncludeScope();
                 this.compile(fullFileNameI);
+                this.popIncludeScope();
                 this.relativeFileName = previousRelativeFilename;
                 if (pendingCommands.length>0) {
                     this.error(l, "command not allowed before include");
@@ -86,22 +97,23 @@ class Compiler {
 
                 lastLineAllowsCommand = false;
             } else if (l.type == "var") {
-                if (typeof this.vars[l.name] !== "undefined") this.error(l, `Variable ${l.name} already defined`);
+                const vinfo = this.getVarInfo(l.name);
+                if  (vinfo !== false) this.error(l, `Variable ${l.name} already defined`);
                 if (l.scope == "GLOBAL") {
                     const count = typeof l.count === 'string' ? Number(this.getConstantValue(l.count)) : l.count;
-                    this.vars[l.name] = {
+                    this.defineVar(l.name, {
                         scope: "GLOBAL",
                         count,
                         offset: this.lastGlobalVarAssigned + 1
-                    }
+                    });
                     this.lastGlobalVarAssigned += count;
                 } else if (l.scope == "CTX") {
                     const count = typeof l.count === 'string' ? Number(this.getConstantValue(l.count)) : l.count;
-                    this.vars[l.name] = {
+                    this.defineVar(l.name, {
                         scope: "CTX",
                         count,
                         offset: this.lastLocalVarCtxAssigned + 1
-                    }
+                    });
                     this.lastLocalVarCtxAssigned += count;
                 } else {
                     this.error(l, `Invalid scope ${l.scope}`);
@@ -112,14 +124,19 @@ class Compiler {
                 const value = this.evaluateExpression(l.value);
                 let ctype = l.type == 'constldef' ? 'CONSTL':'CONST';
                 this.defineConstant(l.name, ctype, value); 
+            } else if (l.type == 'pragma' ) {
+                this.setPragma(l);
             } else if (l.type == "step") {
                 const traceStep = {
                     // type: "step"
                 };
                 this.verifyStep(l);
-
                 try {
                     for (let j=0; j< l.ops.length; j++) {
+                        if (l.ops[j].modeBits) {
+                            this.modeBits = l.ops[j].modeBits;
+                            delete l.ops[j].modeBits;
+                        }
                         if (!l.ops[j].assignment) continue;
                         if (l.assignment) {
                             this.error(l, "not allowed assignments with this operation");
@@ -127,14 +144,30 @@ class Compiler {
                         l.assignment = l.ops[j].assignment;
                         delete l.ops[j].assignment;
                     }
-
+                    if (this.modeBits !== 256) {
+                        if (this.modeBits === 384) {
+                            traceStep.mode384 = 1;
+                        } else {
+                            this.error(l, `mode bit ${this.modeBits} not allowed`);
+                        }
+                    }
                     if (l.assignment) {
                         this.appendOp(traceStep, this.processAssignmentIn(l.assignment.in, this.out.length));
                         this.appendOp(traceStep, this.processAssignmentOut(l.assignment.out, traceStep));
                     }
                     let assignmentRequired = false;
-                    for (let j=0; j< l.ops.length; j++) {
+                    for (let j=0; j< l.ops.length; j++) {                        
                         const op = (l.ops[j].mOp || l.ops[j].JMP || l.ops[j].JMPC || l.ops[j].JMPN || l.ops[j].JMPZ || l.ops[j].call) ? this.resolve(l.ops[j]):l.ops[j];
+                        if (typeof l.ops[j].requireModeBits !== 'undefined') {
+                            const requireModeBits = l.ops[j].requireModeBits;
+                            delete l.ops[j].requireModeBits;
+                            if (requireModeBits !== 256 && requireModeBits !== 384) {
+                                this.error(l, `invalid requireModeBits defined on zkasm/language`);
+                            }
+                            if (this.modeBits !== requireModeBits) {
+                                this.error(l, `invalid operation because require ${requireModeBits} bits mode and current mode bits is ${this.modeBits}`);
+                            }
+                        }
                         // console.log(`#${i} ${this.srcLines[this.relativeFileName][l.__line-1]}`,util.inspect(l, false, 100, true));
                         this.appendOp(traceStep, op);
                         if ((op.save || op.restore) && (!l.assignment || l.assignment.out.length === 0)) continue;
@@ -162,6 +195,7 @@ class Compiler {
                 }
                 // traceStep.lineNum = ctx.out.length;
                 traceStep.line = l;
+                traceStep.includeId = this.includeId;
                 this.out.push(traceStep);
                 if (pendingCommands.length>0) {
                     traceStep.cmdBefore = pendingCommands;
@@ -170,10 +204,10 @@ class Compiler {
                 lastLineAllowsCommand = !(traceStep.JMP || traceStep.JMPC || traceStep.JMPN || traceStep.JMPZ || traceStep.call || traceStep.return);
             } else if (l.type == "label") {
                 const id = l.identifier
-                if (this.definedLabels[id]) {
+                if (this.getLabelInfo(id)) {
                     this.optionalError(this.config.allowOverwriteLabels, l, `RedefinedLabel: ${id}`);
                 }
-                this.definedLabels[id] = this.out.length;
+                this.defineLabel(id, {offset: this.out.length, sourceRef: this.sourceRef});
                 if (pendingCommands.length>0) this.error(l, "command not allowed before label")
                 lastLineAllowsCommand = false;
             } else if (l.type == "command") {
@@ -191,29 +225,36 @@ class Compiler {
 
 
         if (isMain) {
+            const mainIncludeId = this.includeId;
             for (let i=0; i<this.out.length; i++) {
                 // console.log(`@@{${i}}@@ ${this.srcLines[this.out[i].line.fileName][this.out[i].line.line - 1] ?? ''}`,this.out[i]);
-                if (this.out[i].offsetLabel) {
+                this.includeId = this.out[i].includeId ?? mainIncludeId;
+
+                // delete to produce same output
+                delete this.out[i].includeId;
+                if (this.out[i].offsetLabel) {                    
                     const label = this.out[i].offsetLabel; 
-                    if (typeof this.vars[label] === "undefined") {
+                    const vinfo = this.getVarInfo(label);
+                    if (vinfo === false) {
                         this.optionalError(this.config.allowUndefinedVariables, this.out[i].line,  `Variable: ${label} not defined.`);
                     }
                     else {
-                        if (this.vars[label].scope === 'CTX') {
+                        if (vinfo.scope === 'CTX') {
                             this.out[i].useCTX = 1;
-                        } else if (this.vars[label].scope === 'GLOBAL') {
+                        } else if (vinfo.scope === 'GLOBAL') {
                             this.out[i].useCTX = 0;
                         } else {
                             this.error(this.out[i].line, `Invalid variable scope: ${label} not defined.`);
                         }
                     
-                        this.out[i].offset = Number(this.out[i].offset ?? 0) + Number(this.vars[label].offset);
+                        this.out[i].offset = Number(this.out[i].offset ?? 0) + Number(vinfo.offset);
+                        this.out[i].offsetLabel = vinfo.name;
                         // console.log(['@', label, this.out[i].memUseAddrRel, this.out[i].useAddrRel, this.srcLines[this.out[i].line.fileName][this.out[i].line.line - 1]]);
-                        if (this.vars[label].count > 1 && this.out[i].memUseAddrRel) {
-                            this.out[i].minAddrRel = (this.vars[label].offset - this.out[i].offset);
-                            this.out[i].maxAddrRel = (this.vars[label].offset + this.vars[label].count - 1) - this.out[i].offset;
-                            this.out[i].baseLabel = this.vars[label].offset;
-                            this.out[i].sizeLabel = this.vars[label].count;
+                        if (vinfo.count > 1 && this.out[i].memUseAddrRel) {
+                            this.out[i].minAddrRel = (vinfo.offset - this.out[i].offset);
+                            this.out[i].maxAddrRel = (vinfo.offset + vinfo.count - 1) - this.out[i].offset;
+                            this.out[i].baseLabel = vinfo.offset;
+                            this.out[i].sizeLabel = vinfo.count;
                         }
                     }
                 }
@@ -271,10 +312,13 @@ class Compiler {
                 this.out[i].line = this.out[i].line.line;
                 this.out[i].lineStr = this.srcLines[this.out[i].fileName][this.out[i].line - 1] ?? '';
             }
+            this.includeId = mainIncludeId;
+            this.clearLocalLabels();
+            this.convertToLegacyLabels();
 
             const res = {
                 program:  stringifyBigInts(this.out),
-                labels: this.definedLabels,
+                labels: this.labels,
                 constants: stringifyBigInts(this.constants)
             }
 
@@ -290,10 +334,28 @@ class Compiler {
         }
 
     }
+    setDefaultModeBits(bits) {
+        this.defaultModeBits = bits;
+    }
+    setPragma(l) {
+        const cmd = l.params[0] ?? false;
+        if (cmd === 'MODE_384_BITS') {
+            if (l.params.length !== 1) {
+                throw new Error(`Invalid parameters for pragma MODE`);
+            }
+            this.setDefaultModeBits(384);
+        }
+        else if (cmd === 'MODE_256_BITS') {
+            if (l.params.length !== 1) {
+                throw new Error(`Invalid parameters for pragma MODE`);
+            }
+            this.setDefaultModeBits(256);            
+        }
+    }
     getCodeAddress(label, zkPC) {
         if (label === "next") return zkPC + 1;
-        if (typeof this.definedLabels[label] === 'undefined') return false;
-        return this.definedLabels[label];
+        const res = this.getLabelInfo(label);
+        return res ? res.offset : false;
     }
 
     parseCommands(cmdList) {
@@ -307,23 +369,80 @@ class Compiler {
             }
         }
     }
-
+    clearLocalLabels() {
+        Object.keys(this.labels).filter(label => label.startsWith('_') && label.includes('__@@')).forEach(label => delete this.labels[label]);
+    }
+    convertToLegacyLabels() {
+        for (const label in this.labels) {
+            this.labels[label] = this.labels[label].offset;
+        }
+    }
+    getVarInfo(name) {
+        const _name = this.encodeLocalVar(name);
+        return this.vars[_name] ?? false;
+    }
+    decodeLocal(name) {
+        if (name.startsWith('_')) {
+            const pos = name.indexOf('__@@');
+            if (pos >= 0) return name.slice(0, pos);
+        }
+        return name;
+    }
+    encodeLocal(name, type = '@') {
+        return (name.startsWith('_') && !name.includes('__@@')) ? name + '__@@' + type + this.includeId.toString(16).padStart(3, '0') : name;
+    }
+    encodeLocalVar(name) {
+        return this.encodeLocal(name, 'V');
+    }
+    encodeLocalLabel(name) {
+        return this.encodeLocal(name, 'L');
+    }
+    defineVar(name, obj) {
+        // if (name === '__MSTOREX_len') debugger;
+        const _name = this.encodeLocalVar(name);
+        return this.vars[_name] = {...obj, name};
+    }
+    popIncludeScope() {
+        const includeData = this.includeStack.pop();
+        this.includeId = includeData.includeId;
+        this.defaultModeBits = includeData.defaultModeBits;
+    }
+    pushIncludeScope() {
+        this.includeStack.push({includeId: this.includeId, defaultModeBits: this.defaultModeBits})
+        this.includeId = ++this.lastIncludeId;
+        this.defaultModeBits = 256;
+    }
+    getLabelInfo(name) {
+        const _name = this.encodeLocalLabel(name);
+        return this.labels[_name] ?? false;
+    }
+    getLabel(name) {
+        const _info = this.getLabelInfo(name);
+        if (_info !== false) return _info.offset;
+        return false;
+    }
+    defineLabel(name, obj) {
+        const _name = this.encodeLocalLabel(name); 
+        this.labels[_name] = {...obj, name}
+        return name;
+    }
     resolveDataOffset(i, cmd) {
         if (typeof cmd !== 'object' || cmd === null) return;
         if (cmd.op === 'getData') {
             if ((cmd.module === 'mem' || cmd.module === 'addr') && typeof cmd.offsetLabel === 'undefined') {
                 const name = cmd.offset;
-                if (typeof this.vars[name] === 'undefined') {
+                const vinfo = this.getVarInfo(name);
+                if (vinfo === false) {
                     this.error(this.out[i].line, `Not found reference ${cmd.module}.${name}`);
                 }
                 cmd.offsetLabel = name;
-                let offset = this.vars[name].offset;
+                let offset = vinfo.offset;
                 delete cmd.offset;
 
                 // set useCTX
-                if (this.vars[name].scope === 'CTX') {
+                if (vinfo.scope === 'CTX') {
                     cmd.useCTX = 1;
-                } else if (this.vars[name].scope === 'GLOBAL') {
+                } else if (vinfo.scope === 'GLOBAL') {
                     cmd.useCTX = 0;
                 }
                 if (cmd.arrayOffset && cmd.arrayOffset.op === 'number') {
@@ -342,8 +461,11 @@ class Compiler {
                     cmd.num = BigInt(offset);
                     cmd.op = 'number';
                     return;
+                }                
+                switch (cmd.module) {
+                    case 'addr':    cmd.op = 'getMemAddr'; break;
+                    case 'mem':     cmd.op = 'getMemValue'; break;
                 }
-                cmd.op = cmd.module === 'addr' ? 'getMemAddr':'getMemValue';
                 cmd.params = params;
                 return;
             }
@@ -382,21 +504,21 @@ class Compiler {
         }
 
         if (this.config && this.config.defines && typeof this.config.defines[name] !== 'undefined') {
-            console.log(`NOTICE: Ignore constant definition ${name} on ${l.fileName}:${l.__line} because it was defined by command line`);
+            console.log(`NOTICE: Ignore constant definition ${name} on ${l.fileName}:${l.line} because it was defined by command line`);
             this.constants[name] = {
                 value: this.config.defines[name].value,
                 type: this.config.defines[name].type,
                 originalValue: value,
                 originalType: ctype,
                 defines: true,
-                line: l.__line,
+                line: l.line,
                 fileName: l.fileName};
             return;
         }
 
         if (ctype == 'CONSTL') {
-            if (value > maxConstl || value < minConstl) {
-                this.error(l, `Constant ${name} out of range, value ${value} must be in range [${minConstl},${maxConstl}]`);
+            if (value > maxConstl384 || value < minConstl384) {
+                this.error(l, `Long-constant value ${value} out of range [${minConstl384},${maxConstl384}]`);
             }
         } else if (ctype == 'CONST') {
             if (value > maxConst || value < minConst) {
@@ -409,7 +531,7 @@ class Compiler {
         this.constants[name] = {
             value: value,
             type: ctype,
-            line: l.__line,
+            line: l.line,
             fileName: l.fileName};
     }
 
@@ -596,14 +718,17 @@ class Compiler {
         }
         if (input.type == 'reference') {
             res.labelCONST = input.identifier;
-            if (typeof this.definedLabels[input.identifier] !== 'undefined') {
-                res.CONST = BigInt(this.definedLabels[input.identifier]);
-            }
-            else if (typeof this.vars[input.identifier] !== 'undefined') {
-                res.CONST = BigInt(this.vars[input.identifier].offset);
+            const linfo = this.getLabelInfo(input.identifier);
+            if (linfo !== false) {
+                console.log(linfo);
+                res.CONST = BigInt(linfo.offset);
             }
             else {
-                throw new Error(`Not found label/variable ${input.identifier}`)
+                const vinfo = this.getVarInfo(input.identifier);
+                if (vinfo === false) {
+                    throw new Error(`Not found label/variable ${input.identifier}`)
+                }
+                res.CONST = BigInt(vinfo.offset);
             }
             return res;
         }
@@ -672,7 +797,7 @@ class Compiler {
             }
         }
         const l = this.currentLine;
-        throw new Error(`Operation ${input.type} with ${values.length} operators, not allowed in numeric expression. ${l.fileName}:${l.__line}`);
+        throw new Error(`Operation ${input.type} with ${values.length} operators, not allowed in numeric expression. ${l.fileName}:${l.line}`);
     }
 
     processAssignmentOut(outputs, parent = {}) {
@@ -684,7 +809,7 @@ class Compiler {
                 if (typeof res["set"+ reg] !== "undefined") throw new Error(`Register ${reg} added twice in asssignment output`);
                 if (readOnlyRegisters.includes(reg)) {
                     const l = this.currentLine;
-                    throw new Error(`Register ${reg} is readonly register, could not be used as output destination. ${l.fileName}:${l.__line}`);
+                    throw new Error(`Register ${reg} is readonly register, could not be used as output destination. ${l.fileName}:${l.line}`);
                 }
                 res["set"+ reg] = 1;
             } else if (out.type === 'MSTORE') {
@@ -695,7 +820,7 @@ class Compiler {
                 this.appendOp(res, _tmp);
             } else {
                 const l = this.currentLine;
-                throw new Error(`Invalid type ${out.type} as output destination. ${l.fileName}:${l.__line}`);
+                throw new Error(`Invalid type ${out.type} as output destination. ${l.fileName}:${l.line}`);
             }
         }
         return res;
@@ -724,18 +849,20 @@ class Compiler {
     }
 
     warning(l, msg) {
-        console.log(`WARNING ${l.fileName}:${l.__line}: ${msg}`);
+        console.log(`WARNING ${l.fileName}:${l.line}: ${msg}`);
     }
 
     error(l, err) {
         if (err instanceof CompilerError) {
             throw err;
         } 
-        console.log(err);
+        if (err instanceof TypeError) {
+            console.log(err.stack);
+        }
         if (err instanceof Error) {
-            throw new CompilerError(`ERROR ${l.fileName}:${l.__line}: ${err.message}`);
+            throw new CompilerError(`ERROR ${l.fileName}:${l.line}: ${err.message}`);
         } 
-        const msg = `ERROR ${l.fileName}:${l.__line}: ${err}`;
+        const msg = `ERROR ${l.fileName}:${l.line}: ${err}`;
         throw new CompilerError(msg);
     }
 
@@ -756,13 +883,18 @@ class Compiler {
             }
         
         }
-
+        
         if (!isLongValue && (value > maxConst || value < minConst)) {
             this.error(l, `Constant value ${value} out of range [${minConst},${maxConst}]`);
         }
-
-        if (isLongValue && (value > maxConstl || value < minConstl)) {
-            this.error(l, `Long-constant value ${value} out of range [${minConstl},${maxConstl}]`);
+        if (this.modeBits === 384) {
+            if (isLongValue && (value > maxConstl384 || value < minConstl384)) {
+                this.error(l, `Long-constant384 value ${value} out of range [${minConstl256},${maxConstl256}]`);
+            }
+        } else {
+            if (isLongValue && (value > maxConstl256 || value < minConstl256)) {
+                this.error(l, `Long-constant256 value ${value} out of range [${minConstl256},${maxConstl256}]`);
+            }
         }
     }
 
@@ -823,7 +955,7 @@ class Compiler {
             if (!this.$ || typeof this.$ !== 'object')  {
                 return result;
             }
-            this.$.__line = yylineno + 1;
+            // this.$.line = yylineno + 1;
             return result;
         }
         return parser;

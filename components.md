@@ -298,6 +298,56 @@ A*B + C = op (mod D)
 327885   :ARITH_MOD
 ```
 
+### ARITH_256TO384
+
+Arithmetic to verify conversion between 256 and 384 bits. One can check whether the operation `A + 2**256 * B` is equal to `op` with 384 bits (48 bits x 8 chunks). A,B are registers in 256 bits.
+```
+A + 2**256 * B = op
+```
+
+```
+0xFE0000000000n => A
+0x23n => B
+0x230000000000000000000000000000000000000000000000000000FE0000000000_n384 :ARITH_256TO384
+```
+
+### ARITH_384_MOD
+
+Arithmetic modulo register D with extended registers of 384 bits (48 bits x 8 chunks). One can check whether the arithmetic operation `A*B + C` is equal to `op` modulo `D`.
+```
+A*B + C = op (mod D)
+```
+
+```
+8974117741_n384 => A
+31486901868_n384 => B
+56872536729_n384 => C
+5706355064_n384 => D
+554357677_n384 :ARITH_384_MOD
+```
+
+### ARITH_BLS12381_ADDFP2
+
+Addition of two $\mathbb{F}_{p^2} = \mathbb{F}_p[u]/(u^2 + 1)$ elements over the base field $\mathbb{F}_p$ of the BLS12381 curve. Due to the chosen irreducible polynomial, it corresponds to the standard addition of two complex elements. All registers involved are in extended mode of 384 bits.
+```
+(A + B·u) + (C + D·u) = E + op·u
+```
+
+### ARITH_BLS12381_SUBFP2
+
+Subtraction of two $\mathbb{F}_{p^2} = \mathbb{F}_p[u]/(u^2 + 1)$ elements over the base field $\mathbb{F}_p$ of the BLS12381 curve. Due to the chosen irreducible polynomial, it corresponds to the standard subtraction of two complex elements. All registers involved are in extended mode of 384 bits.
+```
+(A + B·u) - (C + D·u) = E + op·u
+```
+
+### ARITH_BLS12381_MULFP2
+
+Multiplication of two $\mathbb{F}_{p^2} = \mathbb{F}_p[u]/(u^2 + 1)$ elements over the base field $\mathbb{F}_p$ of the BLS12381 curve. Due to the chosen irreducible polynomial, it corresponds to the standard multiplication of two complex elements. All registers involved are in extended mode of 384 bits.
+```
+(A + B·u) * (C + D·u) = E + op·u
+```
+
+
 ### ASSERT
 
 A = op
