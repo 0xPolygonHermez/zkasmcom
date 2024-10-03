@@ -26,6 +26,7 @@ RR                      { return 'RR'; }
 STEP                    { return 'STEP'; }
 ROTL_C                  { return 'ROTL_C'; }
 HASHPOS                 { return 'HASHPOS'; }
+F_MLOAD                 { return 'F_MLOAD' }
 MLOAD                   { return 'MLOAD' }
 MSTORE                  { return 'MSTORE' }
 HASHKLEN                { return 'HASHKLEN' }
@@ -507,12 +508,21 @@ op
             $$ = $3;
             $$.mOp = 1;
             $$.mWR = 0;
+            $$.assumeFree: 0;
+        }
+    | F_MLOAD '(' addr ')'
+        {
+            $$ = $3;
+            $$.mOp = 1;
+            $$.mWR = 0;
+            $$.assumeFree: 1;
         }
     | MSTORE '(' addr ')'
         {
             $$ = $3;
             $$.mOp = 1;
             $$.mWR = 1;
+            $$.assumeFree: 0;
         }
     | HASHK '(' hashId ')'
         {
