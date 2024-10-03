@@ -307,7 +307,7 @@ case 73:
             this.$ = $$[$0-1];
             this.$.mOp = 1;
             this.$.mWR = 0;
-            this.$.assumeFree: 0;
+            this.$.assumeFree = 0;
         
 break;
 case 74:
@@ -315,7 +315,7 @@ case 74:
             this.$ = $$[$0-1];
             this.$.mOp = 1;
             this.$.mWR = 0;
-            this.$.assumeFree: 1;
+            this.$.assumeFree = 1;
         
 break;
 case 75:
@@ -323,7 +323,7 @@ case 75:
             this.$ = $$[$0-1];
             this.$.mOp = 1;
             this.$.mWR = 1;
-            this.$.assumeFree: 0;
+            this.$.assumeFree = 0;
         
 break;
 case 76:

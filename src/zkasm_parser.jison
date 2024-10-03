@@ -508,21 +508,21 @@ op
             $$ = $3;
             $$.mOp = 1;
             $$.mWR = 0;
-            $$.assumeFree: 0;
+            $$.assumeFree = 0;
         }
     | F_MLOAD '(' addr ')'
         {
             $$ = $3;
             $$.mOp = 1;
             $$.mWR = 0;
-            $$.assumeFree: 1;
+            $$.assumeFree = 1;
         }
     | MSTORE '(' addr ')'
         {
             $$ = $3;
             $$.mOp = 1;
             $$.mWR = 1;
-            $$.assumeFree: 0;
+            $$.assumeFree = 0;
         }
     | HASHK '(' hashId ')'
         {
