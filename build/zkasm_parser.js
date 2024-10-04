@@ -520,42 +520,42 @@ case 111:
 break;
 case 112:
 
-            this.$ = { arith: 1, arithSame12: 0, arithUseE: 0, arithUseCD: 1, arithEquation: 1 }
+            this.$ = { arith: 1, arithSame12: 0, arithUseE: 0, arithUseCD: 1, arithEq: 1 }
         
 break;
 case 113:
 
-            this.$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithUseCD: 1, arithEquation: 2 }
+            this.$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithUseCD: 1, arithEq: 2 }
         
 break;
 case 114:
 
-            this.$ = { arith: 1, arithSame12: 1, arithUseE: 1, arithUseCD: 0, arithEquation: 3 }
+            this.$ = { arith: 1, arithSame12: 1, arithUseE: 1, arithUseCD: 0, arithEq: 3 }
         
 break;
 case 115:
 
-            this.$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithUseCD: 1, arithEquation: 4 }
+            this.$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithUseCD: 1, arithEq: 4 }
         
 break;
 case 116:
 
-            this.$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithUseCD: 1, arithEquation: 5 }
+            this.$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithUseCD: 1, arithEq: 5 }
         
 break;
 case 117:
 
-            this.$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithUseCD: 1, arithEquation: 6 }
+            this.$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithUseCD: 1, arithEq: 6 }
         
 break;
 case 118:
 
-            this.$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithUseCD: 1, arithEquation: 7 }
+            this.$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithUseCD: 1, arithEq: 7 }
         
 break;
 case 119:
 
-            this.$ = { arith: 1, arithSame12: 1, arithUseE: 1, arithUseCD: 0, arithEquation: 8 }
+            this.$ = { arith: 1, arithSame12: 1, arithUseE: 1, arithUseCD: 0, arithEq: 8 }
         
 break;
 case 120:
