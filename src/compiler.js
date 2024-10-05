@@ -33,10 +33,10 @@ module.exports = async function compile(fileName, ctx, config = {}) {
         isMain = false;
     }
 
-    const fullFileName = path.resolve(process.cwd(), fileName);
-    const fileDir = path.dirname(fullFileName);
-
-    const src = await fs.promises.readFile(fullFileName, "utf8") + "\n";
+    const compileFromString = config.compileFromString && isMain;
+    const fullFileName = compileFromString ? '(string)' : path.resolve(process.cwd(), fileName);
+    const fileDir = compileFromString ? '' : path.dirname(fullFileName);
+    const src = compileFromString ? fileName : await fs.promises.readFile(fullFileName, "utf8") + "\n";
 
     const lines = zkasm_parser.parse(src);
 
@@ -45,8 +45,8 @@ module.exports = async function compile(fileName, ctx, config = {}) {
 
     let relativeFileName;
     if (isMain) {
-        relativeFileName = path.basename(fullFileName);
-        ctx.basePath = fileDir;
+        relativeFileName = compileFromString ? '(string)' : path.basename(fullFileName);
+        ctx.basePath = compileFromString ? '' : fileDir;
     } else {
         if (fullFileName.startsWith(ctx.basePath)) {
             relativeFileName = fullFileName.substring(ctx.basePath.length+1);
