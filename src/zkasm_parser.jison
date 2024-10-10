@@ -682,35 +682,35 @@ op
         }
     | ARITH
         {
-            $$ = { arith: 1, arithSame12: 0, arithUseE: 0, arithUseCD: 1, arithEq: 1 }
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 0, arithEq: 1 }
         }
     | ARITH_ECADD_DIFFERENT
         {
-            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithUseCD: 1, arithEq: 2 }
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithEq: 2 }
         }
     | ARITH_ECADD_SAME
         {
-            $$ = { arith: 1, arithSame12: 1, arithUseE: 1, arithUseCD: 0, arithEq: 3 }
+            $$ = { arith: 1, arithSame12: 1, arithUseE: 1, arithEq: 3 }
         }
     | ARITH_BN254_MULFP2
         {
-            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithUseCD: 1, arithEq: 4 }
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithEq: 4 }
         }
     | ARITH_BN254_ADDFP2
         {
-            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithUseCD: 1, arithEq: 5 }
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithEq: 5 }
         }
     | ARITH_BN254_SUBFP2
         {
-            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithUseCD: 1, arithEq: 6 }
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithEq: 6 }
         }
     | ARITH_SECP256R1_ECADD_DIFFERENT
         {
-            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithUseCD: 1, arithEq: 7 }
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithEq: 7 }
         }
     | ARITH_SECP256R1_ECADD_SAME
         {
-            $$ = { arith: 1, arithSame12: 1, arithUseE: 1, arithUseCD: 0, arithEq: 8 }
+            $$ = { arith: 1, arithSame12: 1, arithUseE: 1, arithEq: 8 }
         }
     | ADD
         {
