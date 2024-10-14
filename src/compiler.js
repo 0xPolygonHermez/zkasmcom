@@ -33,10 +33,10 @@ module.exports = async function compile(fileName, ctx, config = {}) {
         isMain = false;
     }
 
-    const fullFileName = path.resolve(process.cwd(), fileName);
-    const fileDir = path.dirname(fullFileName);
-
-    const src = await fs.promises.readFile(fullFileName, "utf8") + "\n";
+    const compileFromString = config.compileFromString && isMain;
+    const fullFileName = compileFromString ? '(string)' : path.resolve(process.cwd(), fileName);
+    const fileDir = compileFromString ? '' : path.dirname(fullFileName);
+    const src = compileFromString ? fileName : await fs.promises.readFile(fullFileName, "utf8") + "\n";
 
     const lines = zkasm_parser.parse(src);
 
@@ -45,8 +45,8 @@ module.exports = async function compile(fileName, ctx, config = {}) {
 
     let relativeFileName;
     if (isMain) {
-        relativeFileName = path.basename(fullFileName);
-        ctx.basePath = fileDir;
+        relativeFileName = compileFromString ? '(string)' : path.basename(fullFileName);
+        ctx.basePath = compileFromString ? '' : fileDir;
     } else {
         if (fullFileName.startsWith(ctx.basePath)) {
             relativeFileName = fullFileName.substring(ctx.basePath.length+1);
@@ -177,7 +177,7 @@ module.exports = async function compile(fileName, ctx, config = {}) {
                         ctx.out[i].offset = 0;
                     }
                     else {
-                        const label = ctx.out[i].offset; 
+                        const label = ctx.out[i].offset;
                         if (ctx.vars[label].scope === 'CTX') {
                             ctx.out[i].useCTX = 1;
                         } else if (ctx.vars[label].scope === 'GLOBAL') {
@@ -185,7 +185,7 @@ module.exports = async function compile(fileName, ctx, config = {}) {
                         } else {
                             error(ctx.out[i].line, `Invalid variable scope: ${label} not defined.`);
                         }
-                    
+
                         ctx.out[i].offset = ctx.vars[label].offset + (ctx.out[i].extraOffset ?? 0);
                         if (ctx.vars[label].count > 1) {
                             ctx.out[i].maxInd = (ctx.vars[label].offset + ctx.vars[label].count - 1) - ctx.out[i].offset;
@@ -468,7 +468,9 @@ function processAssignmentIn(ctx, input, currentLine) {
                 throw new Error("Not allowed CONST and CONSTL in same operation");
             }
             Object.keys(E2).forEach(function(key) {
-                E2[key] *= E1.CONST;
+                if (key === 'CONST' || key === 'CONSTL' || (key.startsWith('in') && !key.startsWith('ind'))) {
+                    E2[key] *= E1.CONST;
+                }
             });
             return E2;
         } else if (isConstant(E2)) {
@@ -476,7 +478,9 @@ function processAssignmentIn(ctx, input, currentLine) {
                 throw new Error("Not allowed CONST and CONSTL in same operation");
             }
             Object.keys(E1).forEach(function(key) {
-                E1[key] *= E2.CONST;
+                if (key === 'CONST' || key === 'CONSTL' || (key.startsWith('in') && !key.startsWith('ind'))) {
+                    E1[key] *= E2.CONST;
+                }
             });
             return E1;
         } else {
@@ -485,13 +489,17 @@ function processAssignmentIn(ctx, input, currentLine) {
     }
     if (input.type == "neg") {
         Object.keys(E1).forEach(function(key) {
-            E1[key] = -E1[key];
+            if (key === 'CONSTL') throw new Error(`Negation not allowed for CONSTL value=${E1[key]}`);
+
+            if (key === 'CONST' || (key.startsWith('in') && !key.startsWith('ind'))) {
+                E1[key] = -E1[key];
+            }
         });
         return E1;
     }
     if (input.type == "sub") {
         Object.keys(E2).forEach(function(key) {
-            if (key != "freeInTag") {
+            if (key === 'CONST' || key === 'CONSTL' || (key.startsWith('in') && !key.startsWith('ind'))) {
                 E2[key] = -E2[key];
             }
         });

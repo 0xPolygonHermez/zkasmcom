@@ -26,6 +26,7 @@ RR                      { return 'RR'; }
 STEP                    { return 'STEP'; }
 ROTL_C                  { return 'ROTL_C'; }
 HASHPOS                 { return 'HASHPOS'; }
+F_MLOAD                 { return 'F_MLOAD' }
 MLOAD                   { return 'MLOAD' }
 MSTORE                  { return 'MSTORE' }
 HASHKLEN                { return 'HASHKLEN' }
@@ -57,6 +58,8 @@ ARITH_ECADD_SAME        { return 'ARITH_ECADD_SAME' }
 ARITH_BN254_ADDFP2      { return 'ARITH_BN254_ADDFP2' }
 ARITH_BN254_SUBFP2      { return 'ARITH_BN254_SUBFP2' }
 ARITH_BN254_MULFP2      { return 'ARITH_BN254_MULFP2' }
+ARITH_SECP256R1_ECADD_DIFFERENT { return 'ARITH_SECP256R1_ECADD_DIFFERENT' }
+ARITH_SECP256R1_ECADD_SAME      { return 'ARITH_SECP256R1_ECADD_SAME' }
 ADD                     { return 'ADD' }
 SUB                     { return 'SUB' }
 LT                      { return 'LT' }
@@ -505,12 +508,21 @@ op
             $$ = $3;
             $$.mOp = 1;
             $$.mWR = 0;
+            $$.assumeFree = 0;
+        }
+    | F_MLOAD '(' addr ')'
+        {
+            $$ = $3;
+            $$.mOp = 1;
+            $$.mWR = 0;
+            $$.assumeFree = 1;
         }
     | MSTORE '(' addr ')'
         {
             $$ = $3;
             $$.mOp = 1;
             $$.mWR = 1;
+            $$.assumeFree = 0;
         }
     | HASHK '(' hashId ')'
         {
@@ -670,27 +682,35 @@ op
         }
     | ARITH
         {
-            $$ = { arithEq0: 1, arithEq1: 0, arithEq2: 0, arithEq3: 0, arithEq4: 0, arithEq5: 0 }
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 0, arithEq: 1 }
         }
     | ARITH_ECADD_DIFFERENT
         {
-            $$ = { arithEq0: 0, arithEq1: 1, arithEq2: 0, arithEq3: 0, arithEq4: 0, arithEq5: 0 }
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithEq: 2 }
         }
     | ARITH_ECADD_SAME
         {
-            $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 1, arithEq3: 0, arithEq4: 0, arithEq5: 0 }
+            $$ = { arith: 1, arithSame12: 1, arithUseE: 1, arithEq: 3 }
         }
     | ARITH_BN254_MULFP2
         {
-            $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 1, arithEq4: 0, arithEq5: 0 }
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithEq: 4 }
         }
     | ARITH_BN254_ADDFP2
         {
-            $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 0, arithEq4: 1, arithEq5: 0 }
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithEq: 5 }
         }
     | ARITH_BN254_SUBFP2
         {
-            $$ = { arithEq0: 0, arithEq1: 0, arithEq2: 0, arithEq3: 0, arithEq4: 0, arithEq5: 1 }
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithEq: 6 }
+        }
+    | ARITH_SECP256R1_ECADD_DIFFERENT
+        {
+            $$ = { arith: 1, arithSame12: 0, arithUseE: 1, arithEq: 7 }
+        }
+    | ARITH_SECP256R1_ECADD_SAME
+        {
+            $$ = { arith: 1, arithSame12: 1, arithUseE: 1, arithEq: 8 }
         }
     | ADD
         {
